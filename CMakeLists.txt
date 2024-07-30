@@ -3,4 +3,5 @@ project(Ray C)
 
 set(CMAKE_C_STANDARD 11)
 
-add_executable(Ray main.c)
+add_executable(Ray main.c
+        Defs.h)
