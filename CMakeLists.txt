@@ -7,4 +7,8 @@ add_executable(Ray main.c
         Defs.h
         Uci.h
         Uci.c
+        Position.h
+        Position.c
+        Notation.c
+        Notation.h
 )

@@ -1,9 +1,21 @@
 #include <string.h>
 #include <stdio.h>
 #include "Uci.h"
+#include "Position.h"
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
+    if (!strcmp(command[1], "startpos"))
+    {
+        loadFen(INITIAL_FEN);
+    }
+    else if (!strcmp(command[1], "fen"))
+    {
+        char fen[MAX_ARG_LEN];
+        memset(fen, '\0', sizeof(fen));
+        snprintf(fen, MAX_ARG_LEN, "%s %s %s %s %s %s", command[2], command[3], command[4], command[5], command[6], command[7]);
+        loadFen(fen);
+    }
 
 }
 
