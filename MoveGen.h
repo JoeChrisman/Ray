@@ -12,6 +12,8 @@ static U64 cardinalPins;
 static U64 ordinalPins;
 
 static U64 genKnightMoves(Move* moves, int movingType, U64 allowed);
+static U64 genBishopMoves(Move* moves, int movingType, U64 allowed);
+
 
 static U64 getWhitePawnAttacks(U64 pawns);
 static U64 getBlackPawnAttacks(U64 pawns);

@@ -6,11 +6,15 @@ void genMoves(Move* moves)
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
-        genKnightMoves(moves, WHITE_KNIGHT, position.black | ~position.occupied);
+        const U64 blackOrEmpty = position.black | ~position.occupied;
+        genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
+        genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
     }
     else
     {
-        genKnightMoves(moves, BLACK_KNIGHT, position.white | ~position.occupied);
+        const U64 whiteOrEmpty = position.black | ~position.occupied;
+        genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
+        genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
     }
 }
 
@@ -20,10 +24,12 @@ void genCaptures(Move* moves)
     if (position.isWhitesTurn)
     {
         genKnightMoves(moves, WHITE_KNIGHT, position.black);
+        genBishopMoves(moves, WHITE_BISHOP, position.black);
     }
     else
     {
         genKnightMoves(moves, BLACK_KNIGHT, position.white);
+        genBishopMoves(moves, WHITE_BISHOP, position.white);
     }
 }
 
@@ -39,6 +45,29 @@ static U64 genKnightMoves(Move* moves, int movingType, U64 allowed)
         {
             int to = GET_SQUARE(knightMoves);
             POP_SQUARE(knightMoves, to);
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        }
+    }
+}
+
+static U64 genBishopMoves(Move* moves, int movingType, U64 allowed)
+{
+    U64 bishops = position.boards[movingType] & ~cardinalPins;
+    while (bishops)
+    {
+        const int from = GET_SQUARE(bishops);
+        POP_SQUARE(bishops, from);
+        U64 bishopMoves = getOrdinalSlidingMoves(from, position.occupied);
+        bishopMoves &= allowed & resolvers;
+
+        if (GET_BOARD(from) & ordinalPins)
+        {
+            bishopMoves &= ordinalPins;
+        }
+        while (bishopMoves)
+        {
+            const int to = GET_SQUARE(bishopMoves);
+            POP_SQUARE(bishopMoves, to);
             *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         }
     }
