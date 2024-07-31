@@ -15,56 +15,6 @@ U64 getBlackPawnAttacks(U64 pawns)
     return eastAttacks | westAttacks;
 }
 
-U64 getResolverSquares(
-    int checkedKing,
-    U64 checkingPawns,
-    U64 attackerKnights,
-    U64 attackerBishops,
-    U64 attackerRooks,
-    U64 attackerQueens)
-{
-    const U64 cardinalRays = getCardinalSlidingMoves(checkedKing, EMPTY_BOARD);
-    const U64 ordinalRays = getOrdinalSlidingMoves(checkedKing, EMPTY_BOARD);
-    const U64 cardinalAttackers = (attackerRooks | attackerQueens) & cardinalRays;
-    const U64 ordinalAttackers = (attackerBishops | attackerQueens) & ordinalRays;
-    U64 attackers = cardinalAttackers | ordinalAttackers;
-    attackers |= knightAttacks[checkedKing] & attackerKnights;
-    attackers |= checkingPawns;
-
-    U64 resolvers = EMPTY_BOARD;
-    if (attackers)
-    {
-        if (GET_NUM_PIECES(attackers) == 1)
-        {
-            if (cardinalAttackers)
-            {
-                resolvers = getCardinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
-                resolvers &= cardinalRays;
-                resolvers |= attackers;
-            }
-            else if (ordinalAttackers)
-            {
-                resolvers = getOrdinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
-                resolvers &= ordinalRays;
-                resolvers |= attackers;
-            }
-            else
-            {
-                resolvers = attackers;
-            }
-        }
-        else
-        {
-            resolvers = EMPTY_BOARD;
-        }
-    }
-    else
-    {
-        resolvers = FULL_BOARD;
-    }
-    return resolvers;
-}
-
 void updateLegalityInfo()
 {
     int friendlyKingSquare;
@@ -122,6 +72,16 @@ void updateLegalityInfo()
         enemyBishops,
         enemyRooks,
         enemyQueens);
+
+    ordinalPins = getOrdinalPins(
+        friendlyKingSquare,
+        friendlies,
+        enemyBishops | enemyQueens);
+
+    cardinalPins = getCardinalPins(
+        friendlyKingSquare,
+        friendlies,
+        enemyRooks | enemyQueens);
 }
 
 U64 getAttacks(
@@ -166,6 +126,100 @@ U64 getAttacks(
     }
     attackedSquares |= kingAttacks[GET_SQUARE(attackerKing)];
     return attackedSquares;
+}
+
+U64 getResolverSquares(
+    int checkedKing,
+    U64 checkingPawns,
+    U64 attackerKnights,
+    U64 attackerBishops,
+    U64 attackerRooks,
+    U64 attackerQueens)
+{
+    const U64 cardinalRays = getCardinalSlidingMoves(checkedKing, EMPTY_BOARD);
+    const U64 ordinalRays = getOrdinalSlidingMoves(checkedKing, EMPTY_BOARD);
+    const U64 cardinalAttackers = (attackerRooks | attackerQueens) & cardinalRays;
+    const U64 ordinalAttackers = (attackerBishops | attackerQueens) & ordinalRays;
+    U64 attackers = cardinalAttackers | ordinalAttackers;
+    attackers |= knightAttacks[checkedKing] & attackerKnights;
+    attackers |= checkingPawns;
+
+    U64 resolvers = EMPTY_BOARD;
+    if (attackers)
+    {
+        if (GET_NUM_PIECES(attackers) == 1)
+        {
+            if (cardinalAttackers)
+            {
+                resolvers = getCardinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolvers &= cardinalRays;
+                resolvers |= attackers;
+            }
+            else if (ordinalAttackers)
+            {
+                resolvers = getOrdinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolvers &= ordinalRays;
+                resolvers |= attackers;
+            }
+            else
+            {
+                resolvers = attackers;
+            }
+        }
+        else
+        {
+            resolvers = EMPTY_BOARD;
+        }
+    }
+    else
+    {
+        resolvers = FULL_BOARD;
+    }
+    return resolvers;
+}
+
+U64 getCardinalPins(
+    int king,
+    U64 friendlies,
+    U64 enemyCardinals)
+{
+    U64 allCardinalPins = EMPTY_BOARD;
+    const U64 pinned = getCardinalSlidingMoves(king, friendlies) & friendlies;
+    friendlies ^= pinned;
+    const U64 pins = getCardinalSlidingMoves(king, friendlies);
+    U64 pinners = pins & enemyCardinals;
+    while (pinners)
+    {
+        int pinner = GET_SQUARE(pinners);
+        POP_SQUARE(pinners, pinner);
+        U64 pin = getCardinalSlidingMoves(pinner, friendlies);
+        pin &= pins;
+        pin |= GET_BOARD(pinner);
+        allCardinalPins |= pin;
+    }
+    return allCardinalPins;
+}
+
+U64 getOrdinalPins(
+    int king,
+    U64 friendlies,
+    U64 enemyOrdinals)
+{
+    U64 allOrdinalPins = EMPTY_BOARD;
+    const U64 pinned = getOrdinalSlidingMoves(king, friendlies) & friendlies;
+    friendlies ^= pinned;
+    const U64 pins = getOrdinalSlidingMoves(king, friendlies);
+    U64 pinners = pins & enemyOrdinals;
+    while (pinners)
+    {
+        int pinner = GET_SQUARE(pinners);
+        POP_SQUARE(pinners, pinner);
+        U64 pin = getOrdinalSlidingMoves(pinner, friendlies);
+        pin &= pins;
+        pin |= GET_BOARD(pinner);
+        allOrdinalPins |= pin;
+    }
+    return allOrdinalPins;
 }
 
 U64 getCardinalSlidingMoves(int from, U64 blockers)

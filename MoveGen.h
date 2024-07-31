@@ -12,8 +12,17 @@ static U64 ordinalPins;
 static U64 getWhitePawnAttacks(U64 pawns);
 static U64 getBlackPawnAttacks(U64 pawns);
 
+static inline U64 getCardinalPins(
+    int friendlyKing,
+    U64 friendlies,
+    U64 enemyCardinals);
 
-static U64 getAttacks(
+static inline U64 getOrdinalPins(
+    int friendlyKing,
+    U64 friendlies,
+    U64 enemyCardinals);
+
+static inline U64 getAttacks(
     U64 defenderKing,
     U64 allDefenders,
     U64 pawnAttacks,
@@ -23,7 +32,7 @@ static U64 getAttacks(
     U64 attackerQueens,
     U64 attackerKing);
 
-static U64 getResolverSquares(
+static inline U64 getResolverSquares(
     int checkedKing,
     U64 pawnAttacks,
     U64 attackerKnights,
