@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "AttackTables.h"
+#include <time.h>
 
 MagicSquare ordinalMagics[NUM_SQUARES];
 MagicSquare cardinalMagics[NUM_SQUARES];
@@ -16,7 +17,7 @@ void initAttackTables()
     initKingAttackTable();
 }
 
-void initCardinalAttackTable()
+static void initCardinalAttackTable()
 {
     for (int square = 0; square < NUM_SQUARES; square++)
     {
@@ -25,7 +26,7 @@ void initCardinalAttackTable()
     }
 }
 
-void initOrdinalAttackTable()
+static void initOrdinalAttackTable()
 {
     for (int square = 0; square < NUM_SQUARES; square++)
     {
@@ -34,7 +35,7 @@ void initOrdinalAttackTable()
     }
 }
 
-void initKnightAttackTable()
+static void initKnightAttackTable()
 {
     for (int square = 0; square < NUM_SQUARES; square++)
     {
@@ -49,7 +50,7 @@ void initKnightAttackTable()
     }
 }
 
-void initKingAttackTable()
+static void initKingAttackTable()
 {
     for (int square = 0; square < NUM_SQUARES; square++)
     {
@@ -62,12 +63,12 @@ void initKingAttackTable()
     }
 }
 
-U64 random64()
+static U64 random64()
 {
     return ((U64)(rand()) << 32) | rand();
 }
 
-U64 getMagicNumber(int square, int isCardinal)
+static U64 getMagicNumber(int square, int isCardinal)
 {
     U64 blockerMask = isCardinal ? cardinalMagics[square].blockers : ordinalMagics[square].blockers;
     const int numPermutations = 1 << GET_NUM_PIECES(blockerMask);
@@ -139,7 +140,7 @@ U64 getMagicNumber(int square, int isCardinal)
     return EMPTY_BOARD;
 }
 
-U64 getBishopBlockers(int from)
+static U64 getBishopBlockers(int from)
 {
     U64 endpoints = A_FILE |
                     H_FILE |
@@ -149,7 +150,7 @@ U64 getBishopBlockers(int from)
     return getBishopAttacks(from, endpoints, 0) & ~GET_BOARD(from);
 }
 
-U64 getRookBlockers(int from)
+static U64 getRookBlockers(int from)
 {
     int rank = GET_RANK(from);
     int file = GET_FILE(from);
@@ -164,7 +165,7 @@ U64 getRookBlockers(int from)
     return getRookAttacks(from, endpoints, 0) & ~GET_BOARD(from);
 }
 
-U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
+static U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
 {
     U64 attacks = EMPTY_BOARD;
 
@@ -227,7 +228,7 @@ U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
     return attacks;
 }
 
-U64 getRookAttacks(int from, U64 blockers, int isCaptures)
+static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
 {
     U64 attacks = EMPTY_BOARD;
 
