@@ -1,5 +1,6 @@
 #include "MoveGen.h"
 #include "AttackTables.h"
+#include "Position.h"
 
 void genMoves(Move* moves)
 {

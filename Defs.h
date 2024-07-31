@@ -68,24 +68,6 @@ extern const U64 RANKS[8];
 #define BLACK_CASTLE_KINGSIDE  4
 #define BLACK_CASTLE_QUEENSIDE 8
 
-typedef struct
-{
-    U64 boards[NUM_PIECE_TYPES + 1];
-    int pieces[NUM_SQUARES];
-
-    U64 passant;
-    int isWhitesTurn;
-    int castleFlags;
-    int halfMoves;
-    int fullMoves;
-
-    U64 black;
-    U64 white;
-    U64 occupied;
-} Position;
-
-extern Position position;
-
 extern void printBitboard(U64 board);
 
 #endif
