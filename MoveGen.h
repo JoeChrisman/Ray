@@ -5,6 +5,7 @@
 #include "Move.h"
 
 extern void genMoves(Move* moves);
+extern void genCaptures(Move* moves);
 
 static U64 safe;
 static U64 resolvers;
@@ -14,7 +15,7 @@ static U64 ordinalPins;
 static U64 genKnightMoves(Move* moves, int movingType, U64 allowed);
 static U64 genBishopMoves(Move* moves, int movingType, U64 allowed);
 static U64 genRookMoves(Move* moves, int movingType, U64 allowed);
-
+static U64 genQueenMoves(Move* moves, int movingType, U64 allowed);
 
 static U64 getWhitePawnAttacks(U64 pawns);
 static U64 getBlackPawnAttacks(U64 pawns);

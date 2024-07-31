@@ -10,6 +10,7 @@ void genMoves(Move* moves)
         genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
         genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
         genRookMoves(moves, WHITE_ROOK, blackOrEmpty);
+        genQueenMoves(moves, WHITE_QUEEN, blackOrEmpty);
     }
     else
     {
@@ -17,6 +18,7 @@ void genMoves(Move* moves)
         genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
         genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
         genRookMoves(moves, BLACK_ROOK, whiteOrEmpty);
+        genQueenMoves(moves, BLACK_QUEEN, whiteOrEmpty);
     }
 }
 
@@ -28,12 +30,14 @@ void genCaptures(Move* moves)
         genKnightMoves(moves, WHITE_KNIGHT, position.black);
         genBishopMoves(moves, WHITE_BISHOP, position.black);
         genRookMoves(moves, WHITE_ROOK, position.black);
+        genQueenMoves(moves, WHITE_QUEEN, position.black);
     }
     else
     {
         genKnightMoves(moves, BLACK_KNIGHT, position.white);
         genBishopMoves(moves, BLACK_BISHOP, position.white);
         genRookMoves(moves, BLACK_ROOK, position.white);
+        genQueenMoves(moves, BLACK_QUEEN, position.white);
     }
 }
 
@@ -99,6 +103,42 @@ static U64 genRookMoves(Move* moves, int movingType, U64 allowed)
         }
     }
 }
+
+U64 genQueenMoves(Move* moves, int movingType, U64 allowed)
+{
+    U64 queens = position.boards[movingType];
+    while (queens)
+    {
+        U64 queenMoves = EMPTY_BOARD;
+        const int from = GET_SQUARE(queens);
+        POP_SQUARE(queens, from);
+        U64 queen = GET_BOARD(from);
+        if (queen & ~cardinalPins)
+        {
+            queenMoves |= getOrdinalSlidingMoves(from, position.occupied);
+            if (queen & ordinalPins)
+            {
+                queenMoves &= ordinalPins;
+            }
+        }
+        if (queen & ~ordinalPins)
+        {
+            queenMoves |= getCardinalSlidingMoves(from, position.occupied);
+            if (queen & cardinalPins)
+            {
+                queenMoves &= cardinalPins;
+            }
+        }
+        queenMoves &= resolvers & allowed;
+        while (queenMoves)
+        {
+            const int to = GET_SQUARE(queenMoves);
+            POP_SQUARE(queenMoves, to);
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        }
+    }
+}
+
 
 
 void updateLegalityInfo()
