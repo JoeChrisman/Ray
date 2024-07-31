@@ -9,12 +9,14 @@ void genMoves(Move* moves)
         const U64 blackOrEmpty = position.black | ~position.occupied;
         genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
         genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
+        genRookMoves(moves, WHITE_ROOK, blackOrEmpty);
     }
     else
     {
         const U64 whiteOrEmpty = position.black | ~position.occupied;
         genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
         genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
+        genRookMoves(moves, BLACK_ROOK, whiteOrEmpty);
     }
 }
 
@@ -25,11 +27,13 @@ void genCaptures(Move* moves)
     {
         genKnightMoves(moves, WHITE_KNIGHT, position.black);
         genBishopMoves(moves, WHITE_BISHOP, position.black);
+        genRookMoves(moves, WHITE_ROOK, position.black);
     }
     else
     {
         genKnightMoves(moves, BLACK_KNIGHT, position.white);
-        genBishopMoves(moves, WHITE_BISHOP, position.white);
+        genBishopMoves(moves, BLACK_BISHOP, position.white);
+        genRookMoves(moves, BLACK_ROOK, position.white);
     }
 }
 
@@ -72,6 +76,30 @@ static U64 genBishopMoves(Move* moves, int movingType, U64 allowed)
         }
     }
 }
+
+static U64 genRookMoves(Move* moves, int movingType, U64 allowed)
+{
+    U64 rooks = position.boards[movingType] & ~ordinalPins;
+    while (rooks)
+    {
+        const int from = GET_SQUARE(rooks);
+        POP_SQUARE(rooks, from);
+        U64 rookMoves = getCardinalSlidingMoves(from, position.occupied);
+        rookMoves &= allowed & resolvers;
+
+        if (GET_BOARD(from) & cardinalPins)
+        {
+            rookMoves &= cardinalPins;
+        }
+        while (rookMoves)
+        {
+            const int to = GET_SQUARE(rookMoves);
+            POP_SQUARE(rookMoves, to);
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        }
+    }
+}
+
 
 void updateLegalityInfo()
 {
