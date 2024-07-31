@@ -86,6 +86,6 @@ typedef struct
 
 extern Position position;
 
-extern void printBitboard(const U64 board);
+extern void printBitboard(U64 board);
 
 #endif

@@ -1,18 +1,47 @@
 #include "MoveGen.h"
 #include "AttackTables.h"
 
-U64 getWhitePawnAttacks(U64 pawns)
+void genMoves(Move* moves)
 {
-    const U64 eastAttacks = BOARD_NORTH_EAST(pawns) & NOT_A_FILE;
-    const U64 westAttacks = BOARD_NORTH_WEST(pawns) & NOT_H_FILE;
-    return eastAttacks | westAttacks;
+    updateLegalityInfo();
+    if (position.isWhitesTurn)
+    {
+        genKnightMoves(moves, WHITE_KNIGHT, position.black | ~position.occupied);
+    }
+    else
+    {
+        genKnightMoves(moves, BLACK_KNIGHT, position.white | ~position.occupied);
+    }
 }
 
-U64 getBlackPawnAttacks(U64 pawns)
+void genCaptures(Move* moves)
 {
-    const U64 eastAttacks = BOARD_SOUTH_EAST(pawns) & NOT_A_FILE;
-    const U64 westAttacks = BOARD_SOUTH_WEST(pawns) & NOT_H_FILE;
-    return eastAttacks | westAttacks;
+    updateLegalityInfo();
+    if (position.isWhitesTurn)
+    {
+        genKnightMoves(moves, WHITE_KNIGHT, position.black);
+    }
+    else
+    {
+        genKnightMoves(moves, BLACK_KNIGHT, position.white);
+    }
+}
+
+static U64 genKnightMoves(Move* moves, int movingType, U64 allowed)
+{
+    U64 knights = position.boards[movingType] & ~(ordinalPins | cardinalPins);
+    while (knights)
+    {
+        int from = GET_SQUARE(knights);
+        POP_SQUARE(knights, from);
+        U64 knightMoves = knightAttacks[from] & resolvers & allowed;
+        while (knightMoves)
+        {
+            int to = GET_SQUARE(knightMoves);
+            POP_SQUARE(knightMoves, to);
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        }
+    }
 }
 
 void updateLegalityInfo()
@@ -95,12 +124,6 @@ U64 getAttacks(
     U64 attackerKing)
 {
     U64 attackedSquares = pawnAttacks;
-
-    /*
-     * exclude the defending king from the blocker set when
-     * generating sliding attack moves. this will prevent
-     * the king from stepping back along the attack ray
-    */
     const U64 blockers = allDefenders ^ defenderKing;
 
     U64 cardinalAttackers = attackerRooks | attackerQueens;
@@ -234,4 +257,18 @@ U64 getOrdinalSlidingMoves(int from, U64 blockers)
     const MagicSquare square = cardinalMagics[from];
     U64 blockerNum = square.blockers & blockers;
     return ordinalAttacks[from][blockerNum * square.magic >> 55];
+}
+
+U64 getWhitePawnAttacks(U64 pawns)
+{
+    const U64 eastAttacks = BOARD_NORTH_EAST(pawns) & NOT_A_FILE;
+    const U64 westAttacks = BOARD_NORTH_WEST(pawns) & NOT_H_FILE;
+    return eastAttacks | westAttacks;
+}
+
+U64 getBlackPawnAttacks(U64 pawns)
+{
+    const U64 eastAttacks = BOARD_SOUTH_EAST(pawns) & NOT_A_FILE;
+    const U64 westAttacks = BOARD_SOUTH_WEST(pawns) & NOT_H_FILE;
+    return eastAttacks | westAttacks;
 }
