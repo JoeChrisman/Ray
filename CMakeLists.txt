@@ -11,4 +11,5 @@ add_executable(Ray main.c
         Position.c
         Notation.c
         Notation.h
+        Move.h
 )

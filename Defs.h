@@ -1,10 +1,9 @@
 #ifndef RAY_DEFS_H
 #define RAY_DEFS_H
 
-#include "stdint.h"
+#include <stdint.h>
 
 typedef uint64_t U64;
-typedef uint32_t Move;
 
 #define NUM_PIECE_TYPES 12
 #define NUM_SQUARES 64
