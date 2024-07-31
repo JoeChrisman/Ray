@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "Uci.h"
 #include "Position.h"
+#include "AttackTables.h"
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
@@ -29,6 +30,7 @@ void handleCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 
 int runUci()
 {
+    initAttackTables();
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");

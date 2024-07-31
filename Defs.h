@@ -1,6 +1,7 @@
 #ifndef RAY_DEFS_H
 #define RAY_DEFS_H
 
+#include <stdio.h>
 #include <stdint.h>
 
 typedef uint64_t U64;
@@ -37,6 +38,9 @@ typedef uint64_t U64;
 
 #define A_FILE 0x0101010101010101
 #define H_FILE 0x8080808080808080
+
+#define NOT_A_FILE 0xFEFEFEFEFEFEFEFE
+#define NOT_H_FILE 0x7F7F7F7F7F7F7F7F
 
 extern const U64 FILES[8];
 extern const U64 RANKS[8];
@@ -77,9 +81,11 @@ typedef struct
 
     U64 black;
     U64 white;
-    U64 empty;
+    U64 occupied;
 } Position;
 
 extern Position position;
+
+extern void printBitboard(const U64 board);
 
 #endif

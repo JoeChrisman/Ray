@@ -14,7 +14,9 @@ add_executable(Ray main.c
         Notation.c
         Notation.h
         Move.h
-        Magics.h
-        Magics.c
+        AttackTables.h
+        AttackTables.c
         Defs.c
+        MoveGen.h
+        MoveGen.c
 )

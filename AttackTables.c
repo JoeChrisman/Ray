@@ -1,24 +1,65 @@
 #include <stdlib.h>
-#include <stdio.h>
-#include <time.h>
-#include "Magics.h"
+#include "AttackTables.h"
 
-MagicSquare ordinalMagics[64];
-MagicSquare cardinalMagics[64];
+MagicSquare ordinalMagics[NUM_SQUARES];
+MagicSquare cardinalMagics[NUM_SQUARES];
+U64 ordinalAttacks[NUM_SQUARES][512];
+U64 cardinalAttacks[NUM_SQUARES][4096];
+U64 knightAttacks[NUM_SQUARES];
+U64 kingAttacks[NUM_SQUARES];
 
-void initMagics()
+void initAttackTables()
 {
-    clock_t startTime = clock();
+    initCardinalAttackTable();
+    initOrdinalAttackTable();
+    initKnightAttackTable();
+    initKingAttackTable();
+}
+
+void initCardinalAttackTable()
+{
     for (int square = 0; square < NUM_SQUARES; square++)
     {
         cardinalMagics[square].blockers = getRookBlockers(square);
-        ordinalMagics[square].blockers = getBishopBlockers(square);
-
         cardinalMagics[square].magic = getMagicNumber(square, 1);
+    }
+}
+
+void initOrdinalAttackTable()
+{
+    for (int square = 0; square < NUM_SQUARES; square++)
+    {
+        ordinalMagics[square].blockers = getBishopBlockers(square);
         ordinalMagics[square].magic = getMagicNumber(square, 0);
     }
-    const int msElapsed = (double)(clock() - startTime) / CLOCKS_PER_SEC * 1000;
-    printf("Initialized magic number tables in %dms\n", msElapsed);
+}
+
+void initKnightAttackTable()
+{
+    for (int square = 0; square < NUM_SQUARES; square++)
+    {
+        const U64 knight = GET_BOARD(square);
+        U64 attacks = BOARD_NORTH(BOARD_NORTH(knight)) | BOARD_SOUTH(BOARD_SOUTH(knight));
+        knightAttacks[square] |= BOARD_EAST(attacks) & NOT_A_FILE;
+        knightAttacks[square] |= BOARD_WEST(attacks) & NOT_H_FILE;
+        U64 eastAttacks = BOARD_EAST(BOARD_EAST(knight) & NOT_A_FILE) & NOT_A_FILE;
+        U64 westAttacks = BOARD_WEST(BOARD_WEST(knight) & NOT_H_FILE) & NOT_H_FILE;
+        knightAttacks[square] |= BOARD_NORTH(eastAttacks) | BOARD_SOUTH(eastAttacks);
+        knightAttacks[square] |= BOARD_NORTH(westAttacks) | BOARD_SOUTH(westAttacks);
+    }
+}
+
+void initKingAttackTable()
+{
+    for (int square = 0; square < NUM_SQUARES; square++)
+    {
+        U64 attacks = GET_BOARD(square);
+        attacks |= BOARD_EAST(attacks) & NOT_A_FILE;
+        attacks |= BOARD_WEST(attacks) & NOT_H_FILE;
+        attacks |= BOARD_NORTH(attacks);
+        attacks |= BOARD_SOUTH(attacks);
+        kingAttacks[square] = attacks;
+    }
 }
 
 U64 random64()
@@ -56,7 +97,6 @@ U64 getMagicNumber(int square, int isCardinal)
         attacks[permutation] = isCardinal ? getRookAttacks(square, actualBlockers, 1)
                                           : getBishopAttacks(square, actualBlockers, 1);
     }
-
 
     while (1)
     {

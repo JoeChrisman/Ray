@@ -3,12 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include "Uci.h"
-#include "Magics.h"
 
 int main()
 {
     srand(time(NULL));
-    initMagics();
 
     char input[4];
     memset(input, '\0', sizeof(input));
