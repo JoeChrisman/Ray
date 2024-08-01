@@ -159,13 +159,13 @@ static void genWhitePawnCaptures(Move** moves)
     const U64 ordinalPinnedPawns = whitePawns & ordinalPins;
 
     const U64 allowedCaptures = position.black & resolvers;
-    const U64 unpinnedEastCaptures = BOARD_NORTH_EAST(unpinnedPawns) & NOT_A_FILE & allowedCaptures;
-    const U64 unpinnedWestCaptures = BOARD_NORTH_WEST(unpinnedPawns) & NOT_H_FILE & allowedCaptures;
-    const U64 pinnedEastCaptures = BOARD_NORTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & allowedCaptures & ordinalPins;
-    const U64 pinnedWestCaptures = BOARD_NORTH_WEST(ordinalPinnedPawns) & NOT_H_FILE & allowedCaptures & ordinalPins;
+    const U64 unpinnedEastCaptures = BOARD_NORTH_EAST(unpinnedPawns) & NOT_A_FILE;
+    const U64 unpinnedWestCaptures = BOARD_NORTH_WEST(unpinnedPawns) & NOT_H_FILE;
+    const U64 pinnedEastCaptures = BOARD_NORTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & ordinalPins;
+    const U64 pinnedWestCaptures = BOARD_NORTH_WEST(ordinalPinnedPawns) & NOT_H_FILE & ordinalPins;
 
-    U64 eastCaptures = unpinnedEastCaptures | pinnedEastCaptures;
-    U64 westCaptures = unpinnedWestCaptures | pinnedWestCaptures;
+    U64 eastCaptures = (unpinnedEastCaptures | pinnedEastCaptures) & allowedCaptures;
+    U64 westCaptures = (unpinnedWestCaptures | pinnedWestCaptures) & allowedCaptures;
 
     const U64 eastCapturePromotions = eastCaptures & RANK_8;
     const U64 westCapturePromotions = westCaptures & RANK_8;
@@ -191,6 +191,33 @@ static void genWhitePawnCaptures(Move** moves)
         (*moves)++;
     }
 
+    if (position.passant != EMPTY_BOARD)
+    {
+        const U64 allowed = position.passant & BOARD_NORTH(resolvers);
+        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & allowed;
+        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & allowed;
+        const U64 blockers = position.occupied & ~BOARD_SOUTH(position.passant);
+        U64 moving = BOARD_SOUTH_EAST(westEnPassant) | BOARD_SOUTH_WEST(eastEnPassant);
+        const U64 scan = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_5;
+        const U64 cardinalAttackers = position.boards[BLACK_QUEEN] | position.boards[BLACK_ROOK];
+        if (!(scan & position.boards[WHITE_KING] && scan & cardinalAttackers))
+        {
+            const int to = GET_SQUARE(position.passant);
+            if (eastEnPassant)
+            {
+                const int from = GET_SQUARE(moving);
+                POP_SQUARE(moving, from);
+                **moves = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                (*moves)++;
+            }
+            if (westEnPassant)
+            {
+                const int from = GET_SQUARE(moving);
+                **moves = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                (*moves)++;
+            }
+        }
+    }
 }
 
 static void genKnightMoves(Move** moves, int movingType, U64 allowed)

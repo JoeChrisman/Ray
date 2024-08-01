@@ -44,7 +44,7 @@ char getCharFromPiece(int piece)
 
 int getRankFromChar(char rank)
 {
-    return 7 - (int)(rank - '1');
+    return (int)(rank - '1');
 }
 
 int getFileFromChar(char file)
