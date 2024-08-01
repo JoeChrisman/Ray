@@ -12,13 +12,13 @@ static U64 resolvers;
 static U64 cardinalPins;
 static U64 ordinalPins;
 
-static void genKnightMoves(Move* moves, int movingType, U64 allowed);
-static void genBishopMoves(Move* moves, int movingType, U64 allowed);
-static void genRookMoves(Move* moves, int movingType, U64 allowed);
-static void genQueenMoves(Move* moves, int movingType, U64 allowed);
+static inline void genKnightMoves(Move** moves, int movingType, U64 allowed);
+static inline void genBishopMoves(Move** moves, int movingType, U64 allowed);
+static inline void genRookMoves(Move** moves, int movingType, U64 allowed);
+static inline void genQueenMoves(Move** moves, int movingType, U64 allowed);
 
-static U64 getWhitePawnAttacks(U64 pawns);
-static U64 getBlackPawnAttacks(U64 pawns);
+static inline U64 getWhitePawnAttacks(U64 pawns);
+static inline U64 getBlackPawnAttacks(U64 pawns);
 
 static inline U64 getCardinalPins(
     int friendlyKing,
@@ -42,6 +42,7 @@ static inline U64 getAttacks(
 
 static inline U64 getResolverSquares(
     int checkedKing,
+    U64 occupied,
     U64 pawnAttacks,
     U64 attackerKnights,
     U64 attackerBishops,

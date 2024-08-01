@@ -48,6 +48,15 @@ int loadFen(const char* fen)
                 clearPosition();
                 return 1;
             }
+            if (IS_WHITE_PIECE(piece))
+            {
+                position.white |= GET_BOARD(square);
+            }
+            else if (IS_BLACK_PIECE(piece))
+            {
+                position.black |= GET_BOARD(square);
+            }
+            position.occupied |= GET_BOARD(square);
             position.boards[piece] |= GET_BOARD(square);
             position.pieces[square] = piece;
             square++;

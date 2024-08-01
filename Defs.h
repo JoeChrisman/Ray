@@ -5,8 +5,8 @@
 #include <stdint.h>
 
 typedef uint64_t U64;
-#define EMPTY_BOARD 0x00000000
-#define FULL_BOARD  0xFFFFFFFF
+#define EMPTY_BOARD 0x0000000000000000
+#define FULL_BOARD  0xFFFFFFFFFFFFFFFF
 
 #define NUM_PIECE_TYPES 12
 #define NUM_SQUARES 64
@@ -62,6 +62,9 @@ extern const U64 RANKS[8];
 #define BLACK_ROOK   10
 #define BLACK_QUEEN  11
 #define BLACK_KING   12
+
+#define IS_WHITE_PIECE(piece) ((piece) < 7)
+#define IS_BLACK_PIECE(piece) ((piece) > 6)
 
 #define WHITE_CASTLE_KINGSIDE  1
 #define WHITE_CASTLE_QUEENSIDE 2

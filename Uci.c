@@ -3,6 +3,8 @@
 #include "Uci.h"
 #include "Position.h"
 #include "AttackTables.h"
+#include "MoveGen.h"
+#include "Notation.h"
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
@@ -16,6 +18,15 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
         memset(fen, '\0', sizeof(fen));
         snprintf(fen, MAX_ARG_LEN, "%s %s %s %s %s %s", command[2], command[3], command[4], command[5], command[6], command[7]);
         loadFen(fen);
+    }
+
+    Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    genMoves(moves);
+    for (int i = 0; i < MAX_MOVES_IN_POSITION; i++)
+    {
+
+        printf("%d, %c\n", moves[i], getCharFromPiece(GET_PIECE_MOVED(moves[i])));
+
     }
 
 }

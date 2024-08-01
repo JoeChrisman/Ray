@@ -8,18 +8,18 @@ void genMoves(Move* moves)
     if (position.isWhitesTurn)
     {
         const U64 blackOrEmpty = position.black | ~position.occupied;
-        genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
-        genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
-        genRookMoves(moves, WHITE_ROOK, blackOrEmpty);
-        genQueenMoves(moves, WHITE_QUEEN, blackOrEmpty);
+        genKnightMoves(&moves, WHITE_KNIGHT, blackOrEmpty);
+        genBishopMoves(&moves, WHITE_BISHOP, blackOrEmpty);
+        genRookMoves(&moves, WHITE_ROOK, blackOrEmpty);
+        genQueenMoves(&moves, WHITE_QUEEN, blackOrEmpty);
     }
     else
     {
-        const U64 whiteOrEmpty = position.black | ~position.occupied;
-        genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
-        genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
-        genRookMoves(moves, BLACK_ROOK, whiteOrEmpty);
-        genQueenMoves(moves, BLACK_QUEEN, whiteOrEmpty);
+        const U64 whiteOrEmpty = position.white | ~position.occupied;
+        genKnightMoves(&moves, BLACK_KNIGHT, whiteOrEmpty);
+        genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
+        genRookMoves(&moves, BLACK_ROOK, whiteOrEmpty);
+        genQueenMoves(&moves, BLACK_QUEEN, whiteOrEmpty);
     }
 }
 
@@ -28,38 +28,46 @@ void genCaptures(Move* moves)
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
-        genKnightMoves(moves, WHITE_KNIGHT, position.black);
-        genBishopMoves(moves, WHITE_BISHOP, position.black);
-        genRookMoves(moves, WHITE_ROOK, position.black);
-        genQueenMoves(moves, WHITE_QUEEN, position.black);
+        genKnightMoves(&moves, WHITE_KNIGHT, position.black);
+        genBishopMoves(&moves, WHITE_BISHOP, position.black);
+        genRookMoves(&moves, WHITE_ROOK, position.black);
+        genQueenMoves(&moves, WHITE_QUEEN, position.black);
     }
     else
     {
-        genKnightMoves(moves, BLACK_KNIGHT, position.white);
-        genBishopMoves(moves, BLACK_BISHOP, position.white);
-        genRookMoves(moves, BLACK_ROOK, position.white);
-        genQueenMoves(moves, BLACK_QUEEN, position.white);
+        genKnightMoves(&moves, BLACK_KNIGHT, position.white);
+        genBishopMoves(&moves, BLACK_BISHOP, position.white);
+        genRookMoves(&moves, BLACK_ROOK, position.white);
+        genQueenMoves(&moves, BLACK_QUEEN, position.white);
     }
 }
 
-static void genKnightMoves(Move* moves, int movingType, U64 allowed)
+static void genKnightMoves(Move** moves, int movingType, U64 allowed)
 {
+    printf("Resolvers: \n");
+    printBitboard(resolvers);
+    printf("Allowed: \n");
+    printBitboard(allowed);
     U64 knights = position.boards[movingType] & ~(ordinalPins | cardinalPins);
+    printf("Knights: \n");
+    printBitboard(knights);
     while (knights)
     {
-        int from = GET_SQUARE(knights);
+        const int from = GET_SQUARE(knights);
         POP_SQUARE(knights, from);
         U64 knightMoves = knightAttacks[from] & resolvers & allowed;
+        printBitboard(knightMoves);
         while (knightMoves)
         {
-            int to = GET_SQUARE(knightMoves);
+            const int to = GET_SQUARE(knightMoves);
             POP_SQUARE(knightMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
         }
     }
 }
 
-static void genBishopMoves(Move* moves, int movingType, U64 allowed)
+static void genBishopMoves(Move** moves, int movingType, U64 allowed)
 {
     U64 bishops = position.boards[movingType] & ~cardinalPins;
     while (bishops)
@@ -77,12 +85,13 @@ static void genBishopMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(bishopMoves);
             POP_SQUARE(bishopMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
         }
     }
 }
 
-static void genRookMoves(Move* moves, int movingType, U64 allowed)
+static void genRookMoves(Move** moves, int movingType, U64 allowed)
 {
     U64 rooks = position.boards[movingType] & ~ordinalPins;
     while (rooks)
@@ -100,12 +109,13 @@ static void genRookMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(rookMoves);
             POP_SQUARE(rookMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
         }
     }
 }
 
-static void genQueenMoves(Move* moves, int movingType, U64 allowed)
+static void genQueenMoves(Move** moves, int movingType, U64 allowed)
 {
     U64 queens = position.boards[movingType];
     while (queens)
@@ -135,7 +145,8 @@ static void genQueenMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(queenMoves);
             POP_SQUARE(queenMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
         }
     }
 }
@@ -194,6 +205,7 @@ void updateLegalityInfo()
 
     resolvers = getResolverSquares(
         friendlyKingSquare,
+        position.occupied,
         enemyPawnAttackers,
         enemyKnights,
         enemyBishops,
@@ -251,52 +263,53 @@ static U64 getAttacks(
 
 static U64 getResolverSquares(
     int checkedKing,
+    U64 occupied,
     U64 checkingPawns,
     U64 attackerKnights,
     U64 attackerBishops,
     U64 attackerRooks,
     U64 attackerQueens)
 {
-    const U64 cardinalRays = getCardinalSlidingMoves(checkedKing, EMPTY_BOARD);
-    const U64 ordinalRays = getOrdinalSlidingMoves(checkedKing, EMPTY_BOARD);
+    const U64 cardinalRays = getCardinalSlidingMoves(checkedKing, occupied);
+    const U64 ordinalRays = getOrdinalSlidingMoves(checkedKing, occupied);
     const U64 cardinalAttackers = (attackerRooks | attackerQueens) & cardinalRays;
     const U64 ordinalAttackers = (attackerBishops | attackerQueens) & ordinalRays;
     U64 attackers = cardinalAttackers | ordinalAttackers;
     attackers |= knightAttacks[checkedKing] & attackerKnights;
     attackers |= checkingPawns;
 
-    U64 resolvers = EMPTY_BOARD;
+    U64 resolverSquares = EMPTY_BOARD;
     if (attackers)
     {
         if (GET_NUM_PIECES(attackers) == 1)
         {
             if (cardinalAttackers)
             {
-                resolvers = getCardinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
-                resolvers &= cardinalRays;
-                resolvers |= attackers;
+                resolverSquares = getCardinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolverSquares &= cardinalRays;
+                resolverSquares |= attackers;
             }
             else if (ordinalAttackers)
             {
-                resolvers = getOrdinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
-                resolvers &= ordinalRays;
-                resolvers |= attackers;
+                resolverSquares = getOrdinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolverSquares &= ordinalRays;
+                resolverSquares |= attackers;
             }
             else
             {
-                resolvers = attackers;
+                resolverSquares = attackers;
             }
         }
         else
         {
-            resolvers = EMPTY_BOARD;
+            resolverSquares = EMPTY_BOARD;
         }
     }
     else
     {
-        resolvers = FULL_BOARD;
+        resolverSquares = FULL_BOARD;
     }
-    return resolvers;
+    return resolverSquares;
 }
 
 static U64 getCardinalPins(
@@ -352,7 +365,7 @@ static U64 getCardinalSlidingMoves(int from, U64 blockers)
 
 static U64 getOrdinalSlidingMoves(int from, U64 blockers)
 {
-    const MagicSquare square = cardinalMagics[from];
+    const MagicSquare square = ordinalMagics[from];
     U64 blockerNum = square.blockers & blockers;
     return ordinalAttacks[from][blockerNum * square.magic >> 55];
 }

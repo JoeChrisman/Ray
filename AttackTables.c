@@ -198,7 +198,7 @@ static U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
         attacks |= attack;
     }
     attack = GET_BOARD(from);
-    while (!(attack & RANK_1) && !(attack & H_FILE))
+    while (!(attack & RANK_1) && !(attack & A_FILE))
     {
         attack = BOARD_SOUTH_WEST(attack);
         if (blockers & attack)

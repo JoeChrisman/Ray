@@ -3,6 +3,8 @@
 
 #include "Defs.h"
 
+#define MAX_MOVES_IN_POSITION 256
+
 typedef struct
 {
     U64 boards[NUM_PIECE_TYPES + 1];
