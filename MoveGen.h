@@ -25,6 +25,18 @@ static inline void genKnightMoves(Move** moves, int movingType, U64 allowed);
 static inline void genBishopMoves(Move** moves, int movingType, U64 allowed);
 static inline void genRookMoves(Move** moves, int movingType, U64 allowed);
 static inline void genQueenMoves(Move** moves, int movingType, U64 allowed);
+static inline void genKingMoves(Move** moves, int movingType, U64 allowed);
+
+static inline void genCastles(
+    Move** moves,
+    U64 kingsideSafe,
+    U64 queensideSafe,
+    U64 kingsideEmpty,
+    U64 queensideEmpty,
+    U64 kingsideFlag,
+    U64 queensideFlag,
+    int pieceType);
+
 
 static inline U64 getWhitePawnAttacks(U64 pawns);
 static inline U64 getBlackPawnAttacks(U64 pawns);
@@ -36,7 +48,7 @@ static inline U64 getOrdinalPins(int friendlyKing, U64 friendlies, U64 enemies, 
 
 static inline U64 getAttacks(
     U64 defenderKing,
-    U64 allDefenders,
+    U64 allPieces,
     U64 pawnAttacks,
     U64 attackerKnights,
     U64 attackerBishops,

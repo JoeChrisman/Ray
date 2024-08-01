@@ -15,6 +15,15 @@ void genMoves(Move* moves)
         genBishopMoves(&moves, WHITE_BISHOP, blackOrEmpty);
         genRookMoves(&moves, WHITE_ROOK, blackOrEmpty);
         genQueenMoves(&moves, WHITE_QUEEN, blackOrEmpty);
+        genKingMoves(&moves, WHITE_KING, blackOrEmpty);
+        genCastles(&moves,
+                   WHITE_KINGSIDE_SAFE_SQUARES,
+                   WHITE_QUEENSIDE_SAFE_SQUARES,
+                   WHITE_KINGSIDE_EMPTY_SQUARES,
+                   WHITE_QUEENSIDE_EMPTY_SQUARES,
+                   WHITE_CASTLE_KINGSIDE,
+                   WHITE_CASTLE_QUEENSIDE,
+                   WHITE_KING);
     }
     else
     {
@@ -26,6 +35,16 @@ void genMoves(Move* moves)
         genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
         genRookMoves(&moves, BLACK_ROOK, whiteOrEmpty);
         genQueenMoves(&moves, BLACK_QUEEN, whiteOrEmpty);
+
+        genKingMoves(&moves, WHITE_KING, whiteOrEmpty);
+        genCastles(&moves,
+                   BLACK_KINGSIDE_SAFE_SQUARES,
+                   BLACK_QUEENSIDE_SAFE_SQUARES,
+                   BLACK_KINGSIDE_EMPTY_SQUARES,
+                   BLACK_QUEENSIDE_EMPTY_SQUARES,
+                   BLACK_CASTLE_KINGSIDE,
+                   BLACK_CASTLE_QUEENSIDE,
+                   BLACK_KING);
     }
 }
 
@@ -322,52 +341,72 @@ static void genQueenMoves(Move** moves, int movingType, U64 allowed)
     }
 }
 
+void genKingMoves(Move** moves, int movingType, U64 allowed)
+{
+    const int king = GET_SQUARE(position.boards[movingType]);
+    U64 kingMoves = kingAttacks[king] & allowed & safe;
+    while (kingMoves)
+    {
+        const int to = GET_SQUARE(kingMoves);
+        POP_SQUARE(kingMoves, to);
+        **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+}
+
+void genCastles(
+    Move** moves,
+    U64 kingsideSafe,
+    U64 queensideSafe,
+    U64 kingsideEmpty,
+    U64 queensideEmpty,
+    U64 kingsideFlag,
+    U64 queensideFlag,
+    int movingType)
+{
+    const int king = GET_SQUARE(position.boards[movingType]);
+    const U64 empty = ~position.occupied;
+    if (position.castleFlags & kingsideFlag)
+    {
+        if (!((kingsideEmpty & ~empty) | (kingsideSafe & ~safe)))
+        {
+            const int to = SQUARE_EAST(SQUARE_EAST(king));
+            **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
+        }
+    }
+    if (position.castleFlags & queensideFlag)
+    {
+        if (!((queensideEmpty & ~empty) | (queensideSafe & ~safe)))
+        {
+            const int to = SQUARE_WEST(SQUARE_WEST(king));
+            **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+            (*moves)++;
+        }
+    }
+}
+
 void updateLegalityInfo()
 {
-    int friendlyKingSquare;
-    U64 friendlyKing;
-    U64 friendlies;
-    U64 enemies;
-    U64 enemyPawnAttacks;
-    U64 enemyPawnAttackers;
-    U64 enemyKnights;
-    U64 enemyBishops;
-    U64 enemyRooks;
-    U64 enemyQueens;
-    U64 enemyKing;
-
-    if (position.isWhitesTurn)
-    {
-        friendlyKing = position.boards[WHITE_KING];
-        friendlyKingSquare = GET_SQUARE(friendlyKing);
-        friendlies = position.white;
-        enemies = position.black;
-        enemyPawnAttacks = getBlackPawnAttacks(position.boards[BLACK_PAWN]);
-        enemyPawnAttackers = getWhitePawnAttacks(friendlyKing) & position.boards[BLACK_PAWN],
-        enemyKnights = position.boards[BLACK_KNIGHT];
-        enemyBishops = position.boards[BLACK_BISHOP];
-        enemyRooks = position.boards[BLACK_ROOK];
-        enemyQueens = position.boards[BLACK_QUEEN];
-        enemyKing = position.boards[BLACK_KING];
-    }
-    else
-    {
-        friendlyKing = position.boards[BLACK_KING];
-        friendlyKingSquare = GET_SQUARE(friendlyKing);
-        friendlies = position.black;
-        enemies = position.white;
-        enemyPawnAttacks = getWhitePawnAttacks(position.boards[WHITE_PAWN]);
-        enemyPawnAttackers = getBlackPawnAttacks(friendlyKing) & position.boards[WHITE_PAWN],
-        enemyKnights = position.boards[WHITE_KNIGHT];
-        enemyBishops = position.boards[WHITE_BISHOP];
-        enemyRooks = position.boards[WHITE_ROOK];
-        enemyQueens = position.boards[WHITE_QUEEN];
-        enemyKing = position.boards[WHITE_KING];
-    }
+    const int isWhite = position.isWhitesTurn;
+    const U64 friendlies = isWhite ? position.white : position.black;
+    const U64 enemies = isWhite ? position.black : position.white;
+    const U64 friendlyKing = position.boards[isWhite ? WHITE_KING : BLACK_KING];
+    const U64 enemyKnights = position.boards[isWhite ? BLACK_KNIGHT : WHITE_KNIGHT];
+    const U64 enemyBishops = position.boards[isWhite ? BLACK_BISHOP : WHITE_BISHOP];
+    const U64 enemyRooks = position.boards[isWhite ? BLACK_ROOK : WHITE_ROOK];
+    const U64 enemyQueens = position.boards[isWhite ? BLACK_QUEEN : WHITE_QUEEN];
+    const U64 enemyKing = position.boards[isWhite ? BLACK_KING : WHITE_KING];
+    const U64 enemyPawnAttacks = isWhite ?
+        getBlackPawnAttacks(position.boards[BLACK_PAWN]) :
+        getWhitePawnAttacks(position.boards[WHITE_PAWN]);
+    const U64 enemyPawnAttackers = isWhite ?
+        getWhitePawnAttacks(friendlyKing) & position.boards[BLACK_PAWN] :
+        getBlackPawnAttacks(friendlyKing) & position.boards[WHITE_PAWN];
 
     safe = ~getAttacks(
         friendlyKing,
-        friendlies,
+        position.occupied,
         enemyPawnAttacks,
         enemyKnights,
         enemyBishops,
@@ -375,6 +414,7 @@ void updateLegalityInfo()
         enemyQueens,
         enemyKing);
 
+    const int friendlyKingSquare = GET_SQUARE(friendlyKing);
     resolvers = getResolverSquares(
         friendlyKingSquare,
         position.occupied,
@@ -396,19 +436,19 @@ void updateLegalityInfo()
         enemies,
         enemyRooks | enemyQueens);
 
-    /*printf("safe:\n");
+    printf("safe:\n");
     printBitboard(safe);
     printf("resolvers:\n");
     printBitboard(resolvers);
     printf("ordinalPins:\n");
     printBitboard(ordinalPins);
     printf("cardinalPins:\n");
-    printBitboard(cardinalPins);*/
+    printBitboard(cardinalPins);
 }
 
 static U64 getAttacks(
     U64 defenderKing,
-    U64 allDefenders,
+    U64 allPieces,
     U64 pawnAttacks,
     U64 attackerKnights,
     U64 attackerBishops,
@@ -417,7 +457,7 @@ static U64 getAttacks(
     U64 attackerKing)
 {
     U64 attackedSquares = pawnAttacks;
-    const U64 blockers = allDefenders ^ defenderKing;
+    const U64 blockers = allPieces ^ defenderKing;
 
     U64 cardinalAttackers = attackerRooks | attackerQueens;
     while (cardinalAttackers)
