@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <time.h>
 #include "Uci.h"
+#include "AttackTables.h"
 
 int main()
 {
     srand(time(NULL));
+    initAttackTables();
 
     char input[4];
     memset(input, '\0', sizeof(input));

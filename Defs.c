@@ -21,24 +21,3 @@ const U64 RANKS[8] = {
     0x000000000000FF00,
     0x00000000000000FF
 };
-
-void printBitboard(const U64 board)
-{
-    for (int square = 0; square < NUM_SQUARES; square++)
-    {
-        if (A_FILE & GET_BOARD(square))
-        {
-            printf("\n");
-        }
-        if (board & GET_BOARD(square))
-        {
-            printf(" 1 ");
-        }
-        else
-        {
-            printf(" . ");
-        }
-    }
-    printf("\n");
-    fflush(stdout);
-}

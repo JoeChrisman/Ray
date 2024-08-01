@@ -19,4 +19,7 @@ add_executable(Ray main.c
         Defs.c
         MoveGen.h
         MoveGen.c
+        Search.h
+        Search.c
+        Debug.h
 )

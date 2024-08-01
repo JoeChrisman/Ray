@@ -86,6 +86,4 @@ extern const U64 RANKS[8];
 #define BLACK_KINGSIDE_SAFE_SQUARES   0x0000000000000070
 #define BLACK_QUEENSIDE_SAFE_SQUARES  0x000000000000001C
 
-extern void printBitboard(U64 board);
-
 #endif

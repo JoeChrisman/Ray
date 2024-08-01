@@ -1,3 +1,4 @@
+#include <string.h>
 #include "Notation.h"
 #include "Defs.h"
 #include "Move.h"
@@ -65,6 +66,11 @@ char getCharFromFile(char file)
 const char* getStrFromMove(Move move)
 {
     static char moveStr[6] = "";
+    if (move == NO_MOVE)
+    {
+        strcpy(moveStr, "0000");
+        return moveStr;
+    }
     const int from = GET_SQUARE_FROM(move);
     const int to = GET_SQUARE_TO(move);
     moveStr[0] = getCharFromFile(GET_FILE(from));

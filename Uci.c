@@ -2,9 +2,15 @@
 #include <stdio.h>
 #include "Uci.h"
 #include "Position.h"
-#include "AttackTables.h"
 #include "MoveGen.h"
 #include "Notation.h"
+#include "Search.h"
+
+void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
+{
+    printf("bestmove %s\n", getStrFromMove(getBestMove()));
+    fflush(stdout);
+}
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
@@ -34,11 +40,14 @@ void handleCommand(char command[MAX_ARGS][MAX_ARG_LEN])
     {
         handlePositionCommand(command);
     }
+    else if (!strcmp(command[0], "go"))
+    {
+        handleGoCommand(command);
+    }
 }
 
 int runUci()
 {
-    initAttackTables();
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
@@ -59,6 +68,11 @@ int runUci()
         if (strcmp(command[0], "quit") == 0)
         {
             return 0;
+        }
+        else if (strcmp(command[0], "isready") == 0)
+        {
+            printf("readyok\n");
+            fflush(stdout);
         }
         handleCommand(command);
         memset(command, '\0', sizeof(command));

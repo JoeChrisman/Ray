@@ -16,14 +16,15 @@ void genMoves(Move* moves)
         genRookMoves(&moves, WHITE_ROOK, blackOrEmpty);
         genQueenMoves(&moves, WHITE_QUEEN, blackOrEmpty);
         genKingMoves(&moves, WHITE_KING, blackOrEmpty);
-        genCastles(&moves,
-                   WHITE_KINGSIDE_SAFE_SQUARES,
-                   WHITE_QUEENSIDE_SAFE_SQUARES,
-                   WHITE_KINGSIDE_EMPTY_SQUARES,
-                   WHITE_QUEENSIDE_EMPTY_SQUARES,
-                   WHITE_CASTLE_KINGSIDE,
-                   WHITE_CASTLE_QUEENSIDE,
-                   WHITE_KING);
+        genCastles(
+            &moves,
+            WHITE_KINGSIDE_SAFE_SQUARES,
+            WHITE_QUEENSIDE_SAFE_SQUARES,
+            WHITE_KINGSIDE_EMPTY_SQUARES,
+            WHITE_QUEENSIDE_EMPTY_SQUARES,
+            WHITE_CASTLE_KINGSIDE,
+            WHITE_CASTLE_QUEENSIDE,
+            WHITE_KING);
     }
     else
     {
@@ -35,16 +36,16 @@ void genMoves(Move* moves)
         genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
         genRookMoves(&moves, BLACK_ROOK, whiteOrEmpty);
         genQueenMoves(&moves, BLACK_QUEEN, whiteOrEmpty);
-
         genKingMoves(&moves, WHITE_KING, whiteOrEmpty);
-        genCastles(&moves,
-                   BLACK_KINGSIDE_SAFE_SQUARES,
-                   BLACK_QUEENSIDE_SAFE_SQUARES,
-                   BLACK_KINGSIDE_EMPTY_SQUARES,
-                   BLACK_QUEENSIDE_EMPTY_SQUARES,
-                   BLACK_CASTLE_KINGSIDE,
-                   BLACK_CASTLE_QUEENSIDE,
-                   BLACK_KING);
+        genCastles(
+            &moves,
+            BLACK_KINGSIDE_SAFE_SQUARES,
+            BLACK_QUEENSIDE_SAFE_SQUARES,
+            BLACK_KINGSIDE_EMPTY_SQUARES,
+            BLACK_QUEENSIDE_EMPTY_SQUARES,
+            BLACK_CASTLE_KINGSIDE,
+            BLACK_CASTLE_QUEENSIDE,
+            BLACK_KING);
     }
 }
 
@@ -53,17 +54,21 @@ void genCaptures(Move* moves)
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
+        genWhitePawnCaptures(&moves);
         genKnightMoves(&moves, WHITE_KNIGHT, position.black);
         genBishopMoves(&moves, WHITE_BISHOP, position.black);
         genRookMoves(&moves, WHITE_ROOK, position.black);
         genQueenMoves(&moves, WHITE_QUEEN, position.black);
+        genKingMoves(&moves, WHITE_KING, position.black);
     }
     else
     {
+        genBlackPawnCaptures(&moves);
         genKnightMoves(&moves, BLACK_KNIGHT, position.white);
         genBishopMoves(&moves, BLACK_BISHOP, position.white);
         genRookMoves(&moves, BLACK_ROOK, position.white);
         genQueenMoves(&moves, BLACK_QUEEN, position.white);
+        genKingMoves(&moves, BLACK_KING, position.white);
     }
 }
 
@@ -457,7 +462,7 @@ void updateLegalityInfo()
         friendlies,
         enemies,
         enemyRooks | enemyQueens);
-
+/*
     printf("safe:\n");
     printBitboard(safe);
     printf("resolvers:\n");
@@ -465,7 +470,7 @@ void updateLegalityInfo()
     printf("ordinalPins:\n");
     printBitboard(ordinalPins);
     printf("cardinalPins:\n");
-    printBitboard(cardinalPins);
+    printBitboard(cardinalPins);*/
 }
 
 static U64 getAttacks(
