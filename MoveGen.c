@@ -27,8 +27,8 @@ void genMoves(Move* moves)
     }
     else
     {
-        //genBlackPawnMoves(&moves);
-        //genBlackPawnCaptures(&moves);
+        genBlackPawnMoves(&moves);
+        genBlackPawnCaptures(&moves);
 
         const U64 whiteOrEmpty = position.white | ~position.occupied;
         genKnightMoves(&moves, BLACK_KNIGHT, whiteOrEmpty);
@@ -96,78 +96,32 @@ static void genWhitePawnMoves(Move** moves)
     }
 }
 
-
-static void genWhitePromotion(Move** moves, int from, int to, int captured)
+static void genBlackPawnMoves(Move** moves)
 {
-    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_QUEEN, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_ROOK, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_BISHOP, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_KNIGHT, 0, NO_FLAGS);
-    (*moves)++;
-}
+    const U64 blackPawns = position.boards[BLACK_PAWN] & ~RANK_2;
+    const U64 unPinnedPawns = blackPawns & ~(ordinalPins | cardinalPins);
+    const U64 pinnedPawns = blackPawns & cardinalPins;
+    const U64 unPinnedPush1 = BOARD_SOUTH(unPinnedPawns) & ~position.occupied;
+    const U64 pinnedPush1 = BOARD_SOUTH(pinnedPawns) & ~position.occupied & cardinalPins;
+    const U64 pushed = unPinnedPush1 | pinnedPush1;
 
-static void genBlackPromotion(Move** moves, int from, int to, int captured)
-{
-    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_QUEEN, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_ROOK, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_BISHOP, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_KNIGHT, 0, NO_FLAGS);
-    (*moves)++;
-}
-
-static void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
-{
-    while (eastCaptures)
+    U64 push1 = pushed & resolvers;
+    U64 push2 = BOARD_SOUTH(pushed) & resolvers & ~position.occupied & RANK_5;
+    while (push1)
     {
-        const int to = GET_SQUARE(eastCaptures);
-        POP_SQUARE(eastCaptures, to);
-        const int from = SQUARE_SOUTH_WEST(to);
-        genWhitePromotion(moves, from, to, position.pieces[to]);
-    }
-    while (westCaptures)
-    {
-        const int to = GET_SQUARE(westCaptures);
-        POP_SQUARE(westCaptures, to);
-        const int from = SQUARE_SOUTH_EAST(to);
-        genWhitePromotion(moves, from, to, position.pieces[to]);
-    }
-    while (pushes)
-    {
-        const int to = GET_SQUARE(pushes);
-        POP_SQUARE(pushes, to);
-        const int from = SQUARE_SOUTH(to);
-        genWhitePromotion(moves, from, to, NO_PIECE);
-    }
-}
-
-static void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
-{
-    while (eastCaptures)
-    {
-        const int to = GET_SQUARE(eastCaptures);
-        POP_SQUARE(eastCaptures, to);
-        const int from = SQUARE_NORTH_WEST(to);
-        genBlackPromotion(moves, from, to, position.pieces[to]);
-    }
-    while (westCaptures)
-    {
-        const int to = GET_SQUARE(westCaptures);
-        POP_SQUARE(westCaptures, to);
-        const int from = SQUARE_NORTH_EAST(to);
-        genBlackPromotion(moves, from, to, position.pieces[to]);
-    }
-    while (pushes)
-    {
-        const int to = GET_SQUARE(pushes);
-        POP_SQUARE(pushes, to);
+        const int to = GET_SQUARE(push1);
+        POP_SQUARE(push1, to);
         const int from = SQUARE_NORTH(to);
-        genBlackPromotion(moves, from, to, NO_PIECE);
+        **moves = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+    while (push2)
+    {
+        const int to = GET_SQUARE(push2);
+        POP_SQUARE(push2, to);
+        const int from = SQUARE_NORTH(SQUARE_NORTH(to));
+        **moves = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
+        (*moves)++;
     }
 }
 
@@ -233,6 +187,74 @@ static void genWhitePawnCaptures(Move** moves)
             {
                 const int from = GET_SQUARE(moving);
                 **moves = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                (*moves)++;
+            }
+        }
+    }
+}
+
+static void genBlackPawnCaptures(Move** moves)
+{
+    const U64 blackPawns = position.boards[BLACK_PAWN];
+    const U64 unpinnedPawns = blackPawns & ~(cardinalPins | ordinalPins);
+    const U64 ordinalPinnedPawns = blackPawns & ordinalPins;
+
+    const U64 allowedCaptures = position.black & resolvers;
+    const U64 unpinnedEastCaptures = BOARD_SOUTH_EAST(unpinnedPawns) & NOT_A_FILE;
+    const U64 unpinnedWestCaptures = BOARD_SOUTH_WEST(unpinnedPawns) & NOT_H_FILE;
+    const U64 pinnedEastCaptures = BOARD_SOUTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & ordinalPins;
+    const U64 pinnedWestCaptures = BOARD_SOUTH_WEST(ordinalPinnedPawns) & NOT_H_FILE & ordinalPins;
+
+    U64 eastCaptures = (unpinnedEastCaptures | pinnedEastCaptures) & allowedCaptures;
+    U64 westCaptures = (unpinnedWestCaptures | pinnedWestCaptures) & allowedCaptures;
+
+    const U64 eastCapturePromotions = eastCaptures & RANK_1;
+    const U64 westCapturePromotions = westCaptures & RANK_1;
+    const U64 pushPromotions = BOARD_SOUTH(unpinnedPawns) & RANK_1 & resolvers & ~position.occupied;
+    genBlackPromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
+
+    eastCaptures &= ~RANK_1;
+    westCaptures &= ~RANK_1;
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_NORTH_WEST(to);
+        **moves = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_NORTH_EAST(to);
+        **moves = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+
+    if (position.passant != EMPTY_BOARD)
+    {
+        const U64 allowed = position.passant & BOARD_SOUTH(resolvers);
+        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & allowed;
+        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & allowed;
+        const U64 blockers = position.occupied & ~BOARD_NORTH(position.passant);
+        U64 moving = BOARD_NORTH_EAST(westEnPassant) | BOARD_NORTH_WEST(eastEnPassant);
+        const U64 scan = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_4;
+        const U64 cardinalAttackers = position.boards[WHITE_QUEEN] | position.boards[WHITE_ROOK];
+        if (!(scan & position.boards[BLACK_KING] && scan & cardinalAttackers))
+        {
+            const int to = GET_SQUARE(position.passant);
+            if (eastEnPassant)
+            {
+                const int from = GET_SQUARE(moving);
+                POP_SQUARE(moving, from);
+                **moves = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                (*moves)++;
+            }
+            if (westEnPassant)
+            {
+                const int from = GET_SQUARE(moving);
+                **moves = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
                 (*moves)++;
             }
         }
@@ -608,3 +630,66 @@ static U64 getBlackPawnAttacks(U64 pawns)
     const U64 westAttacks = BOARD_SOUTH_WEST(pawns) & NOT_H_FILE;
     return eastAttacks | westAttacks;
 }
+
+static void genPromotion(Move** moves, int pawnOfColor, int knightOfColor, int from, int to, int captured)
+{
+    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 3, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 2, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 1, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor, 0, NO_FLAGS);
+    (*moves)++;
+}
+
+static void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+{
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_SOUTH_WEST(to);
+        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_SOUTH_EAST(to);
+        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
+    }
+    while (pushes)
+    {
+        const int to = GET_SQUARE(pushes);
+        POP_SQUARE(pushes, to);
+        const int from = SQUARE_SOUTH(to);
+        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, NO_PIECE);
+    }
+}
+
+static void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+{
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_NORTH_WEST(to);
+        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_NORTH_EAST(to);
+        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
+    }
+    while (pushes)
+    {
+        const int to = GET_SQUARE(pushes);
+        POP_SQUARE(pushes, to);
+        const int from = SQUARE_NORTH(to);
+        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, NO_PIECE);
+    }
+}
+

@@ -14,8 +14,7 @@ static U64 ordinalPins;
 
 static inline void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
 static inline void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
-static inline void genWhitePromotion(Move** moves, int from, int to, int captured);
-static inline void genBlackPromotion(Move** moves, int from, int to, int captured);
+static inline void genPromotion(Move** moves, int pawnOfColor, int knightOfColor, int from, int to, int captured);
 
 static inline void genWhitePawnMoves(Move** moves);
 static inline void genBlackPawnMoves(Move** moves);
