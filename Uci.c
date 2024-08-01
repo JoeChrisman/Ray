@@ -22,13 +22,10 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     genMoves(moves);
-    for (int i = 0; i < MAX_MOVES_IN_POSITION; i++)
+    for (int i = 0; moves[i] != NO_MOVE; i++)
     {
-
-        printf("%d, %c\n", moves[i], getCharFromPiece(GET_PIECE_MOVED(moves[i])));
-
+        printf("%s\n", getStrFromMove(moves[i]));
     }
-
 }
 
 void handleCommand(char command[MAX_ARGS][MAX_ARG_LEN])

@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include "AttackTables.h"
-#include <time.h>
 
 MagicSquare ordinalMagics[NUM_SQUARES];
 MagicSquare cardinalMagics[NUM_SQUARES];

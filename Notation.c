@@ -1,5 +1,6 @@
 #include "Notation.h"
 #include "Defs.h"
+#include "Move.h"
 
 int getPieceFromChar(char piece)
 {
@@ -49,5 +50,37 @@ int getRankFromChar(char rank)
 int getFileFromChar(char file)
 {
     return (int)(file - 'a');
+}
+
+char getCharFromRank(char rank)
+{
+    return (char)('1' + rank);
+}
+
+char getCharFromFile(char file)
+{
+    return (char)('a' + file);
+}
+
+const char* getStrFromMove(Move move)
+{
+    static char moveStr[6] = "";
+    const int from = GET_SQUARE_FROM(move);
+    const int to = GET_SQUARE_TO(move);
+    moveStr[0] = getCharFromFile(GET_FILE(from));
+    moveStr[1] = getCharFromRank(GET_RANK(from));
+    moveStr[2] = getCharFromFile(GET_FILE(to));
+    moveStr[3] = getCharFromRank(GET_RANK(to));
+    const int promoted = GET_PIECE_PROMOTED(move);
+    if (promoted != NO_PIECE)
+    {
+        moveStr[4] = getCharFromPiece(promoted);
+        moveStr[5] = '\0';
+    }
+    else
+    {
+        moveStr[4] = '\0';
+    }
+    return moveStr;
 }
 

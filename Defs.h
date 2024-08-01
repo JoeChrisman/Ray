@@ -31,14 +31,20 @@ typedef uint64_t U64;
 #define SQUARE_EAST(square) ((square) + 1)
 #define SQUARE_WEST(square) ((square) - 1)
 
+#define SQUARE_NORTH_EAST(square) ((square) - 7)
+#define SQUARE_SOUTH_EAST(square) ((square) + 9)
+#define SQUARE_SOUTH_WEST(square) ((square) + 7)
+#define SQUARE_NORTH_WEST(square) ((square) - 9)
+
 #define RANK_1 0xFF00000000000000
 #define RANK_2 0x00FF000000000000
+#define RANK_4 0x000000FF00000000
+#define RANK_5 0x00000000FF000000
 #define RANK_7 0x000000000000FF00
 #define RANK_8 0x00000000000000FF
 
 #define A_FILE 0x0101010101010101
 #define H_FILE 0x8080808080808080
-
 #define NOT_A_FILE 0xFEFEFEFEFEFEFEFE
 #define NOT_H_FILE 0x7F7F7F7F7F7F7F7F
 

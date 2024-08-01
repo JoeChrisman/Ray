@@ -7,6 +7,9 @@ void genMoves(Move* moves)
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
+        genWhitePawnMoves(&moves);
+        genWhitePawnCaptures(&moves);
+
         const U64 blackOrEmpty = position.black | ~position.occupied;
         genKnightMoves(&moves, WHITE_KNIGHT, blackOrEmpty);
         genBishopMoves(&moves, WHITE_BISHOP, blackOrEmpty);
@@ -15,6 +18,9 @@ void genMoves(Move* moves)
     }
     else
     {
+        //genBlackPawnMoves(&moves);
+        //genBlackPawnCaptures(&moves);
+
         const U64 whiteOrEmpty = position.white | ~position.occupied;
         genKnightMoves(&moves, BLACK_KNIGHT, whiteOrEmpty);
         genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
@@ -42,21 +48,159 @@ void genCaptures(Move* moves)
     }
 }
 
+static void genWhitePawnMoves(Move** moves)
+{
+    const U64 whitePawns = position.boards[WHITE_PAWN] & ~RANK_7;
+    const U64 unPinnedPawns = whitePawns & ~(ordinalPins | cardinalPins);
+    const U64 pinnedPawns = whitePawns & cardinalPins;
+    const U64 unPinnedPush1 = BOARD_NORTH(unPinnedPawns) & ~position.occupied;
+    const U64 pinnedPush1 = BOARD_NORTH(pinnedPawns) & ~position.occupied & cardinalPins;
+    const U64 pushed = unPinnedPush1 | pinnedPush1;
+
+    U64 push1 = pushed & resolvers;
+    U64 push2 = BOARD_NORTH(pushed) & resolvers & ~position.occupied & RANK_4;
+    while (push1)
+    {
+        const int to = GET_SQUARE(push1);
+        POP_SQUARE(push1, to);
+        const int from = SQUARE_SOUTH(to);
+        **moves = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+    while (push2)
+    {
+        const int to = GET_SQUARE(push2);
+        POP_SQUARE(push2, to);
+        const int from = SQUARE_SOUTH(SQUARE_SOUTH(to));
+        **moves = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
+        (*moves)++;
+    }
+}
+
+
+static void genWhitePromotion(Move** moves, int from, int to, int captured)
+{
+    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_QUEEN, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_ROOK, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_BISHOP, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, WHITE_PAWN, captured, WHITE_KNIGHT, 0, NO_FLAGS);
+    (*moves)++;
+}
+
+static void genBlackPromotion(Move** moves, int from, int to, int captured)
+{
+    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_QUEEN, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_ROOK, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_BISHOP, 0, NO_FLAGS);
+    (*moves)++;
+    **moves = CREATE_MOVE(from, to, BLACK_PAWN, captured, BLACK_KNIGHT, 0, NO_FLAGS);
+    (*moves)++;
+}
+
+static void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+{
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_SOUTH_WEST(to);
+        genWhitePromotion(moves, from, to, position.pieces[to]);
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_SOUTH_EAST(to);
+        genWhitePromotion(moves, from, to, position.pieces[to]);
+    }
+    while (pushes)
+    {
+        const int to = GET_SQUARE(pushes);
+        POP_SQUARE(pushes, to);
+        const int from = SQUARE_SOUTH(to);
+        genWhitePromotion(moves, from, to, NO_PIECE);
+    }
+}
+
+static void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+{
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_NORTH_WEST(to);
+        genBlackPromotion(moves, from, to, position.pieces[to]);
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_NORTH_EAST(to);
+        genBlackPromotion(moves, from, to, position.pieces[to]);
+    }
+    while (pushes)
+    {
+        const int to = GET_SQUARE(pushes);
+        POP_SQUARE(pushes, to);
+        const int from = SQUARE_NORTH(to);
+        genBlackPromotion(moves, from, to, NO_PIECE);
+    }
+}
+
+static void genWhitePawnCaptures(Move** moves)
+{
+    const U64 whitePawns = position.boards[WHITE_PAWN];
+    const U64 unpinnedPawns = whitePawns & ~(cardinalPins | ordinalPins);
+    const U64 ordinalPinnedPawns = whitePawns & ordinalPins;
+
+    const U64 allowedCaptures = position.black & resolvers;
+    const U64 unpinnedEastCaptures = BOARD_NORTH_EAST(unpinnedPawns) & NOT_A_FILE & allowedCaptures;
+    const U64 unpinnedWestCaptures = BOARD_NORTH_WEST(unpinnedPawns) & NOT_H_FILE & allowedCaptures;
+    const U64 pinnedEastCaptures = BOARD_NORTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & allowedCaptures & ordinalPins;
+    const U64 pinnedWestCaptures = BOARD_NORTH_WEST(ordinalPinnedPawns) & NOT_H_FILE & allowedCaptures & ordinalPins;
+
+    U64 eastCaptures = unpinnedEastCaptures | pinnedEastCaptures;
+    U64 westCaptures = unpinnedWestCaptures | pinnedWestCaptures;
+
+    const U64 eastCapturePromotions = eastCaptures & RANK_8;
+    const U64 westCapturePromotions = westCaptures & RANK_8;
+    const U64 pushPromotions = BOARD_NORTH(unpinnedPawns) & RANK_8 & resolvers & ~position.occupied;
+    genWhitePromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
+
+    eastCaptures &= ~RANK_8;
+    westCaptures &= ~RANK_8;
+    while (eastCaptures)
+    {
+        const int to = GET_SQUARE(eastCaptures);
+        POP_SQUARE(eastCaptures, to);
+        const int from = SQUARE_SOUTH_WEST(to);
+        **moves = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+    while (westCaptures)
+    {
+        const int to = GET_SQUARE(westCaptures);
+        POP_SQUARE(westCaptures, to);
+        const int from = SQUARE_SOUTH_EAST(to);
+        **moves = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        (*moves)++;
+    }
+
+}
+
 static void genKnightMoves(Move** moves, int movingType, U64 allowed)
 {
-    printf("Resolvers: \n");
-    printBitboard(resolvers);
-    printf("Allowed: \n");
-    printBitboard(allowed);
     U64 knights = position.boards[movingType] & ~(ordinalPins | cardinalPins);
-    printf("Knights: \n");
-    printBitboard(knights);
     while (knights)
     {
         const int from = GET_SQUARE(knights);
         POP_SQUARE(knights, from);
         U64 knightMoves = knightAttacks[from] & resolvers & allowed;
-        printBitboard(knightMoves);
         while (knightMoves)
         {
             const int to = GET_SQUARE(knightMoves);
@@ -151,13 +295,12 @@ static void genQueenMoves(Move** moves, int movingType, U64 allowed)
     }
 }
 
-
-
 void updateLegalityInfo()
 {
     int friendlyKingSquare;
     U64 friendlyKing;
     U64 friendlies;
+    U64 enemies;
     U64 enemyPawnAttacks;
     U64 enemyPawnAttackers;
     U64 enemyKnights;
@@ -171,6 +314,7 @@ void updateLegalityInfo()
         friendlyKing = position.boards[WHITE_KING];
         friendlyKingSquare = GET_SQUARE(friendlyKing);
         friendlies = position.white;
+        enemies = position.black;
         enemyPawnAttacks = getBlackPawnAttacks(position.boards[BLACK_PAWN]);
         enemyPawnAttackers = getWhitePawnAttacks(friendlyKing) & position.boards[BLACK_PAWN],
         enemyKnights = position.boards[BLACK_KNIGHT];
@@ -184,6 +328,7 @@ void updateLegalityInfo()
         friendlyKing = position.boards[BLACK_KING];
         friendlyKingSquare = GET_SQUARE(friendlyKing);
         friendlies = position.black;
+        enemies = position.white;
         enemyPawnAttacks = getWhitePawnAttacks(position.boards[WHITE_PAWN]);
         enemyPawnAttackers = getBlackPawnAttacks(friendlyKing) & position.boards[WHITE_PAWN],
         enemyKnights = position.boards[WHITE_KNIGHT];
@@ -215,12 +360,23 @@ void updateLegalityInfo()
     ordinalPins = getOrdinalPins(
         friendlyKingSquare,
         friendlies,
+        enemies,
         enemyBishops | enemyQueens);
 
     cardinalPins = getCardinalPins(
         friendlyKingSquare,
         friendlies,
+        enemies,
         enemyRooks | enemyQueens);
+
+    /*printf("safe:\n");
+    printBitboard(safe);
+    printf("resolvers:\n");
+    printBitboard(resolvers);
+    printf("ordinalPins:\n");
+    printBitboard(ordinalPins);
+    printf("cardinalPins:\n");
+    printBitboard(cardinalPins);*/
 }
 
 static U64 getAttacks(
@@ -315,18 +471,19 @@ static U64 getResolverSquares(
 static U64 getCardinalPins(
     int king,
     U64 friendlies,
+    U64 enemies,
     U64 enemyCardinals)
 {
     U64 allCardinalPins = EMPTY_BOARD;
-    const U64 pinned = getCardinalSlidingMoves(king, friendlies) & friendlies;
+    const U64 pinned = getCardinalSlidingMoves(king, friendlies | enemies) & friendlies;
     friendlies ^= pinned;
-    const U64 pins = getCardinalSlidingMoves(king, friendlies);
+    const U64 pins = getCardinalSlidingMoves(king, friendlies | enemies);
     U64 pinners = pins & enemyCardinals;
     while (pinners)
     {
         int pinner = GET_SQUARE(pinners);
         POP_SQUARE(pinners, pinner);
-        U64 pin = getCardinalSlidingMoves(pinner, friendlies);
+        U64 pin = getCardinalSlidingMoves(pinner, friendlies | enemies);
         pin &= pins;
         pin |= GET_BOARD(pinner);
         allCardinalPins |= pin;
@@ -337,18 +494,19 @@ static U64 getCardinalPins(
 static U64 getOrdinalPins(
     int king,
     U64 friendlies,
+    U64 enemies,
     U64 enemyOrdinals)
 {
     U64 allOrdinalPins = EMPTY_BOARD;
-    const U64 pinned = getOrdinalSlidingMoves(king, friendlies) & friendlies;
+    const U64 pinned = getOrdinalSlidingMoves(king, friendlies | enemies) & friendlies;
     friendlies ^= pinned;
-    const U64 pins = getOrdinalSlidingMoves(king, friendlies);
+    const U64 pins = getOrdinalSlidingMoves(king, friendlies | enemies);
     U64 pinners = pins & enemyOrdinals;
     while (pinners)
     {
         int pinner = GET_SQUARE(pinners);
         POP_SQUARE(pinners, pinner);
-        U64 pin = getOrdinalSlidingMoves(pinner, friendlies);
+        U64 pin = getOrdinalSlidingMoves(pinner, friendlies | enemies);
         pin &= pins;
         pin |= GET_BOARD(pinner);
         allOrdinalPins |= pin;
