@@ -126,7 +126,8 @@ int loadFen(const char* fen)
             clearPosition();
             return 1;
         }
-        position.passant = GET_BOARD(epSquare);
+        const U64 passant = GET_BOARD(epSquare);
+        position.passant = position.isWhitesTurn ? BOARD_SOUTH(passant) : BOARD_NORTH(passant);
     }
 
     errno = 0;

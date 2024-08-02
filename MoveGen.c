@@ -171,16 +171,16 @@ static void genWhitePawnCaptures(Move** moves)
 
     if (position.passant != EMPTY_BOARD)
     {
-        const U64 allowed = position.passant & BOARD_NORTH(resolvers);
-        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & allowed;
-        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & allowed;
-        const U64 blockers = position.occupied & ~BOARD_SOUTH(position.passant);
+        const U64 capture = BOARD_NORTH(position.passant & resolvers);
+        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & capture;
+        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & capture;
+        const U64 blockers = position.occupied ^ position.passant;
         U64 moving = BOARD_SOUTH_EAST(westEnPassant) | BOARD_SOUTH_WEST(eastEnPassant);
-        const U64 scan = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_5;
+        const U64 pin = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_5;
         const U64 cardinalAttackers = position.boards[BLACK_QUEEN] | position.boards[BLACK_ROOK];
-        if (!(scan & position.boards[WHITE_KING] && scan & cardinalAttackers))
+        if (!(pin & position.boards[WHITE_KING] && pin & cardinalAttackers))
         {
-            const int to = GET_SQUARE(position.passant);
+            const int to = GET_SQUARE(capture);
             if (eastEnPassant)
             {
                 const int from = GET_SQUARE(moving);
@@ -239,16 +239,16 @@ static void genBlackPawnCaptures(Move** moves)
 
     if (position.passant != EMPTY_BOARD)
     {
-        const U64 allowed = position.passant & BOARD_SOUTH(resolvers);
-        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & allowed;
-        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & allowed;
-        const U64 blockers = position.occupied & ~BOARD_NORTH(position.passant);
+        const U64 capture = BOARD_SOUTH(position.passant & resolvers);
+        const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & capture;
+        const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & capture;
+        const U64 blockers = position.occupied ^ position.passant;
         U64 moving = BOARD_NORTH_EAST(westEnPassant) | BOARD_NORTH_WEST(eastEnPassant);
-        const U64 scan = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_4;
+        const U64 pin = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_4;
         const U64 cardinalAttackers = position.boards[WHITE_QUEEN] | position.boards[WHITE_ROOK];
-        if (!(scan & position.boards[BLACK_KING] && scan & cardinalAttackers))
+        if (!(pin & position.boards[BLACK_KING] && pin & cardinalAttackers))
         {
-            const int to = GET_SQUARE(position.passant);
+            const int to = GET_SQUARE(capture);
             if (eastEnPassant)
             {
                 const int from = GET_SQUARE(moving);
