@@ -43,8 +43,8 @@ typedef uint64_t U64;
 #define RANK_7 0x000000000000FF00
 #define RANK_8 0x00000000000000FF
 
-#define A_FILE 0x0101010101010101
-#define H_FILE 0x8080808080808080
+#define A_FILE     0x0101010101010101
+#define H_FILE     0x8080808080808080
 #define NOT_A_FILE 0xFEFEFEFEFEFEFEFE
 #define NOT_H_FILE 0x7F7F7F7F7F7F7F7F
 
@@ -85,5 +85,20 @@ extern const U64 RANKS[8];
 #define WHITE_QUEENSIDE_SAFE_SQUARES  0x1C00000000000000
 #define BLACK_KINGSIDE_SAFE_SQUARES   0x0000000000000070
 #define BLACK_QUEENSIDE_SAFE_SQUARES  0x000000000000001C
+
+#define A8 0
+#define C8 2
+#define D8 3
+#define E8 4
+#define F8 5
+#define G8 6
+#define H8 7
+#define A1 56
+#define C1 58
+#define D1 59
+#define E1 60
+#define F1 61
+#define G1 62
+#define H1 63
 
 #endif
