@@ -4,30 +4,30 @@
 #include "Defs.h"
 #include "Move.h"
 
-extern void genMoves(Move* moves);
-extern void genCaptures(Move* moves);
+extern Move* genMoves(Move* moves);
+extern Move* genCaptures(Move* moves);
 
 static U64 safe;
 static U64 resolvers;
 static U64 cardinalPins;
 static U64 ordinalPins;
 
-static inline void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
-static inline void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
-static inline void genPromotion(Move** moves, int pawnOfColor, int knightOfColor, int from, int to, int captured);
+static inline Move* genWhitePromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
+static inline Move* genBlackPromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
+static inline Move* genPromotion(Move* moves, int pawnOfColor, int knightOfColor, int from, int to, int captured);
 
-static inline void genWhitePawnMoves(Move** moves);
-static inline void genBlackPawnMoves(Move** moves);
-static inline void genWhitePawnCaptures(Move** moves);
-static inline void genBlackPawnCaptures(Move** moves);
-static inline void genKnightMoves(Move** moves, int movingType, U64 allowed);
-static inline void genBishopMoves(Move** moves, int movingType, U64 allowed);
-static inline void genRookMoves(Move** moves, int movingType, U64 allowed);
-static inline void genQueenMoves(Move** moves, int movingType, U64 allowed);
-static inline void genKingMoves(Move** moves, int movingType, U64 allowed);
+static inline Move* genWhitePawnMoves(Move* moves);
+static inline Move* genBlackPawnMoves(Move* moves);
+static inline Move* genWhitePawnCaptures(Move* moves);
+static inline Move* genBlackPawnCaptures(Move* moves);
+static inline Move* genKnightMoves(Move* moves, int movingType, U64 allowed);
+static inline Move* genBishopMoves(Move* moves, int movingType, U64 allowed);
+static inline Move* genRookMoves(Move* moves, int movingType, U64 allowed);
+static inline Move* genQueenMoves(Move* moves, int movingType, U64 allowed);
+static inline Move* genKingMoves(Move* moves, int movingType, U64 allowed);
 
-static inline void genCastles(
-    Move** moves,
+static inline Move* genCastles(
+    Move* moves,
     U64 kingsideSafe,
     U64 queensideSafe,
     U64 kingsideEmpty,

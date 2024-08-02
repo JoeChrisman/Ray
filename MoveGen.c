@@ -2,22 +2,22 @@
 #include "AttackTables.h"
 #include "Position.h"
 
-void genMoves(Move* moves)
+Move* genMoves(Move* moves)
 {
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
-        genWhitePawnMoves(&moves);
-        genWhitePawnCaptures(&moves);
+        moves = genWhitePawnMoves(moves);
+        moves = genWhitePawnCaptures(moves);
 
         const U64 blackOrEmpty = position.irreversibles.black | ~position.irreversibles.occupied;
-        genKnightMoves(&moves, WHITE_KNIGHT, blackOrEmpty);
-        genBishopMoves(&moves, WHITE_BISHOP, blackOrEmpty);
-        genRookMoves(&moves, WHITE_ROOK, blackOrEmpty);
-        genQueenMoves(&moves, WHITE_QUEEN, blackOrEmpty);
-        genKingMoves(&moves, WHITE_KING, blackOrEmpty);
-        genCastles(
-            &moves,
+        moves = genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
+        moves = genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
+        moves = genRookMoves(moves, WHITE_ROOK, blackOrEmpty);
+        moves = genQueenMoves(moves, WHITE_QUEEN, blackOrEmpty);
+        moves = genKingMoves(moves, WHITE_KING, blackOrEmpty);
+        moves = genCastles(
+            moves,
             WHITE_KINGSIDE_SAFE_SQUARES,
             WHITE_QUEENSIDE_SAFE_SQUARES,
             WHITE_KINGSIDE_EMPTY_SQUARES,
@@ -28,17 +28,17 @@ void genMoves(Move* moves)
     }
     else
     {
-        genBlackPawnMoves(&moves);
-        genBlackPawnCaptures(&moves);
+        moves = genBlackPawnMoves(moves);
+        moves = genBlackPawnCaptures(moves);
 
         const U64 whiteOrEmpty = position.irreversibles.white | ~position.irreversibles.occupied;
-        genKnightMoves(&moves, BLACK_KNIGHT, whiteOrEmpty);
-        genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
-        genRookMoves(&moves, BLACK_ROOK, whiteOrEmpty);
-        genQueenMoves(&moves, BLACK_QUEEN, whiteOrEmpty);
-        genKingMoves(&moves, BLACK_KING, whiteOrEmpty);
-        genCastles(
-            &moves,
+        moves = genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
+        moves = genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
+        moves = genRookMoves(moves, BLACK_ROOK, whiteOrEmpty);
+        moves = genQueenMoves(moves, BLACK_QUEEN, whiteOrEmpty);
+        moves = genKingMoves(moves, BLACK_KING, whiteOrEmpty);
+        moves = genCastles(
+            moves,
             BLACK_KINGSIDE_SAFE_SQUARES,
             BLACK_QUEENSIDE_SAFE_SQUARES,
             BLACK_KINGSIDE_EMPTY_SQUARES,
@@ -47,32 +47,34 @@ void genMoves(Move* moves)
             BLACK_CASTLE_QUEENSIDE,
             BLACK_KING);
     }
+    return moves;
 }
 
-void genCaptures(Move* moves)
+Move* genCaptures(Move* moves)
 {
     updateLegalityInfo();
     if (position.isWhitesTurn)
     {
-        genWhitePawnCaptures(&moves);
-        genKnightMoves(&moves, WHITE_KNIGHT, position.irreversibles.black);
-        genBishopMoves(&moves, WHITE_BISHOP, position.irreversibles.black);
-        genRookMoves(&moves, WHITE_ROOK, position.irreversibles.black);
-        genQueenMoves(&moves, WHITE_QUEEN, position.irreversibles.black);
-        genKingMoves(&moves, WHITE_KING, position.irreversibles.black);
+        moves = genWhitePawnCaptures(moves);
+        moves = genKnightMoves(moves, WHITE_KNIGHT, position.irreversibles.black);
+        moves = genBishopMoves(moves, WHITE_BISHOP, position.irreversibles.black);
+        moves = genRookMoves(moves, WHITE_ROOK, position.irreversibles.black);
+        moves = genQueenMoves(moves, WHITE_QUEEN, position.irreversibles.black);
+        moves = genKingMoves(moves, WHITE_KING, position.irreversibles.black);
     }
     else
     {
-        genBlackPawnCaptures(&moves);
-        genKnightMoves(&moves, BLACK_KNIGHT, position.irreversibles.white);
-        genBishopMoves(&moves, BLACK_BISHOP, position.irreversibles.white);
-        genRookMoves(&moves, BLACK_ROOK, position.irreversibles.white);
-        genQueenMoves(&moves, BLACK_QUEEN, position.irreversibles.white);
-        genKingMoves(&moves, BLACK_KING, position.irreversibles.white);
+        moves = genBlackPawnCaptures(moves);
+        moves = genKnightMoves(moves, BLACK_KNIGHT, position.irreversibles.white);
+        moves = genBishopMoves(moves, BLACK_BISHOP, position.irreversibles.white);
+        moves = genRookMoves(moves, BLACK_ROOK, position.irreversibles.white);
+        moves = genQueenMoves(moves, BLACK_QUEEN, position.irreversibles.white);
+        moves = genKingMoves(moves, BLACK_KING, position.irreversibles.white);
     }
+    return moves;
 }
 
-static void genWhitePawnMoves(Move** moves)
+static Move* genWhitePawnMoves(Move* moves)
 {
     const U64 whitePawns = position.boards[WHITE_PAWN] & ~RANK_7;
     const U64 unPinnedPawns = whitePawns & ~(ordinalPins | cardinalPins);
@@ -88,20 +90,19 @@ static void genWhitePawnMoves(Move** moves)
         const int to = GET_SQUARE(push1);
         POP_SQUARE(push1, to);
         const int from = SQUARE_SOUTH(to);
-        **moves = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
     }
     while (push2)
     {
         const int to = GET_SQUARE(push2);
         POP_SQUARE(push2, to);
         const int from = SQUARE_SOUTH(SQUARE_SOUTH(to));
-        **moves = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
     }
+    return moves;
 }
 
-static void genBlackPawnMoves(Move** moves)
+static Move* genBlackPawnMoves(Move* moves)
 {
     const U64 blackPawns = position.boards[BLACK_PAWN] & ~RANK_2;
     const U64 unPinnedPawns = blackPawns & ~(ordinalPins | cardinalPins);
@@ -117,20 +118,19 @@ static void genBlackPawnMoves(Move** moves)
         const int to = GET_SQUARE(push1);
         POP_SQUARE(push1, to);
         const int from = SQUARE_NORTH(to);
-        **moves = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
     }
     while (push2)
     {
         const int to = GET_SQUARE(push2);
         POP_SQUARE(push2, to);
         const int from = SQUARE_NORTH(SQUARE_NORTH(to));
-        **moves = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
     }
+    return moves;
 }
 
-static void genWhitePawnCaptures(Move** moves)
+static Move* genWhitePawnCaptures(Move* moves)
 {
     const U64 whitePawns = position.boards[WHITE_PAWN];
     const U64 unpinnedPawns = whitePawns & ~(cardinalPins | ordinalPins);
@@ -148,7 +148,7 @@ static void genWhitePawnCaptures(Move** moves)
     const U64 eastCapturePromotions = eastCaptures & RANK_8;
     const U64 westCapturePromotions = westCaptures & RANK_8;
     const U64 pushPromotions = BOARD_NORTH(unpinnedPawns) & RANK_8 & resolvers & ~position.irreversibles.occupied;
-    genWhitePromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
+    moves = genWhitePromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
 
     eastCaptures &= ~RANK_8;
     westCaptures &= ~RANK_8;
@@ -157,16 +157,14 @@ static void genWhitePawnCaptures(Move** moves)
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_SOUTH_WEST(to);
-        **moves = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_SOUTH_EAST(to);
-        **moves = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
     }
 
     if (position.irreversibles.enPassant != EMPTY_BOARD)
@@ -185,20 +183,19 @@ static void genWhitePawnCaptures(Move** moves)
             {
                 const int from = GET_SQUARE(moving);
                 POP_SQUARE(moving, from);
-                **moves = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
-                (*moves)++;
+                *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
             }
             if (westEnPassant)
             {
                 const int from = GET_SQUARE(moving);
-                **moves = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
-                (*moves)++;
+                *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
             }
         }
     }
+    return moves;
 }
 
-static void genBlackPawnCaptures(Move** moves)
+static Move* genBlackPawnCaptures(Move* moves)
 {
     const U64 blackPawns = position.boards[BLACK_PAWN];
     const U64 unpinnedPawns = blackPawns & ~(cardinalPins | ordinalPins);
@@ -216,7 +213,7 @@ static void genBlackPawnCaptures(Move** moves)
     const U64 eastCapturePromotions = eastCaptures & RANK_1;
     const U64 westCapturePromotions = westCaptures & RANK_1;
     const U64 pushPromotions = BOARD_SOUTH(unpinnedPawns) & RANK_1 & resolvers & ~position.irreversibles.occupied;
-    genBlackPromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
+    moves = genBlackPromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
 
     eastCaptures &= ~RANK_1;
     westCaptures &= ~RANK_1;
@@ -225,16 +222,14 @@ static void genBlackPawnCaptures(Move** moves)
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_NORTH_WEST(to);
-        **moves = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_NORTH_EAST(to);
-        **moves = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
     }
 
     if (position.irreversibles.enPassant != EMPTY_BOARD)
@@ -253,20 +248,19 @@ static void genBlackPawnCaptures(Move** moves)
             {
                 const int from = GET_SQUARE(moving);
                 POP_SQUARE(moving, from);
-                **moves = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
-                (*moves)++;
+                *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
             }
             if (westEnPassant)
             {
                 const int from = GET_SQUARE(moving);
-                **moves = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
-                (*moves)++;
+                *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
             }
         }
     }
+    return moves;
 }
 
-static void genKnightMoves(Move** moves, int movingType, U64 allowed)
+static Move* genKnightMoves(Move* moves, int movingType, U64 allowed)
 {
     U64 knights = position.boards[movingType] & ~(ordinalPins | cardinalPins);
     while (knights)
@@ -278,13 +272,13 @@ static void genKnightMoves(Move** moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(knightMoves);
             POP_SQUARE(knightMoves, to);
-            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         }
     }
+    return moves;
 }
 
-static void genBishopMoves(Move** moves, int movingType, U64 allowed)
+static Move* genBishopMoves(Move* moves, int movingType, U64 allowed)
 {
     U64 bishops = position.boards[movingType] & ~cardinalPins;
     while (bishops)
@@ -302,13 +296,13 @@ static void genBishopMoves(Move** moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(bishopMoves);
             POP_SQUARE(bishopMoves, to);
-            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         }
     }
+    return moves;
 }
 
-static void genRookMoves(Move** moves, int movingType, U64 allowed)
+static Move* genRookMoves(Move* moves, int movingType, U64 allowed)
 {
     U64 rooks = position.boards[movingType] & ~ordinalPins;
     while (rooks)
@@ -326,13 +320,13 @@ static void genRookMoves(Move** moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(rookMoves);
             POP_SQUARE(rookMoves, to);
-            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         }
     }
+    return moves;
 }
 
-static void genQueenMoves(Move** moves, int movingType, U64 allowed)
+static Move* genQueenMoves(Move* moves, int movingType, U64 allowed)
 {
     U64 queens = position.boards[movingType];
     while (queens)
@@ -362,13 +356,13 @@ static void genQueenMoves(Move** moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(queenMoves);
             POP_SQUARE(queenMoves, to);
-            **moves = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         }
     }
+    return moves;
 }
 
-void genKingMoves(Move** moves, int movingType, U64 allowed)
+Move* genKingMoves(Move* moves, int movingType, U64 allowed)
 {
     const int king = GET_SQUARE(position.boards[movingType]);
     U64 kingMoves = kingAttacks[king] & allowed & safe;
@@ -376,13 +370,13 @@ void genKingMoves(Move** moves, int movingType, U64 allowed)
     {
         const int to = GET_SQUARE(kingMoves);
         POP_SQUARE(kingMoves, to);
-        **moves = CREATE_MOVE(king, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
-        (*moves)++;
+        *moves++ = CREATE_MOVE(king, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
     }
+    return moves;
 }
 
-void genCastles(
-    Move** moves,
+Move* genCastles(
+    Move* moves,
     U64 kingsideSafe,
     U64 queensideSafe,
     U64 kingsideEmpty,
@@ -398,8 +392,7 @@ void genCastles(
         if (!((kingsideEmpty & ~empty) | (kingsideSafe & ~safe)))
         {
             const int to = SQUARE_EAST(SQUARE_EAST(king));
-            **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
         }
     }
     if (position.irreversibles.castleFlags & queensideFlag)
@@ -407,10 +400,10 @@ void genCastles(
         if (!((queensideEmpty & ~empty) | (queensideSafe & ~safe)))
         {
             const int to = SQUARE_WEST(SQUARE_WEST(king));
-            **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
-            (*moves)++;
+            *moves++ = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
         }
     }
+    return moves;
 }
 
 void updateLegalityInfo()
@@ -636,65 +629,64 @@ static U64 getBlackPawnAttacks(U64 pawns)
     return eastAttacks | westAttacks;
 }
 
-static void genPromotion(Move** moves, int pawnOfColor, int knightOfColor, int from, int to, int captured)
+static Move* genPromotion(Move* moves, int pawnOfColor, int knightOfColor, int from, int to, int captured)
 {
-    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 3, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 2, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 1, 0, NO_FLAGS);
-    (*moves)++;
-    **moves = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor, 0, NO_FLAGS);
-    (*moves)++;
+    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 3, 0, NO_FLAGS);
+    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 2, 0, NO_FLAGS);
+    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 1, 0, NO_FLAGS);
+    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor, 0, NO_FLAGS);
+    return moves;
 }
 
-static void genWhitePromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+static Move* genWhitePromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
 {
     while (eastCaptures)
     {
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_SOUTH_WEST(to);
-        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
+        moves = genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_SOUTH_EAST(to);
-        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
+        moves = genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, position.pieces[to]);
     }
     while (pushes)
     {
         const int to = GET_SQUARE(pushes);
         POP_SQUARE(pushes, to);
         const int from = SQUARE_SOUTH(to);
-        genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, NO_PIECE);
+        moves = genPromotion(moves, WHITE_PAWN, WHITE_KNIGHT, from, to, NO_PIECE);
     }
+    return moves;
 }
 
-static void genBlackPromotions(Move** moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
+static Move* genBlackPromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes)
 {
     while (eastCaptures)
     {
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_NORTH_WEST(to);
-        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
+        moves = genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_NORTH_EAST(to);
-        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
+        moves = genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, position.pieces[to]);
     }
     while (pushes)
     {
         const int to = GET_SQUARE(pushes);
         POP_SQUARE(pushes, to);
         const int from = SQUARE_NORTH(to);
-        genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, NO_PIECE);
+        moves = genPromotion(moves, BLACK_PAWN, BLACK_KNIGHT, from, to, NO_PIECE);
     }
+    return moves;
 }
 

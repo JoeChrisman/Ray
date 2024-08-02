@@ -140,16 +140,15 @@ U64 perft(int depth)
         return 1;
     }
 
-    Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    genMoves(moves);
+    Move moveList[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    Move* moveListEnd = genMoves(moveList);
     U64 sum = 0;
-    for (int i = 0; moves[i] != NO_MOVE; i++)
+    for (Move* move = moveList; move < moveListEnd; move++)
     {
-        const Move move = moves[i];
         Irreversibles irreversibles = position.irreversibles;
-        makeMove(move);
+        makeMove(*move);
         sum += perft(depth - 1);
-        unMakeMove(move, &irreversibles);
+        unMakeMove(*move, &irreversibles);
     }
     return sum;
 
