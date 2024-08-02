@@ -44,7 +44,7 @@ void runPerftSuite()
     }
 
     const int maxLineLength = 256;
-    const int numTests = 125;
+    const int numTests = 128;
     const int maxFenLen = 64;
     const int maxDepth = 6;
     char tests[numTests][maxFenLen];
@@ -83,13 +83,15 @@ void runPerftSuite()
         testNum++;
     }
 
-    clock_t suiteStart = clock();
+    double totalSuiteSecs = 0;
+    int numFailed = 0;
+    int numPassed = 0;
     for (int test = 0; test < numTests; test++)
     {
         const char* fen = tests[test];
         loadFen(fen);
-        printf("running test %d: %s\n", test, fen);
-        clock_t testStart = clock();
+        double totalTestSecs = 0;
+        const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
         {
             const int expectedLeafCount = leafCounts[test][depth - 1];
@@ -97,18 +99,34 @@ void runPerftSuite()
             {
                 break;
             }
+            clock_t start = clock();
             const int actualLeafCount = (int)perft(depth);
-            printf("depth %d: %d\n", depth, actualLeafCount);
+            const double elapsed = (double)(clock() - start) / CLOCKS_PER_SEC;
+            totalTestSecs += elapsed;
+
             if (actualLeafCount != expectedLeafCount)
             {
-                printf("test %d failed on depth %d: expected %d, actual %d\n", test, depth, expectedLeafCount, actualLeafCount);
+                printf("[FAILED] - position: %s, depth %d: expected %d, actual %d\n", fen, depth, expectedLeafCount, actualLeafCount);
+                numFailed++;
+            }
+            else
+            {
+                numPassed++;
             }
         }
-        const double elapsed = (double)(clock() - testStart) / CLOCKS_PER_SEC;
-        printf("test %d completed in %f seconds\n", test, elapsed);
+        if (failsBefore == numFailed)
+        {
+            printf("[TEST PASSED] - test %d passed in %f seconds\n", test, totalTestSecs);
+        }
+        else
+        {
+            printf("[TEST FAILED] - test %d failed in %f seconds\n", test, totalTestSecs);
+        }
+        totalSuiteSecs += totalTestSecs;
     }
-    const double elapsed = (double)(clock() - suiteStart) / CLOCKS_PER_SEC;
-    printf("perft suite completed in %f seconds\n", elapsed);
+
+    printf(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
+    printf(" - perft suite completed in %f seconds, with %d passed and %d failed\n", totalSuiteSecs, numPassed, numFailed);
 }
 
 /*
