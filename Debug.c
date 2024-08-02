@@ -116,11 +116,11 @@ void runPerftSuite()
         }
         if (failsBefore == numFailed)
         {
-            printf("[TEST PASSED] - test %d passed in %f seconds\n", test, totalTestSecs);
+            printf("[PASSED] - test %d passed in %f seconds\n", test, totalTestSecs);
         }
         else
         {
-            printf("[TEST FAILED] - test %d failed in %f seconds\n", test, totalTestSecs);
+            printf("[FAILED] - test %d failed in %f seconds\n", test, totalTestSecs);
         }
         totalSuiteSecs += totalTestSecs;
     }
@@ -146,10 +146,10 @@ U64 perft(int depth)
     for (int i = 0; moves[i] != NO_MOVE; i++)
     {
         const Move move = moves[i];
-        Position before = position;
+        Irreversibles irreversibles = position.irreversibles;
         makeMove(move);
         sum += perft(depth - 1);
-        position = before;
+        unMakeMove(move, &irreversibles);
     }
     return sum;
 

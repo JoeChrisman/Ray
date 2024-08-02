@@ -252,7 +252,6 @@ void makeMove(Move move)
         }
     }
 
-
     position.irreversibles.white =
         position.boards[WHITE_PAWN] |
         position.boards[WHITE_KNIGHT] |
@@ -291,9 +290,21 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
 
-    // copy the moved piece back to its source square
+    // add the moved piece back to its source square
     position.boards[moved] ^= from;
     position.pieces[squareFrom] = moved;
+
+    if (promoted != NO_PIECE)
+    {
+        // remove a promoted piece
+        position.boards[promoted] ^= to;
+    }
+    else
+    {
+        // remove the moved piece from its destination square
+        position.boards[moved] ^= to;
+        position.pieces[squareTo] = NO_PIECE;
+    }
 
     if (IS_EN_PASSANT_CAPTURE(move))
     {
@@ -304,31 +315,27 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
     else
     {
         // replace a normal capture
-        position.boards[squareTo] = captured;
+        position.boards[captured] |= to;
+        position.pieces[squareTo] = captured;
     }
 
-    if (promoted != NO_PIECE)
-    {
-        // remove a promoted piece
-        position.boards[promoted] ^= to;
-    }
-    else if (squareFrom == E8 && moved == BLACK_KING)
+    if (squareFrom == E8 && moved == BLACK_KING)
     {
         // undo black castle kingside
         if (squareTo == G8)
-        {
-            position.boards[BLACK_ROOK] |= GET_BOARD(A8);
-            position.pieces[A8] = BLACK_ROOK;
-            position.boards[BLACK_ROOK] ^= GET_BOARD(D8);
-            position.pieces[D8] = NO_PIECE;
-        }
-        // undo black castle queenside
-        else if (squareTo == C8)
         {
             position.boards[BLACK_ROOK] |= GET_BOARD(H8);
             position.pieces[H8] = BLACK_ROOK;
             position.boards[BLACK_ROOK] ^= GET_BOARD(F8);
             position.pieces[F8] = NO_PIECE;
+        }
+        // undo black castle queenside
+        else if (squareTo == C8)
+        {
+            position.boards[BLACK_ROOK] |= GET_BOARD(A8);
+            position.pieces[A8] = BLACK_ROOK;
+            position.boards[BLACK_ROOK] ^= GET_BOARD(D8);
+            position.pieces[D8] = NO_PIECE;
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -336,18 +343,18 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
         // undo white castle kingside
         if (squareTo == G1)
         {
-            position.boards[WHITE_ROOK] |= GET_BOARD(A1);
-            position.pieces[A1] = WHITE_ROOK;
-            position.boards[WHITE_ROOK] ^= GET_BOARD(D1);
-            position.pieces[D1] = NO_PIECE;
-        }
-        // undo white castle queenside
-        else if (squareTo == C1)
-        {
             position.boards[WHITE_ROOK] |= GET_BOARD(H1);
             position.pieces[H1] = WHITE_ROOK;
             position.boards[WHITE_ROOK] ^= GET_BOARD(F1);
             position.pieces[F1] = NO_PIECE;
+        }
+        // undo white castle queenside
+        else if (squareTo == C1)
+        {
+            position.boards[WHITE_ROOK] |= GET_BOARD(A1);
+            position.pieces[A1] = WHITE_ROOK;
+            position.boards[WHITE_ROOK] ^= GET_BOARD(D1);
+            position.pieces[D1] = NO_PIECE;
         }
     }
 }
