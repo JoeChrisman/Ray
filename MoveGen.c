@@ -36,7 +36,7 @@ void genMoves(Move* moves)
         genBishopMoves(&moves, BLACK_BISHOP, whiteOrEmpty);
         genRookMoves(&moves, BLACK_ROOK, whiteOrEmpty);
         genQueenMoves(&moves, BLACK_QUEEN, whiteOrEmpty);
-        genKingMoves(&moves, WHITE_KING, whiteOrEmpty);
+        genKingMoves(&moves, BLACK_KING, whiteOrEmpty);
         genCastles(
             &moves,
             BLACK_KINGSIDE_SAFE_SQUARES,
@@ -204,7 +204,7 @@ static void genBlackPawnCaptures(Move** moves)
     const U64 unpinnedPawns = blackPawns & ~(cardinalPins | ordinalPins);
     const U64 ordinalPinnedPawns = blackPawns & ordinalPins;
 
-    const U64 allowedCaptures = position.irreversibles.black & resolvers;
+    const U64 allowedCaptures = position.irreversibles.white & resolvers;
     const U64 unpinnedEastCaptures = BOARD_SOUTH_EAST(unpinnedPawns) & NOT_A_FILE;
     const U64 unpinnedWestCaptures = BOARD_SOUTH_WEST(unpinnedPawns) & NOT_H_FILE;
     const U64 pinnedEastCaptures = BOARD_SOUTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & ordinalPins;
@@ -376,7 +376,7 @@ void genKingMoves(Move** moves, int movingType, U64 allowed)
     {
         const int to = GET_SQUARE(kingMoves);
         POP_SQUARE(kingMoves, to);
-        **moves = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        **moves = CREATE_MOVE(king, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
         (*moves)++;
     }
 }
@@ -535,13 +535,13 @@ static U64 getResolverSquares(
         {
             if (cardinalAttackers)
             {
-                resolverSquares = getCardinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolverSquares = getCardinalSlidingMoves(GET_SQUARE(attackers), occupied);
                 resolverSquares &= cardinalRays;
                 resolverSquares |= attackers;
             }
             else if (ordinalAttackers)
             {
-                resolverSquares = getOrdinalSlidingMoves(GET_SQUARE(attackers), EMPTY_BOARD);
+                resolverSquares = getOrdinalSlidingMoves(GET_SQUARE(attackers), occupied);
                 resolverSquares &= ordinalRays;
                 resolverSquares |= attackers;
             }

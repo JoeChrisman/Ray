@@ -69,13 +69,15 @@ extern const U64 RANKS[8];
 #define BLACK_QUEEN  11
 #define BLACK_KING   12
 
-#define IS_WHITE_PIECE(piece) ((piece) < 7)
-#define IS_BLACK_PIECE(piece) ((piece) > 6)
+#define IS_WHITE_PIECE(piece) ((piece) < BLACK_PAWN && (piece) != NO_PIECE)
+#define IS_BLACK_PIECE(piece) ((piece) > WHITE_KING)
 
-#define WHITE_CASTLE_KINGSIDE  1
-#define WHITE_CASTLE_QUEENSIDE 2
-#define BLACK_CASTLE_KINGSIDE  4
-#define BLACK_CASTLE_QUEENSIDE 8
+#define WHITE_CASTLE_KINGSIDE  0x1
+#define WHITE_CASTLE_QUEENSIDE 0x2
+#define BLACK_CASTLE_KINGSIDE  0x4
+#define BLACK_CASTLE_QUEENSIDE 0x8
+#define WHITE_CASTLE           0x3
+#define BLACK_CASTLE           0xC
 
 #define WHITE_KINGSIDE_EMPTY_SQUARES  0x6000000000000000
 #define WHITE_QUEENSIDE_EMPTY_SQUARES 0x0E00000000000000

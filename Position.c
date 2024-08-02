@@ -9,6 +9,17 @@
 
 Position position = {0};
 
+const int CASTLING_FLAGS[NUM_SQUARES] = {
+    ~BLACK_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~BLACK_CASTLE, 0xF, 0xF, ~BLACK_CASTLE_KINGSIDE,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
+    ~WHITE_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~WHITE_CASTLE, 0xF, 0xF, ~WHITE_CASTLE_KINGSIDE
+};
+
 void clearPosition()
 {
     memset(&position, 0, sizeof(position));
@@ -162,7 +173,10 @@ void makeMove(Move move)
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
 
-    // remove the moved piece to its source square
+    position.irreversibles.castleFlags &= CASTLING_FLAGS[squareFrom];
+    position.irreversibles.castleFlags &= CASTLING_FLAGS[squareTo];
+
+    // remove the moved piece from its source square
     position.boards[moved] ^= from;
     position.pieces[squareFrom] = NO_PIECE;
 
@@ -171,6 +185,12 @@ void makeMove(Move move)
         // remove captured en passant pawn
         position.boards[captured] ^= position.irreversibles.enPassant;
         position.pieces[GET_SQUARE(position.irreversibles.enPassant)] = NO_PIECE;
+    }
+    else
+    {
+        // remove a captured piece
+        position.boards[captured] ^= to;
+        position.pieces[squareTo] = NO_PIECE;
     }
     // disable en passant
     position.irreversibles.enPassant = EMPTY_BOARD;
@@ -198,18 +218,18 @@ void makeMove(Move move)
         // black castle kingside
         if (squareTo == G8)
         {
-            position.boards[BLACK_ROOK] ^= GET_BOARD(A8);
-            position.pieces[A8] = NO_PIECE;
-            position.boards[BLACK_ROOK] |= GET_BOARD(D8);
-            position.pieces[D8] = BLACK_ROOK;
-        }
-        // black castle queenside
-        else if (squareTo == C8)
-        {
             position.boards[BLACK_ROOK] ^= GET_BOARD(H8);
             position.pieces[H8] = NO_PIECE;
             position.boards[BLACK_ROOK] |= GET_BOARD(F8);
             position.pieces[F8] = BLACK_ROOK;
+        }
+        // black castle queenside
+        else if (squareTo == C8)
+        {
+            position.boards[BLACK_ROOK] ^= GET_BOARD(A8);
+            position.pieces[A8] = NO_PIECE;
+            position.boards[BLACK_ROOK] |= GET_BOARD(D8);
+            position.pieces[D8] = BLACK_ROOK;
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -217,20 +237,40 @@ void makeMove(Move move)
         // white castle kingside
         if (squareTo == G1)
         {
-            position.boards[WHITE_ROOK] ^= GET_BOARD(A1);
-            position.pieces[A1] = NO_PIECE;
-            position.boards[WHITE_ROOK] |= GET_BOARD(D1);
-            position.pieces[D1] = WHITE_ROOK;
-        }
-        // white castle queenside
-        else if (squareTo == C1)
-        {
             position.boards[WHITE_ROOK] ^= GET_BOARD(H1);
             position.pieces[H1] = NO_PIECE;
             position.boards[WHITE_ROOK] |= GET_BOARD(F1);
             position.pieces[F1] = WHITE_ROOK;
         }
+        // white castle queenside
+        else if (squareTo == C1)
+        {
+            position.boards[WHITE_ROOK] ^= GET_BOARD(A1);
+            position.pieces[A1] = NO_PIECE;
+            position.boards[WHITE_ROOK] |= GET_BOARD(D1);
+            position.pieces[D1] = WHITE_ROOK;
+        }
     }
+
+
+    position.irreversibles.white =
+        position.boards[WHITE_PAWN] |
+        position.boards[WHITE_KNIGHT] |
+        position.boards[WHITE_BISHOP] |
+        position.boards[WHITE_ROOK] |
+        position.boards[WHITE_QUEEN] |
+        position.boards[WHITE_KING];
+
+
+    position.irreversibles.black =
+        position.boards[BLACK_PAWN] |
+        position.boards[BLACK_KNIGHT] |
+        position.boards[BLACK_BISHOP] |
+        position.boards[BLACK_ROOK] |
+        position.boards[BLACK_QUEEN] |
+        position.boards[BLACK_KING];
+
+    position.irreversibles.occupied = position.irreversibles.white | position.irreversibles.black;
 }
 
 void unMakeMove(Move move, Irreversibles* irreversibles)
@@ -240,6 +280,7 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
      * save it before make and restore it during unmake
      */
     position.irreversibles = *irreversibles;
+    position.isWhitesTurn = !position.isWhitesTurn;
 
     const int squareFrom = GET_SQUARE_FROM(move);
     const int squareTo = GET_SQUARE_TO(move);
