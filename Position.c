@@ -61,13 +61,13 @@ int loadFen(const char* fen)
             }
             if (IS_WHITE_PIECE(piece))
             {
-                position.irreversibles.white |= GET_BOARD(square);
+                position.white |= GET_BOARD(square);
             }
             else if (IS_BLACK_PIECE(piece))
             {
-                position.irreversibles.black |= GET_BOARD(square);
+                position.black |= GET_BOARD(square);
             }
-            position.irreversibles.occupied |= GET_BOARD(square);
+            position.occupied |= GET_BOARD(square);
             position.boards[piece] |= GET_BOARD(square);
             position.pieces[square] = piece;
             square++;
@@ -251,33 +251,11 @@ void makeMove(Move move)
             position.pieces[D1] = WHITE_ROOK;
         }
     }
-
-    position.irreversibles.white =
-        position.boards[WHITE_PAWN] |
-        position.boards[WHITE_KNIGHT] |
-        position.boards[WHITE_BISHOP] |
-        position.boards[WHITE_ROOK] |
-        position.boards[WHITE_QUEEN] |
-        position.boards[WHITE_KING];
-
-
-    position.irreversibles.black =
-        position.boards[BLACK_PAWN] |
-        position.boards[BLACK_KNIGHT] |
-        position.boards[BLACK_BISHOP] |
-        position.boards[BLACK_ROOK] |
-        position.boards[BLACK_QUEEN] |
-        position.boards[BLACK_KING];
-
-    position.irreversibles.occupied = position.irreversibles.white | position.irreversibles.black;
+    updateOccupancy();
 }
 
 void unMakeMove(Move move, Irreversibles* irreversibles)
 {
-    /*
-     * some position state can not be reversed, so we
-     * save it before make and restore it during unmake
-     */
     position.irreversibles = *irreversibles;
     position.isWhitesTurn = !position.isWhitesTurn;
 
@@ -357,4 +335,27 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
             position.pieces[D1] = NO_PIECE;
         }
     }
+    updateOccupancy();
+}
+
+static void updateOccupancy()
+{
+    position.white =
+        position.boards[WHITE_PAWN] |
+        position.boards[WHITE_KNIGHT] |
+        position.boards[WHITE_BISHOP] |
+        position.boards[WHITE_ROOK] |
+        position.boards[WHITE_QUEEN] |
+        position.boards[WHITE_KING];
+
+
+    position.black =
+        position.boards[BLACK_PAWN] |
+        position.boards[BLACK_KNIGHT] |
+        position.boards[BLACK_BISHOP] |
+        position.boards[BLACK_ROOK] |
+        position.boards[BLACK_QUEEN] |
+        position.boards[BLACK_KING];
+
+    position.occupied = position.white | position.black;
 }

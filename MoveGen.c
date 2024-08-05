@@ -10,7 +10,7 @@ Move* genMoves(Move* moves)
         moves = genWhitePawnMoves(moves);
         moves = genWhitePawnCaptures(moves);
 
-        const U64 blackOrEmpty = position.irreversibles.black | ~position.irreversibles.occupied;
+        const U64 blackOrEmpty = position.black | ~position.occupied;
         moves = genKnightMoves(moves, WHITE_KNIGHT, blackOrEmpty);
         moves = genBishopMoves(moves, WHITE_BISHOP, blackOrEmpty);
         moves = genRookMoves(moves, WHITE_ROOK, blackOrEmpty);
@@ -31,7 +31,7 @@ Move* genMoves(Move* moves)
         moves = genBlackPawnMoves(moves);
         moves = genBlackPawnCaptures(moves);
 
-        const U64 whiteOrEmpty = position.irreversibles.white | ~position.irreversibles.occupied;
+        const U64 whiteOrEmpty = position.white | ~position.occupied;
         moves = genKnightMoves(moves, BLACK_KNIGHT, whiteOrEmpty);
         moves = genBishopMoves(moves, BLACK_BISHOP, whiteOrEmpty);
         moves = genRookMoves(moves, BLACK_ROOK, whiteOrEmpty);
@@ -56,20 +56,20 @@ Move* genCaptures(Move* moves)
     if (position.isWhitesTurn)
     {
         moves = genWhitePawnCaptures(moves);
-        moves = genKnightMoves(moves, WHITE_KNIGHT, position.irreversibles.black);
-        moves = genBishopMoves(moves, WHITE_BISHOP, position.irreversibles.black);
-        moves = genRookMoves(moves, WHITE_ROOK, position.irreversibles.black);
-        moves = genQueenMoves(moves, WHITE_QUEEN, position.irreversibles.black);
-        moves = genKingMoves(moves, WHITE_KING, position.irreversibles.black);
+        moves = genKnightMoves(moves, WHITE_KNIGHT, position.black);
+        moves = genBishopMoves(moves, WHITE_BISHOP, position.black);
+        moves = genRookMoves(moves, WHITE_ROOK, position.black);
+        moves = genQueenMoves(moves, WHITE_QUEEN, position.black);
+        moves = genKingMoves(moves, WHITE_KING, position.black);
     }
     else
     {
         moves = genBlackPawnCaptures(moves);
-        moves = genKnightMoves(moves, BLACK_KNIGHT, position.irreversibles.white);
-        moves = genBishopMoves(moves, BLACK_BISHOP, position.irreversibles.white);
-        moves = genRookMoves(moves, BLACK_ROOK, position.irreversibles.white);
-        moves = genQueenMoves(moves, BLACK_QUEEN, position.irreversibles.white);
-        moves = genKingMoves(moves, BLACK_KING, position.irreversibles.white);
+        moves = genKnightMoves(moves, BLACK_KNIGHT, position.white);
+        moves = genBishopMoves(moves, BLACK_BISHOP, position.white);
+        moves = genRookMoves(moves, BLACK_ROOK, position.white);
+        moves = genQueenMoves(moves, BLACK_QUEEN, position.white);
+        moves = genKingMoves(moves, BLACK_KING, position.white);
     }
     return moves;
 }
@@ -79,12 +79,12 @@ static Move* genWhitePawnMoves(Move* moves)
     const U64 whitePawns = position.boards[WHITE_PAWN] & ~RANK_7;
     const U64 unPinnedPawns = whitePawns & ~(ordinalPins | cardinalPins);
     const U64 pinnedPawns = whitePawns & cardinalPins;
-    const U64 unPinnedPush1 = BOARD_NORTH(unPinnedPawns) & ~position.irreversibles.occupied;
-    const U64 pinnedPush1 = BOARD_NORTH(pinnedPawns) & ~position.irreversibles.occupied & cardinalPins;
+    const U64 unPinnedPush1 = BOARD_NORTH(unPinnedPawns) & ~position.occupied;
+    const U64 pinnedPush1 = BOARD_NORTH(pinnedPawns) & ~position.occupied & cardinalPins;
     const U64 pushed = unPinnedPush1 | pinnedPush1;
 
     U64 push1 = pushed & resolvers;
-    U64 push2 = BOARD_NORTH(pushed) & resolvers & ~position.irreversibles.occupied & RANK_4;
+    U64 push2 = BOARD_NORTH(pushed) & resolvers & ~position.occupied & RANK_4;
     while (push1)
     {
         const int to = GET_SQUARE(push1);
@@ -107,12 +107,12 @@ static Move* genBlackPawnMoves(Move* moves)
     const U64 blackPawns = position.boards[BLACK_PAWN] & ~RANK_2;
     const U64 unPinnedPawns = blackPawns & ~(ordinalPins | cardinalPins);
     const U64 pinnedPawns = blackPawns & cardinalPins;
-    const U64 unPinnedPush1 = BOARD_SOUTH(unPinnedPawns) & ~position.irreversibles.occupied;
-    const U64 pinnedPush1 = BOARD_SOUTH(pinnedPawns) & ~position.irreversibles.occupied & cardinalPins;
+    const U64 unPinnedPush1 = BOARD_SOUTH(unPinnedPawns) & ~position.occupied;
+    const U64 pinnedPush1 = BOARD_SOUTH(pinnedPawns) & ~position.occupied & cardinalPins;
     const U64 pushed = unPinnedPush1 | pinnedPush1;
 
     U64 push1 = pushed & resolvers;
-    U64 push2 = BOARD_SOUTH(pushed) & resolvers & ~position.irreversibles.occupied & RANK_5;
+    U64 push2 = BOARD_SOUTH(pushed) & resolvers & ~position.occupied & RANK_5;
     while (push1)
     {
         const int to = GET_SQUARE(push1);
@@ -136,7 +136,7 @@ static Move* genWhitePawnCaptures(Move* moves)
     const U64 unpinnedPawns = whitePawns & ~(cardinalPins | ordinalPins);
     const U64 ordinalPinnedPawns = whitePawns & ordinalPins;
 
-    const U64 allowedCaptures = position.irreversibles.black & resolvers;
+    const U64 allowedCaptures = position.black & resolvers;
     const U64 unpinnedEastCaptures = BOARD_NORTH_EAST(unpinnedPawns) & NOT_A_FILE;
     const U64 unpinnedWestCaptures = BOARD_NORTH_WEST(unpinnedPawns) & NOT_H_FILE;
     const U64 pinnedEastCaptures = BOARD_NORTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & ordinalPins;
@@ -147,7 +147,7 @@ static Move* genWhitePawnCaptures(Move* moves)
 
     const U64 eastCapturePromotions = eastCaptures & RANK_8;
     const U64 westCapturePromotions = westCaptures & RANK_8;
-    const U64 pushPromotions = BOARD_NORTH(unpinnedPawns) & RANK_8 & resolvers & ~position.irreversibles.occupied;
+    const U64 pushPromotions = BOARD_NORTH(unpinnedPawns) & RANK_8 & resolvers & ~position.occupied;
     moves = genWhitePromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
 
     eastCaptures &= ~RANK_8;
@@ -172,7 +172,7 @@ static Move* genWhitePawnCaptures(Move* moves)
         const U64 capture = BOARD_NORTH(position.irreversibles.enPassant & resolvers);
         const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & capture;
         const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & capture;
-        const U64 blockers = position.irreversibles.occupied ^ position.irreversibles.enPassant;
+        const U64 blockers = position.occupied ^ position.irreversibles.enPassant;
         U64 moving = BOARD_SOUTH_EAST(westEnPassant) | BOARD_SOUTH_WEST(eastEnPassant);
         const U64 pin = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_5;
         const U64 cardinalAttackers = position.boards[BLACK_QUEEN] | position.boards[BLACK_ROOK];
@@ -201,7 +201,7 @@ static Move* genBlackPawnCaptures(Move* moves)
     const U64 unpinnedPawns = blackPawns & ~(cardinalPins | ordinalPins);
     const U64 ordinalPinnedPawns = blackPawns & ordinalPins;
 
-    const U64 allowedCaptures = position.irreversibles.white & resolvers;
+    const U64 allowedCaptures = position.white & resolvers;
     const U64 unpinnedEastCaptures = BOARD_SOUTH_EAST(unpinnedPawns) & NOT_A_FILE;
     const U64 unpinnedWestCaptures = BOARD_SOUTH_WEST(unpinnedPawns) & NOT_H_FILE;
     const U64 pinnedEastCaptures = BOARD_SOUTH_EAST(ordinalPinnedPawns) & NOT_A_FILE & ordinalPins;
@@ -212,7 +212,7 @@ static Move* genBlackPawnCaptures(Move* moves)
 
     const U64 eastCapturePromotions = eastCaptures & RANK_1;
     const U64 westCapturePromotions = westCaptures & RANK_1;
-    const U64 pushPromotions = BOARD_SOUTH(unpinnedPawns) & RANK_1 & resolvers & ~position.irreversibles.occupied;
+    const U64 pushPromotions = BOARD_SOUTH(unpinnedPawns) & RANK_1 & resolvers & ~position.occupied;
     moves = genBlackPromotions(moves, eastCapturePromotions, westCapturePromotions, pushPromotions);
 
     eastCaptures &= ~RANK_1;
@@ -237,7 +237,7 @@ static Move* genBlackPawnCaptures(Move* moves)
         const U64 capture = BOARD_SOUTH(position.irreversibles.enPassant & resolvers);
         const U64 eastEnPassant = (unpinnedEastCaptures | pinnedEastCaptures) & capture;
         const U64 westEnPassant = (unpinnedWestCaptures | pinnedWestCaptures) & capture;
-        const U64 blockers = position.irreversibles.occupied ^ position.irreversibles.enPassant;
+        const U64 blockers = position.occupied ^ position.irreversibles.enPassant;
         U64 moving = BOARD_NORTH_EAST(westEnPassant) | BOARD_NORTH_WEST(eastEnPassant);
         const U64 pin = getCardinalSlidingMoves(GET_SQUARE(moving), blockers) & RANK_4;
         const U64 cardinalAttackers = position.boards[WHITE_QUEEN] | position.boards[WHITE_ROOK];
@@ -285,7 +285,7 @@ static Move* genBishopMoves(Move* moves, int movingType, U64 allowed)
     {
         const int from = GET_SQUARE(bishops);
         POP_SQUARE(bishops, from);
-        U64 bishopMoves = getOrdinalSlidingMoves(from, position.irreversibles.occupied);
+        U64 bishopMoves = getOrdinalSlidingMoves(from, position.occupied);
         bishopMoves &= allowed & resolvers;
 
         if (GET_BOARD(from) & ordinalPins)
@@ -309,7 +309,7 @@ static Move* genRookMoves(Move* moves, int movingType, U64 allowed)
     {
         const int from = GET_SQUARE(rooks);
         POP_SQUARE(rooks, from);
-        U64 rookMoves = getCardinalSlidingMoves(from, position.irreversibles.occupied);
+        U64 rookMoves = getCardinalSlidingMoves(from, position.occupied);
         rookMoves &= allowed & resolvers;
 
         if (GET_BOARD(from) & cardinalPins)
@@ -337,7 +337,7 @@ static Move* genQueenMoves(Move* moves, int movingType, U64 allowed)
         U64 queen = GET_BOARD(from);
         if (queen & ~cardinalPins)
         {
-            queenMoves |= getOrdinalSlidingMoves(from, position.irreversibles.occupied);
+            queenMoves |= getOrdinalSlidingMoves(from, position.occupied);
             if (queen & ordinalPins)
             {
                 queenMoves &= ordinalPins;
@@ -345,7 +345,7 @@ static Move* genQueenMoves(Move* moves, int movingType, U64 allowed)
         }
         if (queen & ~ordinalPins)
         {
-            queenMoves |= getCardinalSlidingMoves(from, position.irreversibles.occupied);
+            queenMoves |= getCardinalSlidingMoves(from, position.occupied);
             if (queen & cardinalPins)
             {
                 queenMoves &= cardinalPins;
@@ -386,7 +386,7 @@ Move* genCastles(
     int movingType)
 {
     const int king = GET_SQUARE(position.boards[movingType]);
-    const U64 empty = ~position.irreversibles.occupied;
+    const U64 empty = ~position.occupied;
     if (position.irreversibles.castleFlags & kingsideFlag)
     {
         if (!((kingsideEmpty & ~empty) | (kingsideSafe & ~safe)))
@@ -409,8 +409,8 @@ Move* genCastles(
 void updateLegalityInfo()
 {
     const int isWhite = position.isWhitesTurn;
-    const U64 friendlies = isWhite ? position.irreversibles.white : position.irreversibles.black;
-    const U64 enemies = isWhite ? position.irreversibles.black : position.irreversibles.white;
+    const U64 friendlies = isWhite ? position.white : position.black;
+    const U64 enemies = isWhite ? position.black : position.white;
     const U64 friendlyKing = position.boards[isWhite ? WHITE_KING : BLACK_KING];
     const U64 enemyKnights = position.boards[isWhite ? BLACK_KNIGHT : WHITE_KNIGHT];
     const U64 enemyBishops = position.boards[isWhite ? BLACK_BISHOP : WHITE_BISHOP];
@@ -426,7 +426,7 @@ void updateLegalityInfo()
 
     safe = ~getAttacks(
         friendlyKing,
-        position.irreversibles.occupied,
+        position.occupied,
         enemyPawnAttacks,
         enemyKnights,
         enemyBishops,
@@ -437,7 +437,7 @@ void updateLegalityInfo()
     const int friendlyKingSquare = GET_SQUARE(friendlyKing);
     resolvers = getResolverSquares(
         friendlyKingSquare,
-        position.irreversibles.occupied,
+        position.occupied,
         enemyPawnAttackers,
         enemyKnights,
         enemyBishops,

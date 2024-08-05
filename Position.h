@@ -11,10 +11,6 @@ typedef struct
     U64 enPassant;
     int halfMoves;
     int castleFlags;
-
-    U64 white;
-    U64 black;
-    U64 occupied;
 } Irreversibles;
 
 typedef struct
@@ -25,6 +21,10 @@ typedef struct
     int isWhitesTurn;
     int fullMoves;
     Irreversibles irreversibles;
+
+    U64 white;
+    U64 black;
+    U64 occupied;
 } Position;
 
 extern Position position;
@@ -34,6 +34,8 @@ int loadFen(const char* fen);
 
 void makeMove(Move move);
 void unMakeMove(Move move, Irreversibles* irreversibles);
+
+static inline void updateOccupancy();
 
 
 #endif

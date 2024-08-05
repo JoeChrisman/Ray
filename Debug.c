@@ -179,11 +179,11 @@ void printPosition()
 {
     printf("isWhitesTurn: %d\n", position.isWhitesTurn);
     printf("occupied:\n");
-    printBitboard(position.irreversibles.occupied);
+    printBitboard(position.occupied);
     printf("white:\n");
-    printBitboard(position.irreversibles.white);
+    printBitboard(position.white);
     printf("black:\n");
-    printBitboard(position.irreversibles.black);
+    printBitboard(position.black);
     printf("white pawns:\n");
     printBitboard(position.boards[WHITE_PAWN]);
     printf("white knights:\n");
