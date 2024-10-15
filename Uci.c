@@ -7,6 +7,7 @@
 #include "Notation.h"
 #include "Search.h"
 #include "Debug.h"
+#include "MoveGen.h"
 
 void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
@@ -31,7 +32,6 @@ void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
         printf("bestmove %s\n", getStrFromMove(getBestMove()));
         fflush(stdout);
     }
-
 }
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
@@ -39,6 +39,23 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
     if (!strcmp(command[1], "startpos"))
     {
         loadFen(INITIAL_FEN);
+        if (!strcmp(command[2], "moves"))
+        {
+            for (int i = 3; command[i][0] != '\0'; i++)
+            {
+                Move moves[MAX_MOVES_IN_POSITION];
+                genMoves(moves);
+                for (int j = 0; moves[j] != NO_MOVE; j++)
+                {
+                    const char* moveStr = getStrFromMove(moves[j]);
+                    if (!strcmp(command[i], moveStr))
+                    {
+                        makeMove(moves[j]);
+                        break;
+                    }
+                }
+            }
+        }
     }
     else if (!strcmp(command[1], "fen"))
     {
