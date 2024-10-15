@@ -36,33 +36,53 @@ void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 
 void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
 {
+    // if a "startpos" flag was sent
     if (!strcmp(command[1], "startpos"))
     {
+        // load the initial position
         loadFen(INITIAL_FEN);
-        if (!strcmp(command[2], "moves"))
+    }
+    // if a "fen" flag was sent
+    else if (!strcmp(command[1], "fen"))
+    {
+        // load a custom fen
+        char fen[MAX_ARG_LEN];
+        memset(fen, '\0', sizeof(fen));
+        // the fen ends at the end of the command or at the "moves" flag
+        for (int i = 2; strcmp(command[i], "moves") && command[i][0] != '\0'; i++)
         {
-            for (int i = 3; command[i][0] != '\0'; i++)
+            strcat(fen, command[i]);
+            strcat(fen, " ");
+        }
+        loadFen(fen);
+    }
+
+    // find the "moves" flag
+    int movesFlagIndex = 0;
+    while (strcmp(command[movesFlagIndex], "moves") && command[movesFlagIndex][0] != '\0')
+    {
+        movesFlagIndex++;
+    }
+    // if a "moves" flag was sent
+    if (movesFlagIndex)
+    {
+        for (int i = movesFlagIndex; command[i][0] != '\0'; i++)
+        {
+            Move moves[MAX_MOVES_IN_POSITION];
+            genMoves(moves);
+            // iterate through all moves in current position
+            for (int j = 0; moves[j] != NO_MOVE; j++)
             {
-                Move moves[MAX_MOVES_IN_POSITION];
-                genMoves(moves);
-                for (int j = 0; moves[j] != NO_MOVE; j++)
+                const char* moveStr = getStrFromMove(moves[j]);
+                // if the move matches the one sent from the client
+                if (!strcmp(command[i], moveStr))
                 {
-                    const char* moveStr = getStrFromMove(moves[j]);
-                    if (!strcmp(command[i], moveStr))
-                    {
-                        makeMove(moves[j]);
-                        break;
-                    }
+                    // make the move and go to the next move sent from the client
+                    makeMove(moves[j]);
+                    break;
                 }
             }
         }
-    }
-    else if (!strcmp(command[1], "fen"))
-    {
-        char fen[MAX_ARG_LEN];
-        memset(fen, '\0', sizeof(fen));
-        snprintf(fen, MAX_ARG_LEN, "%s %s %s %s %s %s", command[2], command[3], command[4], command[5], command[6], command[7]);
-        loadFen(fen);
     }
 }
 
