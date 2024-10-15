@@ -10,6 +10,9 @@ int main()
     srand(time(NULL));
     initAttackTables();
 
+    printf("Ray version 1.0.0\n");
+    fflush(stdout);
+
     char input[4];
     memset(input, '\0', sizeof(input));
     while (fgets(input, sizeof(input), stdin))
