@@ -23,4 +23,6 @@ add_executable(Ray main.c
         Search.c
         Debug.h
         Debug.c
+        Eval.h
+        Eval.c
 )

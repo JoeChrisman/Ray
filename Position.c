@@ -348,7 +348,6 @@ static void updateOccupancy()
         position.boards[WHITE_QUEEN] |
         position.boards[WHITE_KING];
 
-
     position.black =
         position.boards[BLACK_PAWN] |
         position.boards[BLACK_KNIGHT] |
