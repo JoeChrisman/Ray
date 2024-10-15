@@ -47,8 +47,15 @@ int search(int alpha, int beta, int color, int depth)
 
     Move moves[MAX_MOVES_IN_POSITION];
     Move* lastMove = genMoves(moves);
+    // if there are no legal moves
     if (lastMove == moves)
     {
+        // checkmate
+        if (isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]))
+        {
+            return MIN_SCORE + MAX_SEARCH_DEPTH - depth;
+        }
+        // stalemate
         return 0;
     }
 

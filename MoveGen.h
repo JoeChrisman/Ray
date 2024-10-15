@@ -7,6 +7,8 @@
 extern Move* genMoves(Move* moves);
 extern Move* genCaptures(Move* moves);
 
+extern int isKingAttackedFast(U64 king);
+
 static U64 safe;
 static U64 resolvers;
 static U64 cardinalPins;

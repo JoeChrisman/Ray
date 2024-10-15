@@ -74,6 +74,12 @@ Move* genCaptures(Move* moves)
     return moves;
 }
 
+// this will only work if the moves have been generated
+int isKingAttackedFast(U64 king)
+{
+    return !(king & safe);
+}
+
 static Move* genWhitePawnMoves(Move* moves)
 {
     const U64 whitePawns = position.boards[WHITE_PAWN] & ~RANK_7;

@@ -10,7 +10,7 @@ int main()
     srand(time(NULL));
     initAttackTables();
 
-    printf("Ray version 1.0.0\n");
+    printf("Ray version 1.1.0\n");
     fflush(stdout);
 
     char input[4];
