@@ -35,7 +35,7 @@ Move getBestMove()
         printf("%s: %d\n", getStrFromMove(moves[numMoves]), score);
         numMoves++;
     }
-    return equalMoves[rand() % numEqualMoves];
+    return equalMoves[numEqualMoves ? rand() % numEqualMoves : 0];
 }
 
 int search(int alpha, int beta, int color, int depth)
