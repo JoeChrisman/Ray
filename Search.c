@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <string.h>
 #include "Search.h"
 #include "Position.h"
 #include "MoveGen.h"
@@ -10,8 +11,9 @@ Move getBestMove()
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     genMoves(moves);
     int numMoves = 0;
-    int maxScore = MIN_SCORE;
-    Move bestMove = NO_MOVE;
+    Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    int numEqualMoves = 0;
+    int bestScore = MIN_SCORE;
     while (moves[numMoves] != NO_MOVE)
     {
         const Move currentMove = moves[numMoves];
@@ -19,15 +21,21 @@ Move getBestMove()
         makeMove(currentMove);
         int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, 4);
         unMakeMove(currentMove, irreversibles);
-        if (score > maxScore)
+        if (score > bestScore)
         {
-            maxScore = score;
-            bestMove = moves[numMoves];
+            bestScore = score;
+            memset(equalMoves, NO_MOVE, sizeof(equalMoves));
+            numEqualMoves = 0;
+            equalMoves[numEqualMoves++] = currentMove;
+        }
+        else if (score == bestScore)
+        {
+            equalMoves[numEqualMoves++] = currentMove;
         }
         printf("%s: %d\n", getStrFromMove(moves[numMoves]), score);
         numMoves++;
     }
-    return bestMove;
+    return equalMoves[rand() % numEqualMoves];
 }
 
 int search(int alpha, int beta, int color, int depth)
