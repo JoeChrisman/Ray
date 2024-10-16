@@ -4,12 +4,10 @@
 #include "Defs.h"
 #include "Move.h"
 
-#define MAX_MOVES_IN_POSITION 256
-
 typedef struct
 {
     U64 enPassant;
-    int halfMoves;
+    int plies;
     int castleFlags;
 } Irreversibles;
 
@@ -19,7 +17,7 @@ typedef struct
     int pieces[NUM_SQUARES];
 
     int isWhitesTurn;
-    int fullMoves;
+    int plies;
     Irreversibles irreversibles;
 
     U64 white;
@@ -27,6 +25,7 @@ typedef struct
     U64 occupied;
 
     U64 zobristHash;
+    U64 history[MAX_MOVES_IN_GAME];
 } Position;
 
 extern Position position;

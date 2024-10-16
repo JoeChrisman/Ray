@@ -159,8 +159,8 @@ int loadFen(const char* fen)
         clearPosition();
         return 1;
     }
-    position.irreversibles.halfMoves = numHalfMoves;
-    position.fullMoves = numFullMoves;
+    position.irreversibles.plies = numHalfMoves;
+    position.plies = (numFullMoves - 1) * 2;
 
     return 0;
 }
@@ -175,6 +175,13 @@ void makeMove(Move move)
     const int moved = GET_PIECE_MOVED(move);
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
+
+    position.plies++;
+    position.irreversibles.plies++;
+    if (captured || moved == WHITE_PAWN || moved == BLACK_PAWN)
+    {
+        position.irreversibles.plies = 0;
+    }
 
     position.isWhitesTurn = !position.isWhitesTurn;
     position.zobristHash ^= zobristSideToMove;
@@ -277,6 +284,8 @@ void makeMove(Move move)
             position.zobristHash ^= zobristPieces[D1][WHITE_ROOK];
         }
     }
+
+    position.history[position.irreversibles.plies] = position.zobristHash;
     updateOccupancy();
 }
 
@@ -290,6 +299,8 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
     const int moved = GET_PIECE_MOVED(move);
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
+
+    position.plies--;
 
     position.isWhitesTurn = !position.isWhitesTurn;
     position.zobristHash ^= zobristSideToMove;

@@ -6,8 +6,11 @@
 #define MAX_SEARCH_DEPTH 64
 #define MAX_SCORE 50000
 #define MIN_SCORE (-50000)
+#define CONTEMPT 150
 
 Move getBestMove();
-int search(int alpha, int beta, int color, int depth);
+
+static int isDrawByRepetition();
+static int search(int alpha, int beta, int color, int depth);
 
 #endif

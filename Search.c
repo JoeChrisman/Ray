@@ -52,8 +52,34 @@ Move getBestMove()
     return equalMoves[rand() % numEqualMoves];
 }
 
-int search(int alpha, int beta, int color, int depth)
+static int isDrawByRepetition()
 {
+    for (int i = 0; i <= position.irreversibles.plies; i++)
+    {
+        int found = 0;
+        for (int j = i; j <= position.irreversibles.plies; j++)
+        {
+            if (position.history[i] == position.history[j])
+            {
+                found++;
+            }
+        }
+        if (found >= 2)
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+
+static int search(int alpha, int beta, int color, int depth)
+{
+    if (isDrawByRepetition() || position.irreversibles.plies >= 100)
+    {
+        return CONTEMPT;
+    }
+
     if (depth <= 0)
     {
         return evaluate() * color;

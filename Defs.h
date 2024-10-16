@@ -11,6 +11,9 @@ typedef uint64_t U64;
 #define NUM_PIECE_TYPES 12
 #define NUM_SQUARES 64
 
+#define MAX_MOVES_IN_POSITION 256
+#define MAX_MOVES_IN_GAME 512
+
 #define GET_BOARD(square) ((U64)1 << square)
 #define GET_NUM_PIECES(board) (__builtin_popcountll(board))
 #define GET_SQUARE(board) (__builtin_ctzll(board))
