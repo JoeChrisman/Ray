@@ -9,18 +9,21 @@
 #include "Debug.h"
 #include "MoveGen.h"
 
-void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
+void handleGoCommand()
 {
-    if (!strcmp(command[1], "perft"))
+    char* delimiter = " ";
+    char* flag1 = strtok(NULL, delimiter);
+    if (flag1 != NULL && !strcmp(flag1, "perft"))
     {
-        if (!strcmp(command[2], "suite"))
+        char* flag2 = strtok(NULL, delimiter);
+        if (!strcmp(flag2, "suite"))
         {
             runPerftSuite();
         }
         else
         {
             errno = 0;
-            int depth = (int)strtol(command[2], NULL, 10);
+            int depth = (int)strtol(flag2, NULL, 10);
             if (errno == 0)
             {
                 runPerft(depth);
@@ -34,39 +37,43 @@ void handleGoCommand(char command[MAX_ARGS][MAX_ARG_LEN])
     }
 }
 
-void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
+void handlePositionCommand()
 {
+    char* delimiter = " ";
+    char* flag1 = strtok(NULL, delimiter);
     // if a "startpos" flag was sent
-    if (!strcmp(command[1], "startpos"))
+    if (!strcmp(flag1, "startpos"))
     {
         // load the initial position
         loadFen(INITIAL_FEN);
     }
     // if a "fen" flag was sent
-    else if (!strcmp(command[1], "fen"))
+    else if (!strcmp(flag1, "fen"))
     {
         // load a custom fen
-        char fen[MAX_ARG_LEN];
-        memset(fen, '\0', sizeof(fen));
-        // the fen ends at the end of the command or at the "moves" flag
-        for (int i = 2; strcmp(command[i], "moves") && command[i][0] != '\0'; i++)
+        char fen[128] = "";
+        for (
+            // start by reading the next word
+            char* fenPart = strtok(NULL, delimiter);
+            // the fen ends at the "moves" flag or at the end of the command
+            fenPart != NULL && strcmp(fenPart, "moves");
+            // continue reading the next word
+            fenPart = strtok(NULL, delimiter))
         {
-            strcat(fen, command[i]);
+            strcat(fen, fenPart);
             strcat(fen, " ");
         }
         loadFen(fen);
     }
 
-    // find the "moves" flag
-    int movesFlagIndex = 0;
-    while (strcmp(command[movesFlagIndex], "moves") && command[movesFlagIndex][0] != '\0')
-    {
-        movesFlagIndex++;
-    }
+    const char* flag2 = strtok(NULL, delimiter);
     // if a "moves" flag was sent
-    if (movesFlagIndex)
+    if (flag2 != NULL && !strcmp(flag2, "moves"))
     {
-        for (int i = movesFlagIndex + 1; command[i][0] != '\0'; i++)
+        for (
+            char* commandMoveStr = strtok(NULL, delimiter);
+            commandMoveStr != NULL;
+            commandMoveStr = strtok(NULL, delimiter))
         {
             Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
             genMoves(moves);
@@ -75,7 +82,7 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
             {
                 const char* moveStr = getStrFromMove(moves[j]);
                 // if the move matches the one sent from the client
-                if (!strcmp(command[i], moveStr))
+                if (!strcmp(commandMoveStr, moveStr))
                 {
                     // make the move and go to the next move sent from the client
                     makeMove(moves[j]);
@@ -86,49 +93,62 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
     }
 }
 
-void handleCommand(char command[MAX_ARGS][MAX_ARG_LEN])
+void handleCommand(char* command)
 {
-    if (!strcmp(command[0], "position"))
+    const char* delimiter = " ";
+    const char* flag1 = strtok(command, delimiter);
+    if (!strcmp(flag1, "position"))
     {
-        handlePositionCommand(command);
+        handlePositionCommand();
     }
-    else if (!strcmp(command[0], "go"))
+    else if (!strcmp(flag1, "go"))
     {
-        handleGoCommand(command);
+        handleGoCommand();
     }
 }
 
+
 int runUci()
 {
+    while ((getchar()) != '\n');
+
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
     fflush(stdout);
 
-    char command[MAX_ARGS][MAX_ARG_LEN];
-    char input[MAX_ARGS * MAX_ARG_LEN];
-    memset(command, '\0', sizeof(command));
-    memset(input, '\0', sizeof(input));
-    while (fgets(input, sizeof(input), stdin))
+    for (;;)
     {
-        char *inputPtr = input;
-        for (int i = 0; i < MAX_ARGS && sscanf(inputPtr, "%63s", command[i]); i++)
+        int commandMaxLength = 64;
+        int commandLength = 0;
+        char* command = (char*)calloc(commandMaxLength, sizeof(char));
+
+        int input = fgetc(stdin);
+        while (input != '\n' && input != EOF)
         {
-            inputPtr += strlen(command[i]) + 1;
+            if (commandLength >= commandMaxLength)
+            {
+                commandMaxLength *= 2;
+                command = (char*)realloc(command, commandMaxLength * sizeof(char));
+            }
+            command[commandLength++] = (char)input;
+            input = fgetc(stdin);
         }
 
-        if (strcmp(command[0], "quit") == 0)
+        if (strcmp(command, "quit") == 0)
         {
+            free(command);
             return 0;
         }
-        else if (strcmp(command[0], "isready") == 0)
+        else if (strcmp(command, "isready") == 0)
         {
             printf("readyok\n");
             fflush(stdout);
         }
+
         handleCommand(command);
-        memset(command, '\0', sizeof(command));
-        memset(input, '\0', sizeof(input));
+        free(command);
     }
+
     return 1;
 }
