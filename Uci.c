@@ -66,9 +66,9 @@ void handlePositionCommand(char command[MAX_ARGS][MAX_ARG_LEN])
     // if a "moves" flag was sent
     if (movesFlagIndex)
     {
-        for (int i = movesFlagIndex; command[i][0] != '\0'; i++)
+        for (int i = movesFlagIndex + 1; command[i][0] != '\0'; i++)
         {
-            Move moves[MAX_MOVES_IN_POSITION];
+            Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
             genMoves(moves);
             // iterate through all moves in current position
             for (int j = 0; moves[j] != NO_MOVE; j++)

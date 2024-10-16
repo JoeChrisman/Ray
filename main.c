@@ -7,9 +7,8 @@
 
 #ifdef _WIN32
     #include <windows.h>
-    #define getpid() GetCurrentProcessId()
 #else
-#include <unistd.h>
+    #include <unistd.h>
 #endif
 
 int getSeed()
@@ -26,7 +25,7 @@ int main()
     srand(getSeed());
     initAttackTables();
 
-    printf("Ray version 1.1.1\n");
+    printf("Ray version 1.1.2\n");
     fflush(stdout);
 
     char input[4];

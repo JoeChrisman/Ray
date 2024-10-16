@@ -3,39 +3,53 @@
 #include "Search.h"
 #include "Position.h"
 #include "MoveGen.h"
-#include "Notation.h"
 #include "Eval.h"
 
 Move getBestMove()
 {
+    // generate all legal moves and store them
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     genMoves(moves);
     int numMoves = 0;
+
+    // array to hold moves that are equal in score
     Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     int numEqualMoves = 0;
+
+    // the best score we have found so far
     int bestScore = MIN_SCORE;
     while (moves[numMoves] != NO_MOVE)
     {
-        const Move currentMove = moves[numMoves];
+        // evaluate the current move
+        const Move currentMove = moves[numMoves++];
         Irreversibles* irreversibles = &position.irreversibles;
         makeMove(currentMove);
         int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, 4);
         unMakeMove(currentMove, irreversibles);
+
+        // if this is the best move we have found so far
         if (score > bestScore)
         {
+            // update the best score
             bestScore = score;
+            // clear out the equal moves array
             memset(equalMoves, NO_MOVE, sizeof(equalMoves));
             numEqualMoves = 0;
+            // add the move to the front of the equal moves array
             equalMoves[numEqualMoves++] = currentMove;
         }
+        // if this move is equal to the best move so far
         else if (score == bestScore)
         {
+            // add it to the end of the equal move array
             equalMoves[numEqualMoves++] = currentMove;
         }
-        printf("%s: %d\n", getStrFromMove(moves[numMoves]), score);
-        numMoves++;
     }
-    return equalMoves[numEqualMoves ? rand() % numEqualMoves : 0];
+    if (numMoves == 0)
+    {
+        return NO_MOVE;
+    }
+    return equalMoves[rand() % numEqualMoves];
 }
 
 int search(int alpha, int beta, int color, int depth)
