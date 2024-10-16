@@ -1,4 +1,5 @@
 #include <string.h>
+#include <ctype.h>
 #include "Notation.h"
 #include "Defs.h"
 #include "Move.h"
@@ -80,7 +81,7 @@ const char* getStrFromMove(Move move)
     const int promoted = GET_PIECE_PROMOTED(move);
     if (promoted != NO_PIECE)
     {
-        moveStr[4] = getCharFromPiece(promoted);
+        moveStr[4] = (char)tolower(getCharFromPiece(promoted));
         moveStr[5] = '\0';
     }
     else
