@@ -25,6 +25,8 @@ typedef struct
     U64 white;
     U64 black;
     U64 occupied;
+
+    U64 zobristHash;
 } Position;
 
 extern Position position;

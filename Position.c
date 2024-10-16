@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include "Defs.h"
+#include "Zobrist.h"
 #include "Position.h"
 #include "Notation.h"
 
@@ -70,6 +71,7 @@ int loadFen(const char* fen)
             position.occupied |= GET_BOARD(square);
             position.boards[piece] |= GET_BOARD(square);
             position.pieces[square] = piece;
+            position.zobristHash ^= zobristPieces[square][piece];
             square++;
         }
     }
@@ -77,6 +79,7 @@ int loadFen(const char* fen)
     if (!strcmp(sideToMove, "w"))
     {
         position.isWhitesTurn = 1;
+        position.zobristHash ^= zobristSideToMove;
     }
     else if (!strcmp(sideToMove, "b"))
     {
@@ -120,6 +123,7 @@ int loadFen(const char* fen)
                 return 1;
             }
         }
+        position.zobristHash ^= zobristCastling[position.irreversibles.castleFlags];
     }
 
     if (strcmp(enPassant, "-"))
@@ -139,6 +143,7 @@ int loadFen(const char* fen)
         }
         const U64 passant = GET_BOARD(epSquare);
         position.irreversibles.enPassant = position.isWhitesTurn ? BOARD_SOUTH(passant) : BOARD_NORTH(passant);
+        position.zobristHash ^= zobristEnPassant[file];
     }
 
     errno = 0;
@@ -162,8 +167,6 @@ int loadFen(const char* fen)
 
 void makeMove(Move move)
 {
-    position.isWhitesTurn = !position.isWhitesTurn;
-
     const int squareFrom = GET_SQUARE_FROM(move);
     const int squareTo = GET_SQUARE_TO(move);
     const U64 from = GET_BOARD(squareFrom);
@@ -173,45 +176,60 @@ void makeMove(Move move)
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
 
+    position.isWhitesTurn = !position.isWhitesTurn;
+    position.zobristHash ^= zobristSideToMove;
+
     position.irreversibles.castleFlags &= CASTLING_FLAGS[squareFrom];
     position.irreversibles.castleFlags &= CASTLING_FLAGS[squareTo];
+    position.zobristHash ^= zobristCastling[position.irreversibles.castleFlags];
 
     // remove the moved piece from its source square
     position.boards[moved] ^= from;
     position.pieces[squareFrom] = NO_PIECE;
+    position.zobristHash ^= zobristPieces[squareFrom][moved];
 
     if (IS_EN_PASSANT_CAPTURE(move))
     {
         // remove captured en passant pawn
+        const int captureSquare = GET_SQUARE(position.irreversibles.enPassant);
         position.boards[captured] ^= position.irreversibles.enPassant;
-        position.pieces[GET_SQUARE(position.irreversibles.enPassant)] = NO_PIECE;
+        position.pieces[captureSquare] = NO_PIECE;
+        position.zobristHash ^= zobristPieces[captureSquare][captured];
     }
     else
     {
         // remove a captured piece
         position.boards[captured] ^= to;
         position.pieces[squareTo] = NO_PIECE;
+        position.zobristHash ^= zobristPieces[squareTo][captured];
     }
-    // disable en passant
-    position.irreversibles.enPassant = EMPTY_BOARD;
 
     if (promoted != NO_PIECE)
     {
         // add a promoted piece
         position.boards[promoted] |= to;
         position.pieces[squareTo] = promoted;
+        position.zobristHash ^= zobristPieces[squareTo][promoted];
     }
     else
     {
         // copy the moved piece to its destination square
         position.boards[moved] |= to;
         position.pieces[squareTo] = moved;
+        position.zobristHash ^= zobristPieces[squareTo][moved];
     }
 
+    // disable en passant
+    if (position.irreversibles.enPassant)
+    {
+        position.zobristHash ^= zobristEnPassant[GET_FILE(GET_SQUARE(position.irreversibles.enPassant))];
+        position.irreversibles.enPassant = EMPTY_BOARD;
+    }
+    // enable en passant
     if (IS_DOUBLE_PAWN_PUSH(move))
     {
-        // enable en passant
         position.irreversibles.enPassant = to;
+        position.zobristHash ^= zobristEnPassant[GET_FILE(squareTo)];
     }
     else if (squareFrom == E8 && moved == BLACK_KING)
     {
@@ -220,16 +238,20 @@ void makeMove(Move move)
         {
             position.boards[BLACK_ROOK] ^= GET_BOARD(H8);
             position.pieces[H8] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[H8][BLACK_ROOK];
             position.boards[BLACK_ROOK] |= GET_BOARD(F8);
             position.pieces[F8] = BLACK_ROOK;
+            position.zobristHash ^= zobristPieces[F8][BLACK_ROOK];
         }
         // black castle queenside
         else if (squareTo == C8)
         {
             position.boards[BLACK_ROOK] ^= GET_BOARD(A8);
             position.pieces[A8] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[A8][BLACK_ROOK];
             position.boards[BLACK_ROOK] |= GET_BOARD(D8);
             position.pieces[D8] = BLACK_ROOK;
+            position.zobristHash ^= zobristPieces[D8][BLACK_ROOK];
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -239,16 +261,20 @@ void makeMove(Move move)
         {
             position.boards[WHITE_ROOK] ^= GET_BOARD(H1);
             position.pieces[H1] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[H1][WHITE_ROOK];
             position.boards[WHITE_ROOK] |= GET_BOARD(F1);
             position.pieces[F1] = WHITE_ROOK;
+            position.zobristHash ^= zobristPieces[F1][WHITE_ROOK];
         }
         // white castle queenside
         else if (squareTo == C1)
         {
             position.boards[WHITE_ROOK] ^= GET_BOARD(A1);
             position.pieces[A1] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[A1][WHITE_ROOK];
             position.boards[WHITE_ROOK] |= GET_BOARD(D1);
             position.pieces[D1] = WHITE_ROOK;
+            position.zobristHash ^= zobristPieces[D1][WHITE_ROOK];
         }
     }
     updateOccupancy();
@@ -256,9 +282,6 @@ void makeMove(Move move)
 
 void unMakeMove(Move move, Irreversibles* irreversibles)
 {
-    position.irreversibles = *irreversibles;
-    position.isWhitesTurn = !position.isWhitesTurn;
-
     const int squareFrom = GET_SQUARE_FROM(move);
     const int squareTo = GET_SQUARE_TO(move);
     const U64 from = GET_BOARD(squareFrom);
@@ -268,33 +291,56 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
     const int captured = GET_PIECE_CAPTURED(move);
     const int promoted = GET_PIECE_PROMOTED(move);
 
+    position.isWhitesTurn = !position.isWhitesTurn;
+    position.zobristHash ^= zobristSideToMove;
+    position.zobristHash ^= zobristCastling[position.irreversibles.castleFlags];
+
+    // if the move we are undoing allowed en passant
+    if (IS_DOUBLE_PAWN_PUSH(move))
+    {
+        // dont allow it in the zobrist hash
+        position.zobristHash ^= zobristEnPassant[GET_FILE(squareTo)];
+    }
+    // if we are re-enabling en passant
+    if (irreversibles->enPassant)
+    {
+        position.zobristHash ^= zobristEnPassant[GET_FILE(GET_SQUARE(irreversibles->enPassant))];
+    }
+
     // add the moved piece back to its source square
     position.boards[moved] ^= from;
     position.pieces[squareFrom] = moved;
+    position.zobristHash ^= zobristPieces[squareFrom][moved];
 
     if (promoted != NO_PIECE)
     {
         // remove a promoted piece
         position.boards[promoted] ^= to;
+        position.zobristHash ^= zobristPieces[squareTo][promoted];
     }
     else
     {
         // remove the moved piece from its destination square
         position.boards[moved] ^= to;
         position.pieces[squareTo] = NO_PIECE;
+        position.zobristHash ^= zobristPieces[squareTo][moved];
     }
 
     if (IS_EN_PASSANT_CAPTURE(move))
     {
         // replace a pawn captured en passant
-        position.boards[captured] |= position.irreversibles.enPassant;
-        position.pieces[GET_SQUARE(position.irreversibles.enPassant)] = captured;
+        const int captureSquare = GET_SQUARE(irreversibles->enPassant);
+        position.boards[captured] |= irreversibles->enPassant;
+        position.pieces[captureSquare] = captured;
+        position.zobristHash ^= zobristPieces[captureSquare][captured];
     }
     else
     {
         // replace a normal capture
         position.boards[captured] |= to;
         position.pieces[squareTo] = captured;
+        position.zobristHash ^= zobristPieces[squareTo][captured];
+
     }
 
     if (squareFrom == E8 && moved == BLACK_KING)
@@ -304,16 +350,20 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
         {
             position.boards[BLACK_ROOK] |= GET_BOARD(H8);
             position.pieces[H8] = BLACK_ROOK;
+            position.zobristHash ^= zobristPieces[H8][BLACK_ROOK];
             position.boards[BLACK_ROOK] ^= GET_BOARD(F8);
             position.pieces[F8] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[F8][BLACK_ROOK];
         }
         // undo black castle queenside
         else if (squareTo == C8)
         {
             position.boards[BLACK_ROOK] |= GET_BOARD(A8);
             position.pieces[A8] = BLACK_ROOK;
+            position.zobristHash ^= zobristPieces[A8][BLACK_ROOK];
             position.boards[BLACK_ROOK] ^= GET_BOARD(D8);
             position.pieces[D8] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[D8][BLACK_ROOK];
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -323,18 +373,23 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
         {
             position.boards[WHITE_ROOK] |= GET_BOARD(H1);
             position.pieces[H1] = WHITE_ROOK;
+            position.zobristHash ^= zobristPieces[H1][WHITE_ROOK];
             position.boards[WHITE_ROOK] ^= GET_BOARD(F1);
             position.pieces[F1] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[F1][WHITE_ROOK];
         }
         // undo white castle queenside
         else if (squareTo == C1)
         {
             position.boards[WHITE_ROOK] |= GET_BOARD(A1);
             position.pieces[A1] = WHITE_ROOK;
+            position.zobristHash ^= zobristPieces[A1][WHITE_ROOK];
             position.boards[WHITE_ROOK] ^= GET_BOARD(D1);
             position.pieces[D1] = NO_PIECE;
+            position.zobristHash ^= zobristPieces[D1][WHITE_ROOK];
         }
     }
+    position.irreversibles = *irreversibles;
     updateOccupancy();
 }
 

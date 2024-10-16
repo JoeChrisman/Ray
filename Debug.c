@@ -90,6 +90,7 @@ void runPerftSuite()
     {
         const char* fen = tests[test];
         loadFen(fen);
+        const U64 expectedZobristHash = position.zobristHash;
         double totalTestSecs = 0;
         const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
@@ -106,7 +107,14 @@ void runPerftSuite()
 
             if (actualLeafCount != expectedLeafCount)
             {
-                printf("[FAILED] - position: %s, depth %d: expected %d, actual %d\n", fen, depth, expectedLeafCount, actualLeafCount);
+                printf("[FAILED LEAF COUNT] - position: %s, depth %d: expected %d, actual %d\n",
+                       fen, depth, expectedLeafCount, actualLeafCount);
+                numFailed++;
+            }
+            else if (position.zobristHash != expectedZobristHash)
+            {
+                printf("[FAILED ZOBRIST HASH] - position: %s, depth %d: expected %llu, actual %llu\n",
+                       fen, depth, expectedZobristHash, position.zobristHash);
                 numFailed++;
             }
             else
@@ -178,6 +186,7 @@ void printBitboard(const U64 board)
 void printPosition()
 {
     printf("isWhitesTurn: %d\n", position.isWhitesTurn);
+    printf("zobristHash: %llu\n", position.zobristHash);
     printf("occupied:\n");
     printBitboard(position.occupied);
     printf("white:\n");

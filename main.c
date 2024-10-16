@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "Uci.h"
+#include "Zobrist.h"
 #include "AttackTables.h"
 
 #ifdef _WIN32
@@ -23,9 +24,10 @@ int getSeed()
 int main()
 {
     srand(getSeed());
+    initZobrist();
     initAttackTables();
 
-    printf("Ray version 1.1.2\n");
+    printf("Ray version 1.2.3\n");
     fflush(stdout);
 
     char input[4];
