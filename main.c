@@ -27,7 +27,7 @@ int main()
     initZobrist();
     initAttackTables();
 
-    printf("Ray version 1.3.0\n");
+    printf("Ray version 1.3.1\n");
     fflush(stdout);
 
     char input[4];

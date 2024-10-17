@@ -66,31 +66,32 @@ void handlePositionCommand()
         loadFen(fen);
     }
 
-    const char* flag2 = strtok(NULL, delimiter);
-    // if a "moves" flag was sent
-    if (flag2 != NULL && !strcmp(flag2, "moves"))
+    for (
+        char* commandMoveStr = strtok(NULL, delimiter);
+        commandMoveStr != NULL;
+        commandMoveStr = strtok(NULL, delimiter))
     {
-        for (
-            char* commandMoveStr = strtok(NULL, delimiter);
-            commandMoveStr != NULL;
-            commandMoveStr = strtok(NULL, delimiter))
+        if (!strcmp(commandMoveStr, "moves"))
         {
-            Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-            genMoves(moves);
-            // iterate through all moves in current position
-            for (int j = 0; moves[j] != NO_MOVE; j++)
+            continue;
+        }
+        Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+        genMoves(moves);
+        // iterate through all moves in current position
+        for (int j = 0; moves[j] != NO_MOVE; j++)
+        {
+            const char* moveStr = getStrFromMove(moves[j]);
+            // if the move matches the one sent from the client
+            if (!strcmp(commandMoveStr, moveStr))
             {
-                const char* moveStr = getStrFromMove(moves[j]);
-                // if the move matches the one sent from the client
-                if (!strcmp(commandMoveStr, moveStr))
-                {
-                    // make the move and go to the next move sent from the client
-                    makeMove(moves[j]);
-                    break;
-                }
+                // make the move and go to the next move sent from the client
+                makeMove(moves[j]);
+                break;
             }
         }
     }
+
+    printPosition();
 }
 
 void handleCommand(char* command)
