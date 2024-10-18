@@ -2,29 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include "Uci.h"
 #include "Zobrist.h"
 #include "AttackTables.h"
 #include "Move.h"
 
-#ifdef _WIN32
-    #include <windows.h>
-#else
-    #include <unistd.h>
-#endif
-
-int getSeed()
-{
-#ifdef _WIN32
-    return time(NULL) ^ GetCurrentProcessId();
-#else
-    return time(NULL) ^ getpid();
-#endif
-}
-
 int main()
 {
-    srand(getSeed());
+    srand(time(NULL) ^ getpid());
     initZobrist();
     initAttackTables();
     initCaptureScores();
