@@ -65,10 +65,14 @@ MoveInfo searchByDepth(int depth)
     {
         // evaluate the current move
         const Move currentMove = moves[numMoves++];
-        Irreversibles* irreversibles = &position.irreversibles;
+        Irreversibles irreversibles = position.irreversibles;
         makeMove(currentMove);
         int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, depth);
         unMakeMove(currentMove, irreversibles);
+
+#ifdef LOG
+        printf("[DEBUG] Move is %s, score is %d\n", getStrFromMove(currentMove), score);
+#endif
 
         // if this is the best move we have found so far
         if (score > bestScore)
@@ -186,7 +190,7 @@ static int search(int alpha, int beta, int color, int depth)
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
         const int score = -search(-beta, -alpha, -color, depth - 1);
-        unMakeMove(*move, &irreversibles);
+        unMakeMove(*move, irreversibles);
 
         if (score > alpha)
         {

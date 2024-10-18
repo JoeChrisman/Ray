@@ -156,7 +156,7 @@ U64 perft(int depth)
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
         sum += perft(depth - 1);
-        unMakeMove(*move, &irreversibles);
+        unMakeMove(*move, irreversibles);
     }
     return sum;
 

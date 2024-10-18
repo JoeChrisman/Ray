@@ -34,7 +34,7 @@ void clearPosition();
 int loadFen(const char* fen);
 
 void makeMove(Move move);
-void unMakeMove(Move move, Irreversibles* irreversibles);
+void unMakeMove(Move move, Irreversibles irreversibles);
 
 static inline void updateOccupancy();
 

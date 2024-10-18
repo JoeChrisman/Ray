@@ -289,7 +289,7 @@ void makeMove(Move move)
     updateOccupancy();
 }
 
-void unMakeMove(Move move, Irreversibles* irreversibles)
+void unMakeMove(Move move, Irreversibles irreversibles)
 {
     const int squareFrom = GET_SQUARE_FROM(move);
     const int squareTo = GET_SQUARE_TO(move);
@@ -313,9 +313,9 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
         position.zobristHash ^= zobristEnPassant[GET_FILE(squareTo)];
     }
     // if we are re-enabling en passant
-    if (irreversibles->enPassant)
+    if (irreversibles.enPassant)
     {
-        position.zobristHash ^= zobristEnPassant[GET_FILE(GET_SQUARE(irreversibles->enPassant))];
+        position.zobristHash ^= zobristEnPassant[GET_FILE(GET_SQUARE(irreversibles.enPassant))];
     }
 
     // add the moved piece back to its source square
@@ -340,8 +340,8 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
     if (IS_EN_PASSANT_CAPTURE(move))
     {
         // replace a pawn captured en passant
-        const int captureSquare = GET_SQUARE(irreversibles->enPassant);
-        position.boards[captured] |= irreversibles->enPassant;
+        const int captureSquare = GET_SQUARE(irreversibles.enPassant);
+        position.boards[captured] |= irreversibles.enPassant;
         position.pieces[captureSquare] = captured;
         position.zobristHash ^= zobristPieces[captureSquare][captured];
     }
@@ -400,7 +400,7 @@ void unMakeMove(Move move, Irreversibles* irreversibles)
             position.zobristHash ^= zobristPieces[D1][WHITE_ROOK];
         }
     }
-    position.irreversibles = *irreversibles;
+    position.irreversibles = irreversibles;
     updateOccupancy();
 }
 
