@@ -23,24 +23,23 @@ MoveInfo searchByTime(int msRemaining)
 #endif
         if (moveInfo.msElapsed * 20 > msRemaining)
         {
-#ifdef LOG
-            printf("[DEBUG] Iterative search complete.\n");
-#endif
             break;
         }
         moveInfo = searchByDepth(depth);
         msRemaining -= moveInfo.msElapsed;
-#ifdef LOG
-        printf("[DEBUG] Search complete for depth %d. ", depth);
-        printf("Elapsed time was %dms. ", moveInfo.msElapsed);
-        printf("Score was %d. ", moveInfo.score);
-        printf("Best move was %s. ", getStrFromMove(moveInfo.move));
-        printf("%llu nodes were searched. ", stats.numLeafNodes + stats.numNonLeafNodes);
-        printf("Branching factor was %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
-#endif
+        printf("info currmove %s", getStrFromMove(moveInfo.move));
+        printf("info depth %d ", depth);
+        printf("score cp %d ", moveInfo.score);
+        printf("time %dms ", moveInfo.msElapsed);
+        printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
+        printf("nps %f ", (double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000);
+        printf("bf %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
     }
     const clock_t endTime = clock();
     moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+#ifdef LOG
+    printf("[DEBUG] Iterative search complete.\n");
+#endif
     return moveInfo;
 }
 
