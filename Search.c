@@ -4,6 +4,7 @@
 #include "Position.h"
 #include "MoveGen.h"
 #include "Eval.h"
+#include "Notation.h"
 
 Move getBestMove()
 {
@@ -26,6 +27,8 @@ Move getBestMove()
         makeMove(currentMove);
         int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, 4);
         unMakeMove(currentMove, irreversibles);
+
+        printf("info move %s score %d\n", getStrFromMove(currentMove), score);
 
         // if this is the best move we have found so far
         if (score > bestScore)
@@ -54,19 +57,16 @@ Move getBestMove()
 
 static int isDrawByRepetition()
 {
-    for (int i = 0; i <= position.irreversibles.plies; i++)
+    int repetitions = 1;
+    int ply = position.plies - 1;
+    while (--ply > position.plies - position.irreversibles.plies)
     {
-        int found = 0;
-        for (int j = i; j <= position.irreversibles.plies; j++)
+        if (position.zobristHash == position.history[ply])
         {
-            if (position.history[i] == position.history[j])
+            if (++repetitions >= 3)
             {
-                found++;
+                return 1;
             }
-        }
-        if (found >= 2)
-        {
-            return 1;
         }
     }
     return 0;
@@ -75,7 +75,7 @@ static int isDrawByRepetition()
 
 static int search(int alpha, int beta, int color, int depth)
 {
-    if (isDrawByRepetition() || position.irreversibles.plies >= 100)
+    if (position.irreversibles.plies >= 100 || isDrawByRepetition())
     {
         return CONTEMPT;
     }

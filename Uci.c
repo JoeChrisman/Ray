@@ -90,8 +90,6 @@ void handlePositionCommand()
             }
         }
     }
-
-    printPosition();
 }
 
 void handleCommand(char* command)

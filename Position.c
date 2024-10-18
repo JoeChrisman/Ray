@@ -285,7 +285,7 @@ void makeMove(Move move)
         }
     }
 
-    position.history[position.irreversibles.plies] = position.zobristHash;
+    position.history[position.plies] = position.zobristHash;
     updateOccupancy();
 }
 
