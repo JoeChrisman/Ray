@@ -13,13 +13,16 @@ void handleGoCommand()
 {
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
+    // if we are trying to run our custom perft tests
     if (flag1 != NULL && !strcmp(flag1, "perft"))
     {
+        // if we want to run the perft suite
         char* flag2 = strtok(NULL, delimiter);
         if (!strcmp(flag2, "suite"))
         {
             runPerftSuite();
         }
+        // if we want to get node counts for each move
         else
         {
             errno = 0;
@@ -30,10 +33,38 @@ void handleGoCommand()
             }
         }
     }
+    // if the client is wants us to search with time constraints
+    else if (flag1 != NULL && !strcmp(flag1, "wtime"))
+    {
+        errno = 0;
+        int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        char* discardBtime = strtok(NULL, delimiter); // eat "btime" flag
+        int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        char* discardWinc = strtok(NULL, delimiter); // eat "winc" flag
+        int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        char* discardBinc = strtok(NULL, delimiter); // eat "binc" flag
+        int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+
+        // if the client for some reason sent a malformed command
+        if (errno)
+        {
+            return;
+        }
+
+        int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
+        int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
+        int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
+        MoveInfo moveInfo = searchByTime(msToSearch);
+
+        printf("bestmove %s\n", getStrFromMove(moveInfo.move));
+        fflush(stdout);
+    }
+    // if the client just sent "go" with no flags or a malformed command
     else
     {
-        printf("bestmove %s\n", getStrFromMove(getBestMove()));
-        fflush(stdout);
+        // just search for 5 seconds (for now)
+        MoveInfo moveInfo = searchByTime(5000);
+        printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     }
 }
 

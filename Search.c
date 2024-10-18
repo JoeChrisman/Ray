@@ -5,11 +5,32 @@
 #include "Position.h"
 #include "MoveGen.h"
 #include "Eval.h"
-#include "Notation.h"
 
-Move getBestMove()
+MoveInfo searchByTime(int msRemaining)
 {
     const clock_t startTime = clock();
+
+    MoveInfo moveInfo = searchByDepth(1);
+    for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
+    {
+        if (moveInfo.msElapsed * 10 > msRemaining)
+        {
+            break;
+        }
+        moveInfo = searchByDepth(depth);
+        msRemaining -= moveInfo.msElapsed;
+    }
+    const clock_t endTime = clock();
+    moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+    return moveInfo;
+}
+
+MoveInfo searchByDepth(int depth)
+{
+    const clock_t startTime = clock();
+
+    MoveInfo moveInfo = {0};
+    memset(&moveInfo, 0, sizeof(moveInfo));
 
     // generate all legal moves and store them
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
@@ -28,10 +49,8 @@ Move getBestMove()
         const Move currentMove = moves[numMoves++];
         Irreversibles* irreversibles = &position.irreversibles;
         makeMove(currentMove);
-        int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, 4);
+        int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, depth);
         unMakeMove(currentMove, irreversibles);
-
-        printf("info move %s score %d\n", getStrFromMove(currentMove), score);
 
         // if this is the best move we have found so far
         if (score > bestScore)
@@ -53,13 +72,20 @@ Move getBestMove()
     }
     if (numMoves == 0)
     {
-        return NO_MOVE;
+        return moveInfo;
     }
     const clock_t endTime = clock();
-    double elapsed = ((double)(endTime - startTime) / CLOCKS_PER_SEC);
-    printf("info %fs elapsed\n", elapsed);
 
-    return equalMoves[rand() % numEqualMoves];
+    moveInfo.move = equalMoves[rand() % numEqualMoves];
+    moveInfo.score = bestScore;
+    moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+    return moveInfo;
+}
+
+int getSearchTimeEstimate(int msRemaining, int msIncrement)
+{
+    // assume we have to play 35 more moves in any given position
+    return msRemaining / 35 + msIncrement;
 }
 
 static void sortMove(Move* const move, const Move* const moveListEnd)

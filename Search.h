@@ -8,7 +8,17 @@
 #define MIN_SCORE (-50000)
 #define CONTEMPT 150
 
-Move getBestMove();
+typedef struct
+{
+    Move move;
+    int score;
+    int msElapsed;
+} MoveInfo;
+
+MoveInfo searchByDepth(int depth);
+MoveInfo searchByTime(int msRemaining);
+
+int getSearchTimeEstimate(int msRemaining, int msIncrement);
 
 static int isDrawByRepetition();
 static void sortMove(Move* const move, const Move* moveListEnd);
