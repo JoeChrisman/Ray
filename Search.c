@@ -128,27 +128,21 @@ static void sortMove(Move* const move, const Move* const moveListEnd)
     *move = bestMove;
 }
 
-static int isDrawByRepetition()
+static int isRepetition()
 {
-    int repetitions = 1;
-    int ply = position.plies - 1;
-    while (--ply > position.plies - position.irreversibles.plies)
+    for (int ply = position.plies - 2; ply >= position.plies - position.irreversibles.plies; ply -= 2)
     {
         if (position.zobristHash == position.history[ply])
         {
-            if (++repetitions >= 3)
-            {
-                return 1;
-            }
+            return 1;
         }
     }
     return 0;
 }
 
-
 static int search(int alpha, int beta, int color, int depth)
 {
-    if (position.irreversibles.plies >= 100 || isDrawByRepetition())
+    if (position.irreversibles.plies >= 100 || isRepetition())
     {
 #ifdef LOG
         stats.numLeafNodes++;

@@ -28,7 +28,7 @@ MoveInfo searchByTime(int msRemaining);
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement);
 
-static int isDrawByRepetition();
+static int isRepetition();
 static void sortMove(Move* const move, const Move* moveListEnd);
 static int search(int alpha, int beta, int color, int depth);
 
