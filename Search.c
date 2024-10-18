@@ -27,7 +27,7 @@ MoveInfo searchByTime(int msRemaining)
         }
         moveInfo = searchByDepth(depth);
         msRemaining -= moveInfo.msElapsed;
-        printf("info currmove %s", getStrFromMove(moveInfo.move));
+        printf("info currmove %s ", getStrFromMove(moveInfo.move));
         printf("info depth %d ", depth);
         printf("score cp %d ", moveInfo.score);
         printf("time %dms ", moveInfo.msElapsed);

@@ -59,7 +59,7 @@ void* handleInputThread()
         if (strcmp(command, "quit") == 0)
         {
             free(command);
-            return 0;
+            break;
         }
         else if (strcmp(command, "isready") == 0)
         {
@@ -135,7 +135,17 @@ void handleGoCommand()
             MoveInfo searchResult = searchByDepth(depth);
             printf("bestmove %s\n", getStrFromMove(searchResult.move));
         }
-
+    }
+    // if the client wants to search with a custom move time
+    else if (!strcmp(flag1, "movetime"))
+    {
+        errno = 0;
+        int msRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        // if the client sent a valid time
+        if (errno == 0)
+        {
+            printf("bestmove %s\n", getStrFromMove(searchByTime(msRemaining).move));
+        }
     }
     // if we are trying to run our custom perft tests
     else if (!strcmp(flag1, "perft"))
