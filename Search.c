@@ -5,20 +5,39 @@
 #include "Position.h"
 #include "MoveGen.h"
 #include "Eval.h"
+#include "Notation.h"
 
 MoveInfo searchByTime(int msRemaining)
 {
+#ifdef LOG
+    printf("[DEBUG] Starting iterative search. Target time is %dms\n", msRemaining);
+#endif
+
     const clock_t startTime = clock();
 
     MoveInfo moveInfo = searchByDepth(1);
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
-        if (moveInfo.msElapsed * 10 > msRemaining)
+#ifdef LOG
+        memset(&stats, 0, sizeof(stats));
+#endif
+        if (moveInfo.msElapsed * 20 > msRemaining)
         {
+#ifdef LOG
+            printf("[DEBUG] Iterative search complete.\n");
+#endif
             break;
         }
         moveInfo = searchByDepth(depth);
         msRemaining -= moveInfo.msElapsed;
+#ifdef LOG
+        printf("[DEBUG] Search complete for depth %d. ", depth);
+        printf("Elapsed time was %dms. ", moveInfo.msElapsed);
+        printf("Score was %d. ", moveInfo.score);
+        printf("Best move was %s. ", getStrFromMove(moveInfo.move));
+        printf("%llu nodes were searched. ", stats.numLeafNodes + stats.numNonLeafNodes);
+        printf("Branching factor was %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
+#endif
     }
     const clock_t endTime = clock();
     moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
@@ -128,11 +147,17 @@ static int search(int alpha, int beta, int color, int depth)
 {
     if (position.irreversibles.plies >= 100 || isDrawByRepetition())
     {
+#ifdef LOG
+        stats.numLeafNodes++;
+#endif
         return CONTEMPT;
     }
 
     if (depth <= 0)
     {
+#ifdef LOG
+        stats.numLeafNodes++;
+#endif
         return evaluate() * color;
     }
 
@@ -141,6 +166,9 @@ static int search(int alpha, int beta, int color, int depth)
     // if there are no legal moves
     if (lastMove == moves)
     {
+#ifdef LOG
+        stats.numLeafNodes++;
+#endif
         // checkmate
         if (isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]))
         {
@@ -149,6 +177,9 @@ static int search(int alpha, int beta, int color, int depth)
         // stalemate
         return CONTEMPT;
     }
+#ifdef LOG
+    stats.numNonLeafNodes++;
+#endif
 
     for (Move* move = moves; move < lastMove; move++)
     {

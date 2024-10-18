@@ -15,6 +15,14 @@ typedef struct
     int msElapsed;
 } MoveInfo;
 
+typedef struct
+{
+    U64 numLeafNodes;
+    U64 numNonLeafNodes;
+} SearchStats;
+
+static SearchStats stats;
+
 MoveInfo searchByDepth(int depth);
 MoveInfo searchByTime(int msRemaining);
 
