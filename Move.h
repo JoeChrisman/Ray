@@ -2,6 +2,7 @@
 #define RAY_MOVE_H
 
 #include <stdint.h>
+#include "Defs.h"
 
 typedef uint32_t Move;
 #define NO_MOVE 0
@@ -45,13 +46,9 @@ typedef uint32_t Move;
 #define IS_DOUBLE_PAWN_PUSH(move)   ((move) & DOUBLE_PAWN_PUSH_FLAG)
 #define IS_EN_PASSANT_CAPTURE(move) ((move) & EN_PASSANT_CAPTURE_FLAG)
 
-#define CREATE_MOVE(from, to, moved, captured, promoted, score, flags) \
-    ((from) |                                                          \
-    ((to) << SQUARE_TO_SHIFT) |                                        \
-    ((moved) << PIECE_MOVED_SHIFT) |                                   \
-    ((captured) << PIECE_CAPTURED_SHIFT) |                             \
-    ((promoted) << PIECE_PROMOTED_SHIFT) |                             \
-    ((score) << SCORE_SHIFT) |                                         \
-    flags)
+int createMove(int from, int to, int moved, int captured, int promoted, int flags);
+
+int captureScores[NUM_PIECE_TYPES + 1][NUM_PIECE_TYPES + 1];
+void initCaptureScores();
 
 #endif

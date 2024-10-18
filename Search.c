@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include "Search.h"
 #include "Position.h"
 #include "MoveGen.h"
@@ -8,6 +9,8 @@
 
 Move getBestMove()
 {
+    const clock_t startTime = clock();
+
     // generate all legal moves and store them
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     genMoves(moves);
@@ -52,7 +55,29 @@ Move getBestMove()
     {
         return NO_MOVE;
     }
+    const clock_t endTime = clock();
+    double elapsed = ((double)(endTime - startTime) / CLOCKS_PER_SEC);
+    printf("info %fs elapsed\n", elapsed);
+
     return equalMoves[rand() % numEqualMoves];
+}
+
+static void sortMove(Move* const move, const Move* const moveListEnd)
+{
+    Move* bestMovePtr = move;
+    int bestScore = GET_SCORE(*move);
+    for (Move* otherMove = move + 1; otherMove < moveListEnd; otherMove++)
+    {
+        const int score = GET_SCORE(*otherMove);
+        if (score > bestScore)
+        {
+            bestScore = score;
+            bestMovePtr = otherMove;
+        }
+    }
+    const int bestMove = (int)*bestMovePtr;
+    *bestMovePtr = *move;
+    *move = bestMove;
 }
 
 static int isDrawByRepetition()
@@ -96,11 +121,12 @@ static int search(int alpha, int beta, int color, int depth)
             return MIN_SCORE + MAX_SEARCH_DEPTH - depth;
         }
         // stalemate
-        return 0;
+        return CONTEMPT;
     }
 
     for (Move* move = moves; move < lastMove; move++)
     {
+        sortMove(move, lastMove);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
         const int score = -search(-beta, -alpha, -color, depth - 1);

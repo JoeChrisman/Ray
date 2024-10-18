@@ -11,6 +11,7 @@
 Move getBestMove();
 
 static int isDrawByRepetition();
+static void sortMove(Move* const move, const Move* moveListEnd);
 static int search(int alpha, int beta, int color, int depth);
 
 #endif

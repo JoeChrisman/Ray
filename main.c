@@ -5,6 +5,7 @@
 #include "Uci.h"
 #include "Zobrist.h"
 #include "AttackTables.h"
+#include "Move.h"
 
 #ifdef _WIN32
     #include <windows.h>
@@ -26,6 +27,7 @@ int main()
     srand(getSeed());
     initZobrist();
     initAttackTables();
+    initCaptureScores();
 
     printf("Ray version 1.3.2\n");
     fflush(stdout);

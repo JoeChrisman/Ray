@@ -27,4 +27,5 @@ add_executable(Ray main.c
         Eval.c
         Zobrist.h
         Zobrist.c
+        Move.c
 )

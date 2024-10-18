@@ -96,14 +96,14 @@ static Move* genWhitePawnMoves(Move* moves)
         const int to = GET_SQUARE(push1);
         POP_SQUARE(push1, to);
         const int from = SQUARE_SOUTH(to);
-        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, NO_FLAGS);
     }
     while (push2)
     {
         const int to = GET_SQUARE(push2);
         POP_SQUARE(push2, to);
         const int from = SQUARE_SOUTH(SQUARE_SOUTH(to));
-        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
+        *moves++ = createMove(from, to, WHITE_PAWN, NO_PIECE, NO_PIECE, DOUBLE_PAWN_PUSH_FLAG);
     }
     return moves;
 }
@@ -124,14 +124,14 @@ static Move* genBlackPawnMoves(Move* moves)
         const int to = GET_SQUARE(push1);
         POP_SQUARE(push1, to);
         const int from = SQUARE_NORTH(to);
-        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, NO_FLAGS);
     }
     while (push2)
     {
         const int to = GET_SQUARE(push2);
         POP_SQUARE(push2, to);
         const int from = SQUARE_NORTH(SQUARE_NORTH(to));
-        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, 0, DOUBLE_PAWN_PUSH_FLAG);
+        *moves++ = createMove(from, to, BLACK_PAWN, NO_PIECE, NO_PIECE, DOUBLE_PAWN_PUSH_FLAG);
     }
     return moves;
 }
@@ -163,14 +163,14 @@ static Move* genWhitePawnCaptures(Move* moves)
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_SOUTH_WEST(to);
-        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, NO_FLAGS);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_SOUTH_EAST(to);
-        *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, WHITE_PAWN, position.pieces[to], NO_PIECE, NO_FLAGS);
     }
 
     if (position.irreversibles.enPassant != EMPTY_BOARD)
@@ -189,12 +189,12 @@ static Move* genWhitePawnCaptures(Move* moves)
             {
                 const int from = GET_SQUARE(moving);
                 POP_SQUARE(moving, from);
-                *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                *moves++ = createMove(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, EN_PASSANT_CAPTURE_FLAG);
             }
             if (westEnPassant)
             {
                 const int from = GET_SQUARE(moving);
-                *moves++ = CREATE_MOVE(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                *moves++ = createMove(from, to, WHITE_PAWN, BLACK_PAWN, NO_PIECE, EN_PASSANT_CAPTURE_FLAG);
             }
         }
     }
@@ -228,14 +228,14 @@ static Move* genBlackPawnCaptures(Move* moves)
         const int to = GET_SQUARE(eastCaptures);
         POP_SQUARE(eastCaptures, to);
         const int from = SQUARE_NORTH_WEST(to);
-        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, NO_FLAGS);
     }
     while (westCaptures)
     {
         const int to = GET_SQUARE(westCaptures);
         POP_SQUARE(westCaptures, to);
         const int from = SQUARE_NORTH_EAST(to);
-        *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(from, to, BLACK_PAWN, position.pieces[to], NO_PIECE, NO_FLAGS);
     }
 
     if (position.irreversibles.enPassant != EMPTY_BOARD)
@@ -254,12 +254,12 @@ static Move* genBlackPawnCaptures(Move* moves)
             {
                 const int from = GET_SQUARE(moving);
                 POP_SQUARE(moving, from);
-                *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                *moves++ = createMove(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, EN_PASSANT_CAPTURE_FLAG);
             }
             if (westEnPassant)
             {
                 const int from = GET_SQUARE(moving);
-                *moves++ = CREATE_MOVE(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, 0, EN_PASSANT_CAPTURE_FLAG);
+                *moves++ = createMove(from, to, BLACK_PAWN, WHITE_PAWN, NO_PIECE, EN_PASSANT_CAPTURE_FLAG);
             }
         }
     }
@@ -278,7 +278,7 @@ static Move* genKnightMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(knightMoves);
             POP_SQUARE(knightMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(from, to, movingType, position.pieces[to], NO_PIECE, NO_FLAGS);
         }
     }
     return moves;
@@ -302,7 +302,7 @@ static Move* genBishopMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(bishopMoves);
             POP_SQUARE(bishopMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(from, to, movingType, position.pieces[to], NO_PIECE, NO_FLAGS);
         }
     }
     return moves;
@@ -326,7 +326,7 @@ static Move* genRookMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(rookMoves);
             POP_SQUARE(rookMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(from, to, movingType, position.pieces[to], NO_PIECE, NO_FLAGS);
         }
     }
     return moves;
@@ -362,7 +362,7 @@ static Move* genQueenMoves(Move* moves, int movingType, U64 allowed)
         {
             const int to = GET_SQUARE(queenMoves);
             POP_SQUARE(queenMoves, to);
-            *moves++ = CREATE_MOVE(from, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(from, to, movingType, position.pieces[to], NO_PIECE, NO_FLAGS);
         }
     }
     return moves;
@@ -376,7 +376,7 @@ Move* genKingMoves(Move* moves, int movingType, U64 allowed)
     {
         const int to = GET_SQUARE(kingMoves);
         POP_SQUARE(kingMoves, to);
-        *moves++ = CREATE_MOVE(king, to, movingType, position.pieces[to], NO_PIECE, 0, NO_FLAGS);
+        *moves++ = createMove(king, to, movingType, position.pieces[to], NO_PIECE, NO_FLAGS);
     }
     return moves;
 }
@@ -398,7 +398,7 @@ Move* genCastles(
         if (!((kingsideEmpty & ~empty) | (kingsideSafe & ~safe)))
         {
             const int to = SQUARE_EAST(SQUARE_EAST(king));
-            *moves++ = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(king, to, movingType, NO_PIECE, NO_PIECE, NO_FLAGS);
         }
     }
     if (position.irreversibles.castleFlags & queensideFlag)
@@ -406,7 +406,7 @@ Move* genCastles(
         if (!((queensideEmpty & ~empty) | (queensideSafe & ~safe)))
         {
             const int to = SQUARE_WEST(SQUARE_WEST(king));
-            *moves++ = CREATE_MOVE(king, to, movingType, NO_PIECE, NO_PIECE, 0, NO_FLAGS);
+            *moves++ = createMove(king, to, movingType, NO_PIECE, NO_PIECE, NO_FLAGS);
         }
     }
     return moves;
@@ -637,10 +637,10 @@ static U64 getBlackPawnAttacks(U64 pawns)
 
 static Move* genPromotion(Move* moves, int pawnOfColor, int knightOfColor, int from, int to, int captured)
 {
-    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 3, 0, NO_FLAGS);
-    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 2, 0, NO_FLAGS);
-    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor + 1, 0, NO_FLAGS);
-    *moves++ = CREATE_MOVE(from, to, pawnOfColor, captured, knightOfColor, 0, NO_FLAGS);
+    *moves++ = createMove(from, to, pawnOfColor, captured, knightOfColor + 3, NO_FLAGS);
+    *moves++ = createMove(from, to, pawnOfColor, captured, knightOfColor + 2, NO_FLAGS);
+    *moves++ = createMove(from, to, pawnOfColor, captured, knightOfColor + 1, NO_FLAGS);
+    *moves++ = createMove(from, to, pawnOfColor, captured, knightOfColor, NO_FLAGS);
     return moves;
 }
 
