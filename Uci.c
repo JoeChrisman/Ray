@@ -9,10 +9,10 @@
 #include "Debug.h"
 #include "MoveGen.h"
 
-void* handleSearchThread(void* msToSearchPtr)
+void* handleSearchThread(void* searchArgsPtr)
 {
-    const int msToSearch = *(int*)msToSearchPtr;
-    free(msToSearchPtr);
+    const SearchArgs searchArgs = *(SearchArgs*)searchArgsPtr;
+    free(searchArgsPtr);
 #ifdef LOG
     printf("[DEBUG] Search thread was born.\n");
 #endif
@@ -20,7 +20,7 @@ void* handleSearchThread(void* msToSearchPtr)
     isSearching = 1;
     pthread_mutex_unlock(&searchMutex);
 
-    MoveInfo moveInfo = searchByTime(msToSearch);
+    MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
     printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     fflush(stdout);
 
@@ -89,9 +89,10 @@ void handleGoCommand()
         pthread_mutex_lock(&searchMutex);
         if (!isSearching)
         {
-            int* msToSearchPtr = malloc(sizeof(int));
-            *msToSearchPtr = 5000;
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)msToSearchPtr);
+            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+            searchArgsPtr->searchConstraint = 5000;
+            searchArgsPtr->searchFunction = searchByTime;
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
         }
         pthread_mutex_unlock(&searchMutex);
     }
@@ -114,13 +115,13 @@ void handleGoCommand()
         int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
         int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
         int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
-        int* msToSearchPtr = malloc(sizeof(int));
-        *msToSearchPtr = msToSearch;
-
         pthread_mutex_lock(&searchMutex);
         if (!isSearching)
         {
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)msToSearchPtr);
+            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+            searchArgsPtr->searchConstraint = msToSearch;
+            searchArgsPtr->searchFunction = searchByTime;
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
         }
         pthread_mutex_unlock(&searchMutex);
     }
@@ -132,19 +133,34 @@ void handleGoCommand()
         // if the client sent a valid depth
         if (errno == 0)
         {
-            MoveInfo searchResult = searchByDepth(depth);
-            printf("bestmove %s\n", getStrFromMove(searchResult.move));
+            pthread_mutex_lock(&searchMutex);
+            if (!isSearching)
+            {
+                SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+                searchArgsPtr->searchConstraint = depth;
+                searchArgsPtr->searchFunction = searchByDepth;
+                pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
+            }
+            pthread_mutex_unlock(&searchMutex);
         }
     }
     // if the client wants to search with a custom move time
     else if (!strcmp(flag1, "movetime"))
     {
         errno = 0;
-        int msRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        int msToSearch = (int)strtol(strtok(NULL, delimiter), NULL, 10);
         // if the client sent a valid time
         if (errno == 0)
         {
-            printf("bestmove %s\n", getStrFromMove(searchByTime(msRemaining).move));
+            pthread_mutex_lock(&searchMutex);
+            if (!isSearching)
+            {
+                SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+                searchArgsPtr->searchConstraint = msToSearch;
+                searchArgsPtr->searchFunction = searchByTime;
+                pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
+            }
+            pthread_mutex_unlock(&searchMutex);
         }
     }
     // if we are trying to run our custom perft tests
