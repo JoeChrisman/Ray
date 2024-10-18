@@ -16,7 +16,7 @@ static const int capturingScores[13] = {
     0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0
 };
 static const int capturedScores[13] = {
-    5, 10, 15, 15, 20, 25, 5, 10, 15, 15, 20, 25, 5
+    0, 5, 10, 10, 15, 20, 0, 5, 10, 10, 15, 20, 0
 };
 
 void initCaptureScores()
@@ -25,7 +25,14 @@ void initCaptureScores()
     {
         for (int captured = NO_PIECE; captured <= NUM_PIECE_TYPES; captured++)
         {
-            captureScores[capturing][captured] = capturedScores[captured] - capturingScores[capturing];
+            if (capturing == NO_PIECE || captured == NO_PIECE)
+            {
+                captureScores[capturing][captured] = 0;
+            }
+            else
+            {
+                captureScores[capturing][captured] = capturedScores[captured] - capturingScores[capturing];
+            }
         }
     }
 }
