@@ -9,12 +9,136 @@
 #include "Debug.h"
 #include "MoveGen.h"
 
+void* handleSearchThread(void* msToSearchPtr)
+{
+    const int msToSearch = *(int*)msToSearchPtr;
+    free(msToSearchPtr);
+#ifdef LOG
+    printf("[DEBUG] Search thread was born.\n");
+#endif
+    pthread_mutex_lock(&searchMutex);
+    isSearching = 1;
+    pthread_mutex_unlock(&searchMutex);
+
+    MoveInfo moveInfo = searchByTime(msToSearch);
+    printf("bestmove %s\n", getStrFromMove(moveInfo.move));
+    fflush(stdout);
+
+    pthread_mutex_lock(&searchMutex);
+    isSearching = 0;
+    pthread_mutex_unlock(&searchMutex);
+#ifdef LOG
+    printf("[DEBUG] Search thread died.\n");
+#endif
+    return NULL;
+}
+
+void* handleInputThread()
+{
+#ifdef LOG
+    printf("[DEBUG] Input thread was born.\n");
+#endif
+    for (;;)
+    {
+        int commandMaxLength = 64;
+        int commandLength = 0;
+        char* command = (char*)calloc(commandMaxLength, sizeof(char));
+
+        int input = fgetc(stdin);
+        while (input != '\n' && input != EOF)
+        {
+            if (commandLength >= commandMaxLength)
+            {
+                commandMaxLength *= 2;
+                command = (char*)realloc(command, commandMaxLength * sizeof(char));
+            }
+            command[commandLength++] = (char)input;
+            input = fgetc(stdin);
+        }
+
+        if (strcmp(command, "quit") == 0)
+        {
+            free(command);
+            return 0;
+        }
+        else if (strcmp(command, "isready") == 0)
+        {
+            printf("readyok\n");
+            fflush(stdout);
+        }
+        else
+        {
+            handleCommand(command);
+        }
+        free(command);
+    }
+#ifdef LOG
+    printf("[DEBUG] Input thread died.\n");
+#endif
+    return NULL;
+}
+
 void handleGoCommand()
 {
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
+    // if the client just sent "go" and nothing else
+    if (flag1 == NULL)
+    {
+        // just search for 5 seconds (for now)
+        pthread_mutex_lock(&searchMutex);
+        if (!isSearching)
+        {
+            int* msToSearchPtr = malloc(sizeof(int));
+            *msToSearchPtr = 5000;
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)msToSearchPtr);
+        }
+        pthread_mutex_unlock(&searchMutex);
+    }
+    // if the client is wants us to search with time constraints
+    else if (flag1 != NULL && !strcmp(flag1, "wtime"))
+    {
+        errno = 0;
+        int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        strtok(NULL, delimiter); // eat "btime" flag
+        int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        strtok(NULL, delimiter); // eat "winc" flag
+        int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        strtok(NULL, delimiter); // eat "binc" flag
+        int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        // if the client for some reason sent a malformed command
+        if (errno)
+        {
+            return;
+        }
+        int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
+        int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
+        int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
+        int* msToSearchPtr = malloc(sizeof(int));
+        *msToSearchPtr = msToSearch;
+
+        pthread_mutex_lock(&searchMutex);
+        if (!isSearching)
+        {
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)msToSearchPtr);
+        }
+        pthread_mutex_unlock(&searchMutex);
+    }
+    // if the client wants to search to a custom depth
+    else if (!strcmp(flag1, "depth"))
+    {
+        errno = 0;
+        int depth = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        // if the client sent a valid depth
+        if (errno == 0)
+        {
+            MoveInfo searchResult = searchByDepth(depth);
+            printf("bestmove %s\n", getStrFromMove(searchResult.move));
+        }
+
+    }
     // if we are trying to run our custom perft tests
-    if (flag1 != NULL && !strcmp(flag1, "perft"))
+    else if (!strcmp(flag1, "perft"))
     {
         // if we want to run the perft suite
         char* flag2 = strtok(NULL, delimiter);
@@ -32,39 +156,6 @@ void handleGoCommand()
                 runPerft(depth);
             }
         }
-    }
-    // if the client is wants us to search with time constraints
-    else if (flag1 != NULL && !strcmp(flag1, "wtime"))
-    {
-        errno = 0;
-        int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        char* discardBtime = strtok(NULL, delimiter); // eat "btime" flag
-        int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        char* discardWinc = strtok(NULL, delimiter); // eat "winc" flag
-        int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        char* discardBinc = strtok(NULL, delimiter); // eat "binc" flag
-        int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-
-        // if the client for some reason sent a malformed command
-        if (errno)
-        {
-            return;
-        }
-
-        int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
-        int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
-        int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
-        MoveInfo moveInfo = searchByTime(msToSearch);
-
-        printf("bestmove %s\n", getStrFromMove(moveInfo.move));
-        fflush(stdout);
-    }
-    // if the client just sent "go" with no flags or a malformed command
-    else
-    {
-        // just search for 5 seconds (for now)
-        MoveInfo moveInfo = searchByTime(5000);
-        printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     }
 }
 
@@ -117,6 +208,7 @@ void handlePositionCommand()
             {
                 // make the move and go to the next move sent from the client
                 makeMove(moves[j]);
+                printf("%llu\n", position.zobristHash);
                 break;
             }
         }
@@ -147,37 +239,24 @@ int runUci()
     printf("uciok\n");
     fflush(stdout);
 
-    for (;;)
+    pthread_t inputThread;
+    pthread_create(&inputThread, NULL, handleInputThread, NULL);
+    pthread_join(inputThread, NULL);
+#ifdef LOG
+    printf("[DEBUG] Input thread died.\n");
+#endif
+
+    pthread_mutex_lock(&searchMutex);
+    if (isSearching)
     {
-        int commandMaxLength = 64;
-        int commandLength = 0;
-        char* command = (char*)calloc(commandMaxLength, sizeof(char));
-
-        int input = fgetc(stdin);
-        while (input != '\n' && input != EOF)
-        {
-            if (commandLength >= commandMaxLength)
-            {
-                commandMaxLength *= 2;
-                command = (char*)realloc(command, commandMaxLength * sizeof(char));
-            }
-            command[commandLength++] = (char)input;
-            input = fgetc(stdin);
-        }
-
-        if (strcmp(command, "quit") == 0)
-        {
-            free(command);
-            return 0;
-        }
-        else if (strcmp(command, "isready") == 0)
-        {
-            printf("readyok\n");
-            fflush(stdout);
-        }
-
-        handleCommand(command);
-        free(command);
+        pthread_mutex_unlock(&searchMutex);
+        pthread_join(searchThread, NULL);
+#ifdef LOG
+        printf("[DEBUG] Search thread died.\n");
+#endif
+    } else
+    {
+        pthread_mutex_unlock(&searchMutex);
     }
 
     return 1;
