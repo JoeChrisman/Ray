@@ -15,7 +15,7 @@ int main()
     initAttackTables();
     initCaptureScores();
 
-    printf("Ray version 1.3.4\n");
+    printf("Ray version 1.3.5\n");
     fflush(stdout);
 
     char input[4];

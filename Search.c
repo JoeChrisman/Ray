@@ -20,9 +20,7 @@ MoveInfo searchByTime(int msRemaining)
     MoveInfo fallback = searchByDepth(1);
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
-#ifdef LOG
         memset(&stats, 0, sizeof(stats));
-#endif
         MoveInfo moveInfo = searchByDepth(depth);
         // if we encountered the "stop" command during the search
         if (!atomic_load(&isSearching))
@@ -38,7 +36,7 @@ MoveInfo searchByTime(int msRemaining)
 
         msRemaining -= moveInfo.msElapsed;
         printf("info currmove %s ", getStrFromMove(moveInfo.move));
-        printf("info depth %d ", depth);
+        printf("depth %d ", depth);
         printf("score cp %d ", moveInfo.score);
         printf("time %dms ", moveInfo.msElapsed);
         printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
@@ -178,17 +176,13 @@ static int search(int alpha, int beta, int color, int depth)
 
     if (position.irreversibles.plies >= 100 || isRepetition())
     {
-#ifdef LOG
         stats.numLeafNodes++;
-#endif
         return CONTEMPT;
     }
 
     if (depth <= 0)
     {
-#ifdef LOG
         stats.numLeafNodes++;
-#endif
         return evaluate() * color;
     }
 
@@ -197,9 +191,7 @@ static int search(int alpha, int beta, int color, int depth)
     // if there are no legal moves
     if (lastMove == moves)
     {
-#ifdef LOG
         stats.numLeafNodes++;
-#endif
         // checkmate
         if (isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]))
         {
@@ -208,10 +200,8 @@ static int search(int alpha, int beta, int color, int depth)
         // stalemate
         return CONTEMPT;
     }
-#ifdef LOG
-    stats.numNonLeafNodes++;
-#endif
 
+    stats.numNonLeafNodes++;
     for (Move* move = moves; move < lastMove; move++)
     {
         sortMove(move, lastMove);
