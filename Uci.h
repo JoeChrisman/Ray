@@ -16,14 +16,13 @@ typedef struct
 
 static inline void handlePositionCommand();
 static inline void handleGoCommand();
+static inline void handleStopCommand();
 static inline void handleCommand(char* command);
 
 void* handleSearchThread(void* searchArgsPtr);
-void* handleInputThread();
 
-static pthread_mutex_t searchMutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_t searchThread;
-static volatile int isSearching = 0;
+extern atomic_int isSearching;
 
 int runUci();
 

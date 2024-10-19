@@ -9,6 +9,8 @@
 #include "Debug.h"
 #include "MoveGen.h"
 
+atomic_int isSearching = 0;
+
 void* handleSearchThread(void* searchArgsPtr)
 {
     const SearchArgs searchArgs = *(SearchArgs*)searchArgsPtr;
@@ -16,85 +18,37 @@ void* handleSearchThread(void* searchArgsPtr)
 #ifdef LOG
     printf("[DEBUG] Search thread was born.\n");
 #endif
-    pthread_mutex_lock(&searchMutex);
-    isSearching = 1;
-    pthread_mutex_unlock(&searchMutex);
+
+    atomic_store(&isSearching, 1);
 
     MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
     printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     fflush(stdout);
 
-    pthread_mutex_lock(&searchMutex);
-    isSearching = 0;
-    pthread_mutex_unlock(&searchMutex);
+    atomic_store(&isSearching, 0);
 #ifdef LOG
     printf("[DEBUG] Search thread died.\n");
 #endif
     return NULL;
 }
 
-void* handleInputThread()
-{
-#ifdef LOG
-    printf("[DEBUG] Input thread was born.\n");
-#endif
-    for (;;)
-    {
-        int commandMaxLength = 64;
-        int commandLength = 0;
-        char* command = (char*)calloc(commandMaxLength, sizeof(char));
-
-        int input = fgetc(stdin);
-        while (input != '\n' && input != EOF)
-        {
-            if (commandLength >= commandMaxLength)
-            {
-                commandMaxLength *= 2;
-                command = (char*)realloc(command, commandMaxLength * sizeof(char));
-            }
-            command[commandLength++] = (char)input;
-            input = fgetc(stdin);
-        }
-
-        if (strcmp(command, "quit") == 0)
-        {
-            free(command);
-            break;
-        }
-        else if (strcmp(command, "isready") == 0)
-        {
-            printf("readyok\n");
-            fflush(stdout);
-        }
-        else
-        {
-            handleCommand(command);
-        }
-        free(command);
-    }
-#ifdef LOG
-    printf("[DEBUG] Input thread died.\n");
-#endif
-    return NULL;
-}
-
 void handleGoCommand()
 {
+    if (atomic_load(&isSearching))
+    {
+        return;
+    }
+
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
     // if the client just sent "go" and nothing else
     if (flag1 == NULL)
     {
         // just search for 5 seconds (for now)
-        pthread_mutex_lock(&searchMutex);
-        if (!isSearching)
-        {
-            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-            searchArgsPtr->searchConstraint = 5000;
-            searchArgsPtr->searchFunction = searchByTime;
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-        }
-        pthread_mutex_unlock(&searchMutex);
+        SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+        searchArgsPtr->searchConstraint = 5000;
+        searchArgsPtr->searchFunction = searchByTime;
+        pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
     }
     // if the client is wants us to search with time constraints
     else if (flag1 != NULL && !strcmp(flag1, "wtime"))
@@ -115,15 +69,10 @@ void handleGoCommand()
         int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
         int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
         int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
-        pthread_mutex_lock(&searchMutex);
-        if (!isSearching)
-        {
-            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-            searchArgsPtr->searchConstraint = msToSearch;
-            searchArgsPtr->searchFunction = searchByTime;
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-        }
-        pthread_mutex_unlock(&searchMutex);
+        SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+        searchArgsPtr->searchConstraint = msToSearch;
+        searchArgsPtr->searchFunction = searchByTime;
+        pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
     }
     // if the client wants to search to a custom depth
     else if (!strcmp(flag1, "depth"))
@@ -133,15 +82,10 @@ void handleGoCommand()
         // if the client sent a valid depth
         if (errno == 0)
         {
-            pthread_mutex_lock(&searchMutex);
-            if (!isSearching)
-            {
-                SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-                searchArgsPtr->searchConstraint = depth;
-                searchArgsPtr->searchFunction = searchByDepth;
-                pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-            }
-            pthread_mutex_unlock(&searchMutex);
+            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+            searchArgsPtr->searchConstraint = depth;
+            searchArgsPtr->searchFunction = searchByDepth;
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
         }
     }
     // if the client wants to search with a custom move time
@@ -152,15 +96,10 @@ void handleGoCommand()
         // if the client sent a valid time
         if (errno == 0)
         {
-            pthread_mutex_lock(&searchMutex);
-            if (!isSearching)
-            {
-                SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-                searchArgsPtr->searchConstraint = msToSearch;
-                searchArgsPtr->searchFunction = searchByTime;
-                pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-            }
-            pthread_mutex_unlock(&searchMutex);
+            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
+            searchArgsPtr->searchConstraint = msToSearch;
+            searchArgsPtr->searchFunction = searchByTime;
+            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
         }
     }
     // if we are trying to run our custom perft tests
@@ -183,6 +122,11 @@ void handleGoCommand()
             }
         }
     }
+}
+
+void handleStopCommand()
+{
+    atomic_store(&isSearching, 0);
 }
 
 void handlePositionCommand()
@@ -253,6 +197,10 @@ void handleCommand(char* command)
     {
         handleGoCommand();
     }
+    else if (!strcmp(flag1, "stop"))
+    {
+        handleStopCommand();
+    }
 }
 
 
@@ -265,24 +213,39 @@ int runUci()
     printf("uciok\n");
     fflush(stdout);
 
-    pthread_t inputThread;
-    pthread_create(&inputThread, NULL, handleInputThread, NULL);
-    pthread_join(inputThread, NULL);
-#ifdef LOG
-    printf("[DEBUG] Input thread died.\n");
-#endif
+    for (;;)
+    {
+        int commandMaxLength = 64;
+        int commandLength = 0;
+        char* command = (char*)calloc(commandMaxLength, sizeof(char));
 
-    pthread_mutex_lock(&searchMutex);
-    if (isSearching)
-    {
-        pthread_mutex_unlock(&searchMutex);
-        pthread_join(searchThread, NULL);
-#ifdef LOG
-        printf("[DEBUG] Search thread died.\n");
-#endif
-    } else
-    {
-        pthread_mutex_unlock(&searchMutex);
+        int input = fgetc(stdin);
+        while (input != '\n' && input != EOF)
+        {
+            if (commandLength >= commandMaxLength)
+            {
+                commandMaxLength *= 2;
+                command = (char*)realloc(command, commandMaxLength * sizeof(char));
+            }
+            command[commandLength++] = (char)input;
+            input = fgetc(stdin);
+        }
+
+        if (strcmp(command, "quit") == 0)
+        {
+            free(command);
+            break;
+        }
+        else if (strcmp(command, "isready") == 0)
+        {
+            printf("readyok\n");
+            fflush(stdout);
+        }
+        else
+        {
+            handleCommand(command);
+        }
+        free(command);
     }
 
     return 1;

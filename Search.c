@@ -6,6 +6,7 @@
 #include "MoveGen.h"
 #include "Eval.h"
 #include "Notation.h"
+#include "Uci.h"
 
 MoveInfo searchByTime(int msRemaining)
 {
@@ -15,17 +16,26 @@ MoveInfo searchByTime(int msRemaining)
 
     const clock_t startTime = clock();
 
-    MoveInfo moveInfo = searchByDepth(1);
+    // search to depth 1 so we will have a move to fall back on
+    MoveInfo fallback = searchByDepth(1);
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
 #ifdef LOG
         memset(&stats, 0, sizeof(stats));
 #endif
-        if (moveInfo.msElapsed * 20 > msRemaining)
+        MoveInfo moveInfo = searchByDepth(depth);
+        // if we encountered the "stop" command during the search
+        if (!atomic_load(&isSearching))
         {
+#ifdef LOG
+            printf("[DEBUG] The iterative search was cancelled.\n");
+#endif
+            // use the previous search results
             break;
         }
-        moveInfo = searchByDepth(depth);
+        // we had a successful search, so we can use this one if a future one is cancelled
+        fallback = moveInfo;
+
         msRemaining -= moveInfo.msElapsed;
         printf("info currmove %s ", getStrFromMove(moveInfo.move));
         printf("info depth %d ", depth);
@@ -34,13 +44,20 @@ MoveInfo searchByTime(int msRemaining)
         printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
         printf("nps %f ", (double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000);
         printf("bf %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
+
+        // if we estimate we will run out of time on the next search
+        if (moveInfo.msElapsed * 20 > msRemaining)
+        {
+            // use the current results
+            break;
+        }
     }
-    const clock_t endTime = clock();
-    moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
 #ifdef LOG
     printf("[DEBUG] Iterative search complete.\n");
 #endif
-    return moveInfo;
+    const clock_t endTime = clock();
+    fallback.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+    return fallback;
 }
 
 MoveInfo searchByDepth(int depth)
@@ -69,6 +86,17 @@ MoveInfo searchByDepth(int depth)
         makeMove(currentMove);
         int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, depth);
         unMakeMove(currentMove, irreversibles);
+
+        // if the search was interrupted
+        if (!atomic_load(&isSearching))
+        {
+#ifdef LOG
+            printf("[DEBUG] The depth %d search was cancelled.\n", depth);
+#endif
+            // return zeroes
+            memset(&moveInfo, 0, sizeof(moveInfo));
+            return moveInfo;
+        }
 
 #ifdef LOG
         printf("[DEBUG] Move is %s, score is %d\n", getStrFromMove(currentMove), score);
@@ -142,6 +170,12 @@ static int isRepetition()
 
 static int search(int alpha, int beta, int color, int depth)
 {
+
+    if (!atomic_load(&isSearching))
+    {
+        return 0;
+    }
+
     if (position.irreversibles.plies >= 100 || isRepetition())
     {
 #ifdef LOG
