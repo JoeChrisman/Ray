@@ -181,9 +181,10 @@ static int search(int alpha, int beta, int color, int depth)
             // exit the search immediately
             return 0;
         }
-        // if we ran out of time
-        if (getMillis() >= stats.cancelTimeTarget)
+        // if we are about to run out of time
+        if (getMillis() >= stats.cancelTimeTarget - 100)
         {
+            // stop searching ASAP
             atomic_store(&isSearching, 0);
             return 0;
         }
