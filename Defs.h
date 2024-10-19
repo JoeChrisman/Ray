@@ -56,6 +56,8 @@ typedef uint64_t U64;
 extern const U64 FILES[8];
 extern const U64 RANKS[8];
 
+U64 getMillis();
+
 #define GET_RANK(square) (7 - ((square) / 8))
 #define GET_FILE(square) ((square) % 8)
 #define GET_SQUARE_FROM_LOCATION(rank, file) (((7 - (rank)) * 8) + (file))

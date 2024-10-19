@@ -15,16 +15,30 @@ typedef struct
     int msElapsed;
 } MoveInfo;
 
+/*
+ * These are stats recorded for one depth-first search.
+ * They are cleared between searches in the time-based search
+ */
 typedef struct
 {
     U64 numLeafNodes;
     U64 numNonLeafNodes;
+
+    U64 cancelTimeTarget;
 } SearchStats;
 
-static SearchStats stats;
+/*
+ * stats are modified by search.c and uci.c, because in uci.c we
+ * need to set timeout to maximum when searching for a specific depth
+ */
+extern SearchStats stats;
 
-MoveInfo searchByDepth(int depth);
-MoveInfo searchByTime(int msRemaining);
+/*
+ * these need to have the same argument types because their
+ * arguments are passed into the handleSearchThread function
+ */
+MoveInfo searchByDepth(U64 depth);
+MoveInfo searchByTime(U64 msRemaining);
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement);
 

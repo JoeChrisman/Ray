@@ -9,8 +9,8 @@ static const char* INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w 
 
 typedef struct
 {
-    int searchConstraint; // time or depth, depending on callback function
-    MoveInfo (*searchFunction)(int searchConstraint);
+    U64 searchConstraint; // time or depth, depending on callback function
+    MoveInfo (*searchFunction)(U64 searchConstraint);
 
 } SearchArgs;
 

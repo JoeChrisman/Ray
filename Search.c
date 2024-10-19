@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include "Search.h"
 #include "Position.h"
 #include "MoveGen.h"
@@ -8,19 +7,24 @@
 #include "Notation.h"
 #include "Uci.h"
 
-MoveInfo searchByTime(int msRemaining)
+SearchStats stats = {0};
+
+MoveInfo searchByTime(U64 msRemaining)
 {
 #ifdef LOG
-    printf("[DEBUG] Starting iterative search. Target time is %dms\n", msRemaining);
+    printf("[DEBUG] Starting iterative search. Target time is %llums\n", msRemaining);
 #endif
+    const U64 startTime = getMillis();
 
-    const clock_t startTime = clock();
-
-    // search to depth 1 so we will have a move to fall back on
+    // search to depth 1 with no constraints so we will have a move to fall back on
+    memset(&stats, 0, sizeof(stats));
+    stats.cancelTimeTarget = UINT64_MAX;
     MoveInfo fallback = searchByDepth(1);
+
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
         memset(&stats, 0, sizeof(stats));
+        stats.cancelTimeTarget = getMillis() + msRemaining;
         MoveInfo moveInfo = searchByDepth(depth);
         // if we encountered the "stop" command during the search
         if (!atomic_load(&isSearching))
@@ -44,7 +48,7 @@ MoveInfo searchByTime(int msRemaining)
         printf("bf %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
 
         // if we estimate we will run out of time on the next search
-        if (moveInfo.msElapsed * 20 > msRemaining)
+        if (moveInfo.msElapsed * 15 > msRemaining)
         {
             // use the current results
             break;
@@ -53,17 +57,15 @@ MoveInfo searchByTime(int msRemaining)
 #ifdef LOG
     printf("[DEBUG] Iterative search complete.\n");
 #endif
-    const clock_t endTime = clock();
-    fallback.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+    const U64 endTime = getMillis();
+    fallback.msElapsed = (int)((double)(endTime - startTime));
     return fallback;
 }
 
-MoveInfo searchByDepth(int depth)
+MoveInfo searchByDepth(U64 depth)
 {
-    const clock_t startTime = clock();
-
+    U64 startTime = getMillis();
     MoveInfo moveInfo = {0};
-    memset(&moveInfo, 0, sizeof(moveInfo));
 
     // generate all legal moves and store them
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
@@ -82,14 +84,14 @@ MoveInfo searchByDepth(int depth)
         const Move currentMove = moves[numMoves++];
         Irreversibles irreversibles = position.irreversibles;
         makeMove(currentMove);
-        int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, depth);
+        int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, (int)depth);
         unMakeMove(currentMove, irreversibles);
 
         // if the search was interrupted
         if (!atomic_load(&isSearching))
         {
 #ifdef LOG
-            printf("[DEBUG] The depth %d search was cancelled.\n", depth);
+            printf("[DEBUG] The depth %d search was cancelled.\n", (int)depth);
 #endif
             // return zeroes
             memset(&moveInfo, 0, sizeof(moveInfo));
@@ -122,11 +124,10 @@ MoveInfo searchByDepth(int depth)
     {
         return moveInfo;
     }
-    const clock_t endTime = clock();
 
     moveInfo.move = equalMoves[rand() % numEqualMoves];
     moveInfo.score = bestScore;
-    moveInfo.msElapsed = (int)((double)(endTime - startTime) / CLOCKS_PER_SEC * 1000);
+    moveInfo.msElapsed = (int)((double)(getMillis() - startTime));
     return moveInfo;
 }
 
@@ -168,10 +169,24 @@ static int isRepetition()
 
 static int search(int alpha, int beta, int color, int depth)
 {
-
-    if (!atomic_load(&isSearching))
+    /*
+     * check expensive termination conditions every few thousand leaf nodes.
+     * don't increment leaf nodes here so other searches will terminate immediately.
+     */
+    if ((stats.numLeafNodes & 8191) == 8191)
     {
-        return 0;
+        // if the search was cancelled for any reason
+        if (!atomic_load(&isSearching))
+        {
+            // exit the search immediately
+            return 0;
+        }
+        // if we ran out of time
+        if (getMillis() >= stats.cancelTimeTarget)
+        {
+            atomic_store(&isSearching, 0);
+            return 0;
+        }
     }
 
     if (position.irreversibles.plies >= 100 || isRepetition())

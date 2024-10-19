@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include "Search.h"
 #include "Uci.h"
 #include "Position.h"
 #include "Notation.h"
@@ -20,12 +21,11 @@ void* handleSearchThread(void* searchArgsPtr)
 #endif
 
     atomic_store(&isSearching, 1);
-
     MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
     printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     fflush(stdout);
-
     atomic_store(&isSearching, 0);
+
 #ifdef LOG
     printf("[DEBUG] Search thread died.\n");
 #endif
@@ -82,6 +82,8 @@ void handleGoCommand()
         // if the client sent a valid depth
         if (errno == 0)
         {
+            // give up on this search in 500 billion years (:
+            stats.cancelTimeTarget = UINT64_MAX;
             SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
             searchArgsPtr->searchConstraint = depth;
             searchArgsPtr->searchFunction = searchByDepth;

@@ -1,4 +1,12 @@
+#include <time.h>
 #include "Defs.h"
+
+U64 getMillis()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return (U64)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
+}
 
 const U64 FILES[8] = {
     0x0101010101010101,
