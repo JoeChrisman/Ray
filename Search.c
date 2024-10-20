@@ -283,7 +283,7 @@ static int search(int alpha, int beta, int color, int depth)
         if (score > alpha)
         {
             alpha = score;
-            if (score > beta)
+            if (score >= beta)
             {
                 if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
                 {
