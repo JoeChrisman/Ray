@@ -16,9 +16,10 @@ void* handleSearchThread(void* searchArgsPtr)
 {
     const SearchArgs searchArgs = *(SearchArgs*)searchArgsPtr;
     free(searchArgsPtr);
-#ifdef LOG
-    printf("[DEBUG] Search thread was born.\n");
-#endif
+    if (isLoggingEnabled)
+    {
+        printf("[DEBUG] Search thread was born.\n");
+    }
 
     atomic_store(&isSearching, 1);
     MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
@@ -26,9 +27,10 @@ void* handleSearchThread(void* searchArgsPtr)
     fflush(stdout);
     atomic_store(&isSearching, 0);
 
-#ifdef LOG
-    printf("[DEBUG] Search thread died.\n");
-#endif
+    if (isLoggingEnabled)
+    {
+        printf("[DEBUG] Search thread died.\n");
+    }
     return NULL;
 }
 
@@ -138,12 +140,10 @@ void handlePositionCommand()
 {
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
-#ifdef LOG
-    if (flag1 == NULL)
+    if (flag1 == NULL && isLoggingEnabled)
     {
         printf("[DEBUG] Client sent malformed position command\n");
     }
-#endif
     // if a "startpos" flag was sent
     if (!strcmp(flag1, "startpos"))
     {
@@ -166,11 +166,9 @@ void handlePositionCommand()
             strcat(fen, fenPart);
             strcat(fen, " ");
         }
-        if (loadFen(fen))
+        if (loadFen(fen) && isLoggingEnabled)
         {
-#ifdef LOG
             printf("[DEBUG] Client sent malformed FEN %s\n", fen);
-#endif
         }
     }
 
@@ -201,12 +199,10 @@ void handlePositionCommand()
                 break;
             }
         }
-#ifdef LOG
-            if (!foundMove)
+            if (!foundMove && isLoggingEnabled)
             {
                 printf("[DEBUG] Client sent illegal move %s\n", commandMoveStr);
             }
-#endif
     }
 }
 
@@ -214,6 +210,10 @@ void handleCommand(char* command)
 {
     const char* delimiter = " ";
     const char* flag1 = strtok(command, delimiter);
+    if (flag1 == NULL && isLoggingEnabled)
+    {
+        printf("[DEBUG] Client sent malformed command\n");
+    }
     if (!strcmp(flag1, "position"))
     {
         handlePositionCommand();
@@ -236,6 +236,7 @@ int runUci()
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
+    fflush(stdout);
 
     for (;;)
     {
@@ -258,6 +259,7 @@ int runUci()
         else if (strcmp(command, "isready") == 0)
         {
             printf("readyok\n");
+            fflush(stdout);
         }
         else
         {

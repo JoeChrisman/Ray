@@ -1,6 +1,8 @@
 #include <time.h>
 #include "Defs.h"
 
+const int isLoggingEnabled = 0;
+
 U64 getMillis()
 {
     struct timespec ts;

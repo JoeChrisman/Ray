@@ -11,9 +11,10 @@ SearchStats stats = {0};
 
 MoveInfo searchByTime(U64 msRemaining)
 {
-#ifdef LOG
-    printf("[DEBUG] Starting iterative search. Target time is %llums\n", msRemaining);
-#endif
+    if (isLoggingEnabled)
+    {
+        printf("[DEBUG] Starting iterative search. Target time is %llums\n", msRemaining);
+    }
     const U64 startTime = getMillis();
 
     // search to depth 1 with no constraints so we will have a move to fall back on
@@ -29,9 +30,10 @@ MoveInfo searchByTime(U64 msRemaining)
         // if we encountered the "stop" command during the search
         if (!atomic_load(&isSearching))
         {
-#ifdef LOG
-            printf("[DEBUG] The iterative search was cancelled.\n");
-#endif
+            if (isLoggingEnabled)
+            {
+                printf("[DEBUG] The iterative search was cancelled.\n");
+            }
             // use the previous search results
             break;
         }
@@ -54,9 +56,10 @@ MoveInfo searchByTime(U64 msRemaining)
             break;
         }
     }
-#ifdef LOG
-    printf("[DEBUG] Iterative search complete.\n");
-#endif
+    if (isLoggingEnabled)
+    {
+        printf("[DEBUG] Iterative search complete.\n");
+    }
     const U64 endTime = getMillis();
     fallback.msElapsed = (int)((double)(endTime - startTime));
     return fallback;
@@ -90,17 +93,19 @@ MoveInfo searchByDepth(U64 depth)
         // if the search was interrupted
         if (!atomic_load(&isSearching))
         {
-#ifdef LOG
-            printf("[DEBUG] The depth %d search was cancelled.\n", (int)depth);
-#endif
+            if (isLoggingEnabled)
+            {
+                printf("[DEBUG] The depth %d search was cancelled.\n", (int)depth);
+            }
             // return zeroes
             memset(&moveInfo, 0, sizeof(moveInfo));
             return moveInfo;
         }
 
-#ifdef LOG
-        printf("[DEBUG] Move is %s, score is %d\n", getStrFromMove(currentMove), score);
-#endif
+        if (isLoggingEnabled)
+        {
+            printf("[DEBUG] Move is %s, score is %d\n", getStrFromMove(currentMove), score);
+        }
 
         // if this is the best move we have found so far
         if (score > bestScore)
