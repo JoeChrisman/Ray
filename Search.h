@@ -46,4 +46,11 @@ static int isRepetition();
 static void sortMove(Move* const move, const Move* moveListEnd);
 static int search(int alpha, int beta, int color, int depth);
 
+/*
+ * A search used on leaf nodes to resolve all captures in the position.
+ * The goal is to never evaluate positions where captures are possible.
+ * https://www.chessprogramming.org/Quiescence_Search
+ */
+static int quiescenceSearch(int alpha, int beta, int color);
+
 #endif

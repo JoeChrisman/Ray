@@ -167,6 +167,40 @@ static int isRepetition()
     return 0;
 }
 
+static int quiescenceSearch(int alpha, int beta, int color)
+{
+    int score = evaluate() * color;
+    if (score >= beta)
+    {
+        return beta;
+    }
+    if (score > alpha)
+    {
+        alpha = score;
+    }
+
+    Move captures[MAX_MOVES_IN_POSITION];
+    Move* lastCapture = genCaptures(captures);
+    for (Move* capture = captures; capture < lastCapture; capture++)
+    {
+        sortMove(capture, lastCapture);
+        Irreversibles irreversibles = position.irreversibles;
+        makeMove(*capture);
+        score = -quiescenceSearch(-beta, -alpha, -color);
+        unMakeMove(*capture, irreversibles);
+
+        if (score >= beta)
+        {
+            return beta;
+        }
+        if (score > alpha)
+        {
+            alpha = score;
+        }
+    }
+    return alpha;
+}
+
 static int search(int alpha, int beta, int color, int depth)
 {
     /*
@@ -199,6 +233,7 @@ static int search(int alpha, int beta, int color, int depth)
     if (depth <= 0)
     {
         stats.numLeafNodes++;
+        //return quiescenceSearch(alpha, beta, color);
         return evaluate() * color;
     }
 

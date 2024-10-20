@@ -183,7 +183,6 @@ void handlePositionCommand()
             {
                 // make the move and go to the next move sent from the client
                 makeMove(moves[j]);
-                printf("%llu\n", position.zobristHash);
                 break;
             }
         }
