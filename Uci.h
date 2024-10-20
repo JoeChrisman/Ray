@@ -5,8 +5,6 @@
 #include <stdatomic.h>
 #include "Search.h"
 
-static const char* INITIAL_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-
 typedef struct
 {
     U64 searchConstraint; // time or depth, depending on callback function

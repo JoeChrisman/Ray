@@ -138,11 +138,17 @@ void handlePositionCommand()
 {
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
+#ifdef LOG
+    if (flag1 == NULL)
+    {
+        printf("[DEBUG] Client sent malformed position command\n");
+    }
+#endif
     // if a "startpos" flag was sent
     if (!strcmp(flag1, "startpos"))
     {
         // load the initial position
-        loadFen(INITIAL_FEN);
+        loadFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
     }
     // if a "fen" flag was sent
     else if (!strcmp(flag1, "fen"))
@@ -160,7 +166,12 @@ void handlePositionCommand()
             strcat(fen, fenPart);
             strcat(fen, " ");
         }
-        loadFen(fen);
+        if (loadFen(fen))
+        {
+#ifdef LOG
+            printf("[DEBUG] Client sent malformed FEN %s\n", fen);
+#endif
+        }
     }
 
     for (
@@ -168,24 +179,34 @@ void handlePositionCommand()
         commandMoveStr != NULL;
         commandMoveStr = strtok(NULL, delimiter))
     {
+        // if we find the "moves" flag
         if (!strcmp(commandMoveStr, "moves"))
         {
+            // eat the flag and continue parsing
             continue;
         }
         Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
         genMoves(moves);
         // iterate through all moves in current position
+        int foundMove = 0;
         for (int j = 0; moves[j] != NO_MOVE; j++)
         {
-            const char* moveStr = getStrFromMove(moves[j]);
+            const char *moveStr = getStrFromMove(moves[j]);
             // if the move matches the one sent from the client
             if (!strcmp(commandMoveStr, moveStr))
             {
                 // make the move and go to the next move sent from the client
                 makeMove(moves[j]);
+                foundMove = 1;
                 break;
             }
         }
+#ifdef LOG
+            if (!foundMove)
+            {
+                printf("[DEBUG] Client sent illegal move %s\n", commandMoveStr);
+            }
+#endif
     }
 }
 
@@ -215,25 +236,19 @@ int runUci()
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
-    fflush(stdout);
 
     for (;;)
     {
-        int commandMaxLength = 64;
-        int commandLength = 0;
-        char* command = (char*)calloc(commandMaxLength, sizeof(char));
-
-        int input = fgetc(stdin);
-        while (input != '\n' && input != EOF)
+        // heap allocate some memory. this way it is always valid to free it
+        size_t commandCapacity = 1;
+        char* command = malloc(sizeof(char) * commandCapacity);
+        ssize_t commandLen = getline(&command, &commandCapacity, stdin);
+        if (commandLen <= 1)
         {
-            if (commandLength >= commandMaxLength)
-            {
-                commandMaxLength *= 2;
-                command = (char*)realloc(command, commandMaxLength * sizeof(char));
-            }
-            command[commandLength++] = (char)input;
-            input = fgetc(stdin);
+            free(command);
+            continue;
         }
+        command[commandLen - 1] = '\0';
 
         if (strcmp(command, "quit") == 0)
         {
@@ -243,7 +258,6 @@ int runUci()
         else if (strcmp(command, "isready") == 0)
         {
             printf("readyok\n");
-            fflush(stdout);
         }
         else
         {
