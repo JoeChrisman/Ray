@@ -43,7 +43,7 @@ MoveInfo searchByTime(U64 msRemaining);
 int getSearchTimeEstimate(int msRemaining, int msIncrement);
 
 static int isRepetition();
-static void sortMove(Move* const move, const Move* moveListEnd);
+static void sortMove(Move* const move, const Move* moveListEnd, int depth);
 static int search(int alpha, int beta, int color, int depth);
 
 /*
@@ -52,5 +52,7 @@ static int search(int alpha, int beta, int color, int depth);
  * https://www.chessprogramming.org/Quiescence_Search
  */
 static int quiescenceSearch(int alpha, int beta, int color);
+
+static Move killers[MAX_SEARCH_DEPTH][2];
 
 #endif

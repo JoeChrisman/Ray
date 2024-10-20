@@ -11,6 +11,8 @@ SearchStats stats = {0};
 
 MoveInfo searchByTime(U64 msRemaining)
 {
+    memset(killers, 0, sizeof(killers));
+
     if (isLoggingEnabled)
     {
         printf("[DEBUG] Starting iterative search. Target time is %llums\n", msRemaining);
@@ -46,7 +48,7 @@ MoveInfo searchByTime(U64 msRemaining)
         printf("score cp %d ", moveInfo.score);
         printf("time %dms ", moveInfo.msElapsed);
         printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
-        printf("nps %f ", (double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000);
+        printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
         printf("bf %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
 
         // if we estimate we will run out of time on the next search
@@ -142,14 +144,26 @@ int getSearchTimeEstimate(int msRemaining, int msIncrement)
     return msRemaining / 35 + msIncrement;
 }
 
-static void sortMove(Move* const move, const Move* const moveListEnd)
+static void sortMove(Move* const move, const Move* const moveListEnd, int depth)
 {
-    Move* bestMovePtr = move;
-    int bestScore = GET_SCORE(*move);
-    for (Move* otherMove = move + 1; otherMove < moveListEnd; otherMove++)
+    Move* bestMovePtr = NULL;
+    int bestScore = MIN_SCORE;
+    for (Move* otherMove = move; otherMove < moveListEnd; otherMove++)
     {
-        const int score = GET_SCORE(*otherMove);
-        if (score > bestScore)
+        int score = MAX_SCORE - 1000 + GET_SCORE(*otherMove);
+        if (depth == -1 && GET_PIECE_CAPTURED(*otherMove) == NO_PIECE)
+        {
+            printf("FUCK\n");
+        }
+        if (GET_PIECE_CAPTURED(*otherMove) == NO_PIECE)
+        {
+            if (killers[depth][0] == *otherMove || killers[depth][1] == *otherMove)
+            {
+                score = MAX_SCORE - 2000;
+            }
+        }
+
+        if (score >= bestScore)
         {
             bestScore = score;
             bestMovePtr = otherMove;
@@ -188,7 +202,7 @@ static int quiescenceSearch(int alpha, int beta, int color)
     Move* lastCapture = genCaptures(captures);
     for (Move* capture = captures; capture < lastCapture; capture++)
     {
-        sortMove(capture, lastCapture);
+        sortMove(capture, lastCapture, -1);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*capture);
         score = -quiescenceSearch(-beta, -alpha, -color);
@@ -238,8 +252,8 @@ static int search(int alpha, int beta, int color, int depth)
     if (depth <= 0)
     {
         stats.numLeafNodes++;
-        //return quiescenceSearch(alpha, beta, color);
-        return evaluate() * color;
+        return quiescenceSearch(alpha, beta, color);
+        //return evaluate() * color;
     }
 
     Move moves[MAX_MOVES_IN_POSITION];
@@ -260,7 +274,7 @@ static int search(int alpha, int beta, int color, int depth)
     stats.numNonLeafNodes++;
     for (Move* move = moves; move < lastMove; move++)
     {
-        sortMove(move, lastMove);
+        sortMove(move, lastMove, depth);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
         const int score = -search(-beta, -alpha, -color, depth - 1);
@@ -271,6 +285,11 @@ static int search(int alpha, int beta, int color, int depth)
             alpha = score;
             if (score > beta)
             {
+                if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
+                {
+                    killers[depth][1] = killers[depth][0];
+                    killers[depth][0] = *move;
+                }
                 return beta;
             }
         }
