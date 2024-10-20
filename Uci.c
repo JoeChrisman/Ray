@@ -16,21 +16,15 @@ void* handleSearchThread(void* searchArgsPtr)
 {
     const SearchArgs searchArgs = *(SearchArgs*)searchArgsPtr;
     free(searchArgsPtr);
-    if (isLoggingEnabled)
-    {
-        printf("[DEBUG] Search thread was born.\n");
-    }
 
+    printLog("Search thread was born.\n");
     atomic_store(&isSearching, 1);
     MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
     printf("bestmove %s\n", getStrFromMove(moveInfo.move));
     fflush(stdout);
     atomic_store(&isSearching, 0);
+    printLog("Search thread died.\n");
 
-    if (isLoggingEnabled)
-    {
-        printf("[DEBUG] Search thread died.\n");
-    }
     return NULL;
 }
 
@@ -43,8 +37,13 @@ void handleGoCommand()
 
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
-    // if the client just sent "go" and nothing else
     if (flag1 == NULL)
+    {
+        printLog("Client sent malformed go command\n");
+    }
+
+    // if the client wants us to search until the stop command
+    if (!strcmp(flag1, "infinite"))
     {
         /*
          * we want to search forever, but using UINT64_MAX as a time constraint (500B years)
@@ -140,9 +139,9 @@ void handlePositionCommand()
 {
     char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
-    if (flag1 == NULL && isLoggingEnabled)
+    if (flag1 == NULL)
     {
-        printf("[DEBUG] Client sent malformed position command\n");
+        printLog("Client sent malformed position command\n");
     }
     // if a "startpos" flag was sent
     if (!strcmp(flag1, "startpos"))
@@ -166,9 +165,9 @@ void handlePositionCommand()
             strcat(fen, fenPart);
             strcat(fen, " ");
         }
-        if (loadFen(fen) && isLoggingEnabled)
+        if (loadFen(fen))
         {
-            printf("[DEBUG] Client sent malformed FEN %s\n", fen);
+            printLog("Client sent malformed FEN %s\n", fen);
         }
     }
 
@@ -199,10 +198,10 @@ void handlePositionCommand()
                 break;
             }
         }
-            if (!foundMove && isLoggingEnabled)
-            {
-                printf("[DEBUG] Client sent illegal move %s\n", commandMoveStr);
-            }
+        if (!foundMove)
+        {
+            printLog("Client sent illegal move %s\n", commandMoveStr);
+        }
     }
 }
 
@@ -210,9 +209,9 @@ void handleCommand(char* command)
 {
     const char* delimiter = " ";
     const char* flag1 = strtok(command, delimiter);
-    if (flag1 == NULL && isLoggingEnabled)
+    if (flag1 == NULL)
     {
-        printf("[DEBUG] Client sent malformed command\n");
+        printLog("Client sent malformed command\n");
     }
     if (!strcmp(flag1, "position"))
     {

@@ -3,8 +3,15 @@
 
 #include <stdio.h>
 #include <stdint.h>
+#include <stdarg.h>
 
-extern const int isLoggingEnabled;
+#define IS_LOGGING_ENABLED 0
+
+#if IS_LOGGING_ENABLED
+void printLog(const char *format, ...);
+#else
+#define printLog(format, ...) ((void)0)
+#endif
 
 typedef uint64_t U64;
 #define EMPTY_BOARD 0x0000000000000000

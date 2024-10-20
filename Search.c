@@ -11,12 +11,9 @@ SearchStats stats = {0};
 
 MoveInfo searchByTime(U64 msRemaining)
 {
-    memset(killers, 0, sizeof(killers));
+    printLog("Starting iterative search. Target time is %llums\n", msRemaining);
 
-    if (isLoggingEnabled)
-    {
-        printf("[DEBUG] Starting iterative search. Target time is %llums\n", msRemaining);
-    }
+    memset(killers, 0, sizeof(killers));
     const U64 startTime = getMillis();
 
     // search to depth 1 with no constraints so we will have a move to fall back on
@@ -32,10 +29,7 @@ MoveInfo searchByTime(U64 msRemaining)
         // if we encountered the "stop" command during the search
         if (!atomic_load(&isSearching))
         {
-            if (isLoggingEnabled)
-            {
-                printf("[DEBUG] The iterative search was cancelled.\n");
-            }
+            printLog("The iterative search was cancelled.\n");
             // use the previous search results
             break;
         }
@@ -49,7 +43,9 @@ MoveInfo searchByTime(U64 msRemaining)
         printf("time %dms ", moveInfo.msElapsed);
         printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
         printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
-        printf("bf %f.\n", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
+        printf("bf %f ", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
+        printf("pv %s\n", getStrFromMove(moveInfo.move));
+        fflush(stdout);
 
         // if we estimate we will run out of time on the next search
         if (moveInfo.msElapsed * 15 > msRemaining)
@@ -58,10 +54,8 @@ MoveInfo searchByTime(U64 msRemaining)
             break;
         }
     }
-    if (isLoggingEnabled)
-    {
-        printf("[DEBUG] Iterative search complete.\n");
-    }
+
+    printLog("Iterative search complete.\n");
     const U64 endTime = getMillis();
     fallback.msElapsed = (int)((double)(endTime - startTime));
     return fallback;
@@ -95,19 +89,12 @@ MoveInfo searchByDepth(U64 depth)
         // if the search was interrupted
         if (!atomic_load(&isSearching))
         {
-            if (isLoggingEnabled)
-            {
-                printf("[DEBUG] The depth %d search was cancelled.\n", (int)depth);
-            }
+            printLog("The depth %d search was cancelled.\n", (int)depth);
             // return zeroes
             memset(&moveInfo, 0, sizeof(moveInfo));
             return moveInfo;
         }
-
-        if (isLoggingEnabled)
-        {
-            printf("[DEBUG] Move is %s, score is %d\n", getStrFromMove(currentMove), score);
-        }
+        printLog("Move is %s, score is %d\n", getStrFromMove(currentMove), score);
 
         // if this is the best move we have found so far
         if (score > bestScore)
@@ -151,10 +138,6 @@ static void sortMove(Move* const move, const Move* const moveListEnd, int depth)
     for (Move* otherMove = move; otherMove < moveListEnd; otherMove++)
     {
         int score = MAX_SCORE - 1000 + GET_SCORE(*otherMove);
-        if (depth == -1 && GET_PIECE_CAPTURED(*otherMove) == NO_PIECE)
-        {
-            printf("FUCK\n");
-        }
         if (GET_PIECE_CAPTURED(*otherMove) == NO_PIECE)
         {
             if (killers[depth][0] == *otherMove || killers[depth][1] == *otherMove)
@@ -253,10 +236,9 @@ static int search(int alpha, int beta, int color, int depth)
     {
         stats.numLeafNodes++;
         return quiescenceSearch(alpha, beta, color);
-        //return evaluate() * color;
     }
 
-    Move moves[MAX_MOVES_IN_POSITION];
+    Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(moves);
     // if there are no legal moves
     if (lastMove == moves)

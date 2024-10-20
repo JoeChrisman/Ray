@@ -1,7 +1,6 @@
 #ifndef RAY_DEBUG_H
 #define RAY_DEBUG_H
 
-#include "Defs.h"
 #include "Move.h"
 
 void runPerftSuite();

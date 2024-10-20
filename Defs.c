@@ -1,7 +1,17 @@
 #include <time.h>
 #include "Defs.h"
 
-const int isLoggingEnabled = 0;
+#if IS_LOGGING_ENABLED
+void printLog(const char *format, ...)
+{
+    va_list args;
+    va_start(args, format);
+    printf("[DEBUG] ");
+    vprintf(format, args);
+    fflush(stdout);
+    va_end(args);
+}
+#endif
 
 U64 getMillis()
 {
