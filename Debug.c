@@ -183,6 +183,19 @@ void printBitboard(const U64 board)
     fflush(stdout);
 }
 
+void printMove(Move move)
+{
+    int moved = GET_PIECE_MOVED(move);
+    int captured = GET_PIECE_CAPTURED(move);
+    int from = GET_SQUARE_FROM(move);
+    int to = GET_SQUARE_FROM(move);
+
+    printf("[DEBUG] from: %d, to: %d, moved: %d, captured: %d, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
+           from, to, moved, captured, IS_EN_PASSANT_CAPTURE(move), IS_DOUBLE_PAWN_PUSH(move), GET_SCORE(move));
+
+}
+
+
 void printPosition()
 {
     printf("isWhitesTurn: %d\n", position.isWhitesTurn);

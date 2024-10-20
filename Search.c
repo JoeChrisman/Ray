@@ -198,7 +198,7 @@ static int quiescenceSearch(int alpha, int beta, int color)
         alpha = score;
     }
 
-    Move captures[MAX_MOVES_IN_POSITION];
+    Move captures[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastCapture = genCaptures(captures);
     for (Move* capture = captures; capture < lastCapture; capture++)
     {
