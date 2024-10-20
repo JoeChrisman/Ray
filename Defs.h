@@ -4,7 +4,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define LOG
+//#define LOG
 
 typedef uint64_t U64;
 #define EMPTY_BOARD 0x0000000000000000

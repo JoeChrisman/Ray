@@ -44,9 +44,12 @@ void handleGoCommand()
     // if the client just sent "go" and nothing else
     if (flag1 == NULL)
     {
-        // just search for 5 seconds (for now)
+        /*
+         * we want to search forever, but using UINT64_MAX as a time constraint (500B years)
+         * would cause the number to overflow in searchForTime(), so lets compromise by searching for 1 year.
+         */
         SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-        searchArgsPtr->searchConstraint = 5000;
+        searchArgsPtr->searchConstraint = 31557600000ULL;
         searchArgsPtr->searchFunction = searchByTime;
         pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
     }
