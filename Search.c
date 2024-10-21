@@ -128,8 +128,8 @@ MoveInfo searchByDepth(int depth)
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement)
 {
-    // assume we have to play 35 more moves in any given position
-    return msRemaining / 35 + msIncrement;
+    // assume we have to play 20 more moves in any given position
+    return (msRemaining + msIncrement * 19) / 20;
 }
 
 static void sortMove(Move* const move, const Move* const moveListEnd, int depth)
