@@ -173,14 +173,13 @@ static int positionFen()
 {
     // load a custom fen
     char fen[128] = "";
-    for (
-        // start by reading the next word
-        char* fenPart = strtok(NULL, delimiter);
-        // the fen ends at the "moves" flag or at the end of the command
-        fenPart != NULL && strcmp(fenPart, "moves");
-        // continue reading the next word
-        fenPart = strtok(NULL, delimiter))
+    for (int fenPartNum = 0; fenPartNum < 6; fenPartNum++)
     {
+        char* fenPart = strtok(NULL, delimiter);
+        if (fenPart == NULL)
+        {
+            break;
+        }
         strcat(fen, fenPart);
         strcat(fen, " ");
     }
