@@ -15,11 +15,10 @@ int main()
     initAttackTables();
     initCaptureScores();
 
-    printf("Ray version 1.4.1\n");
+    printf("Ray version 1.5.0\n");
     fflush(stdout);
 
-    char input[4];
-    memset(input, '\0', sizeof(input));
+    char input[4] = "";
     while (fgets(input, sizeof(input), stdin))
     {
         if (!strcmp(input, "uci"))

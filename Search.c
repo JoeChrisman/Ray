@@ -9,25 +9,26 @@
 
 SearchStats stats = {0};
 
-MoveInfo searchByTime(U64 msRemaining)
+MoveInfo searchByTime(U64 targetCancelTime)
 {
-    printLog("Starting iterative search. Target time is %llums\n", msRemaining);
+    U64 msRemaining = targetCancelTime - getMillis();
 
-    memset(killers, 0, sizeof(killers));
     const U64 startTime = getMillis();
+    memset(killers, 0, sizeof(killers));
+    printLog("Starting iterative search. Target elapsed time is %llums\n", msRemaining);
 
     // search to depth 1 with no constraints so we will have a move to fall back on
     memset(&stats, 0, sizeof(stats));
-    stats.cancelTimeTarget = UINT64_MAX;
+    cancelTime = SEARCH_FOREVER;
     MoveInfo fallback = searchByDepth(1);
 
+    cancelTime = targetCancelTime;
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
         memset(&stats, 0, sizeof(stats));
-        stats.cancelTimeTarget = getMillis() + msRemaining;
         MoveInfo moveInfo = searchByDepth(depth);
-        // if we encountered the "stop" command during the search
-        if (!atomic_load(&isSearching))
+        // if the search was cancelled for any reason
+        if (cancelTime == SEARCH_CANCELLED)
         {
             printLog("The iterative search was cancelled.\n");
             // use the previous search results
@@ -61,7 +62,7 @@ MoveInfo searchByTime(U64 msRemaining)
     return fallback;
 }
 
-MoveInfo searchByDepth(U64 depth)
+MoveInfo searchByDepth(int depth)
 {
     U64 startTime = getMillis();
     MoveInfo moveInfo = {0};
@@ -87,7 +88,7 @@ MoveInfo searchByDepth(U64 depth)
         unMakeMove(currentMove, irreversibles);
 
         // if the search was interrupted
-        if (!atomic_load(&isSearching))
+        if (cancelTime == SEARCH_CANCELLED)
         {
             printLog("The depth %d search was cancelled.\n", (int)depth);
             // return zeroes
@@ -212,16 +213,16 @@ static int search(int alpha, int beta, int color, int depth)
     if ((stats.numLeafNodes & 8191) == 8191)
     {
         // if the search was cancelled for any reason
-        if (!atomic_load(&isSearching))
+        if (cancelTime == SEARCH_CANCELLED)
         {
             // exit the search immediately
             return 0;
         }
         // if we are about to run out of time
-        if (getMillis() >= stats.cancelTimeTarget - 100)
+        if (getMillis() >= cancelTime - 100)
         {
             // stop searching ASAP
-            atomic_store(&isSearching, 0);
+            cancelTime = SEARCH_CANCELLED;
             return 0;
         }
     }

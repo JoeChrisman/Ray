@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
-#include "Search.h"
+
 #include "Uci.h"
 #include "Position.h"
 #include "Notation.h"
@@ -10,178 +10,197 @@
 #include "Debug.h"
 #include "MoveGen.h"
 
-atomic_int isSearching = 0;
+volatile U64 cancelTime = 0;
 
-void* handleSearchThread(void* searchArgsPtr)
+void* spawnGoDepth(void* targetDepth)
 {
-    const SearchArgs searchArgs = *(SearchArgs*)searchArgsPtr;
-    free(searchArgsPtr);
-
-    printLog("Search thread was born.\n");
-    atomic_store(&isSearching, 1);
-    MoveInfo moveInfo = searchArgs.searchFunction(searchArgs.searchConstraint);
-    printf("bestmove %s\n", getStrFromMove(moveInfo.move));
+    int depth = *(int*)targetDepth;
+    free(targetDepth);
+    cancelTime = SEARCH_FOREVER;
+    MoveInfo searchResult = searchByDepth(depth);
+    if (searchResult.move != NO_MOVE)
+    {
+        printf("bestmove %s\n", getStrFromMove(searchResult.move));
+    }
     fflush(stdout);
-    atomic_store(&isSearching, 0);
-    printLog("Search thread died.\n");
-
+    cancelTime = SEARCH_CANCELLED;
     return NULL;
 }
 
-void handleGoCommand()
+void* spawnGoMovetime(void* targetCancelTime)
 {
-    if (atomic_load(&isSearching))
+    cancelTime = *(U64*)targetCancelTime;
+    free(targetCancelTime);
+    MoveInfo searchResult = searchByTime(cancelTime);
+    if (searchResult.move != NO_MOVE)
     {
-        return;
+        printf("bestmove %s\n", getStrFromMove(searchResult.move));
+    }    fflush(stdout);
+    cancelTime = SEARCH_CANCELLED;
+    return NULL;
+}
+
+static int goDepth()
+{
+    errno = 0;
+    int depth = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    if (errno || depth <= 0 || depth > MAX_SEARCH_DEPTH)
+    {
+        printf("Client sent malformed go depth command");
+        return 1;
+    }
+    int* depthPtr = malloc(sizeof(int));
+    *depthPtr = depth;
+    pthread_create(&searchThread, NULL, spawnGoDepth, (void*)depthPtr);
+    return 0;
+}
+
+static int goInfinite()
+{
+    U64* targetCancelTime = malloc(sizeof(U64));
+    *targetCancelTime = SEARCH_FOREVER;
+    pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
+    return 0;
+}
+
+static int goTimeControl()
+{
+    errno = 0;
+    int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    strtok(NULL, delimiter); // eat "btime" flag
+    int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    strtok(NULL, delimiter); // eat "winc" flag
+    int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    strtok(NULL, delimiter); // eat "binc" flag
+    int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    if (errno ||
+        whiteMsRemaining < 0 ||
+        blackMsRemaining < 0 ||
+        whiteMsIncrememnt < 0 ||
+        blackMsIncrememnt < 0)
+    {
+        printLog("Client sent a malformed time control\n");
+        return 1;
+    }
+    int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
+    int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
+    U64* targetCancelTime = malloc(sizeof(U64));
+    *targetCancelTime = getMillis() + getSearchTimeEstimate(msRemaining, msIncrement);
+    pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
+    return 0;
+}
+
+static int goMovetime()
+{
+    errno = 0;
+    int msToSearch = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    if (errno || msToSearch <= 0)
+    {
+        printf("Client sent malformed go movetime command");
+        return 1;
+    }
+    U64* targetCancelTime = malloc(sizeof(U64));
+    *targetCancelTime = getMillis() + msToSearch;
+    pthread_create(&searchThread, NULL, spawnGoMovetime, (void*)targetCancelTime);
+    return 0;
+}
+
+static int goPerft()
+{
+    char* flag2 = strtok(NULL, delimiter);
+    if (!strcmp(flag2, "suite"))
+    {
+        runPerftSuite();
+    }
+    else
+    {
+        errno = 0;
+        int depth = (int)strtol(flag2, NULL, 10);
+        if (errno || depth < 0)
+        {
+            printLog("Client sent invalid perft depth\n");
+            return 1;
+        }
+        runPerft(depth);
+    }
+    return 0;
+}
+
+static int handleGoCommand()
+{
+    if (cancelTime != SEARCH_CANCELLED)
+    {
+        printLog("Client sent go command while searching\n");
+        return 1;
     }
 
-    char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
     if (flag1 == NULL)
     {
         printLog("Client sent malformed go command\n");
+        return 1;
     }
 
-    // if the client wants us to search until the stop command
+    // the client wants us to search until the stop command
     if (!strcmp(flag1, "infinite"))
     {
-        /*
-         * we want to search forever, but using UINT64_MAX as a time constraint (500B years)
-         * would cause the number to overflow in searchForTime(), so lets compromise by searching for 1 year.
-         */
-        SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-        searchArgsPtr->searchConstraint = 31557600000ULL;
-        searchArgsPtr->searchFunction = searchByTime;
-        pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
+        return goInfinite();
     }
-    // if the client is wants us to search with time constraints
+    // the client is wants us to search with time constraints
     else if (flag1 != NULL && !strcmp(flag1, "wtime"))
     {
-        errno = 0;
-        int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        strtok(NULL, delimiter); // eat "btime" flag
-        int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        strtok(NULL, delimiter); // eat "winc" flag
-        int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        strtok(NULL, delimiter); // eat "binc" flag
-        int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        // if the client for some reason sent a malformed command
-        if (errno)
-        {
-            return;
-        }
-        int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
-        int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
-        int msToSearch = getSearchTimeEstimate(msRemaining, msIncrement);
-        SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-        searchArgsPtr->searchConstraint = msToSearch;
-        searchArgsPtr->searchFunction = searchByTime;
-        pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
+        return goTimeControl();
     }
-    // if the client wants to search to a custom depth
+    // the client wants to search to a custom depth
     else if (!strcmp(flag1, "depth"))
     {
-        errno = 0;
-        int depth = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        // if the client sent a valid depth
-        if (errno == 0)
-        {
-            // give up on this search in 500 billion years (:
-            stats.cancelTimeTarget = UINT64_MAX;
-            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-            searchArgsPtr->searchConstraint = depth;
-            searchArgsPtr->searchFunction = searchByDepth;
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-        }
+        return goDepth();
     }
-    // if the client wants to search with a custom move time
+    // the client wants to search with a custom move time
     else if (!strcmp(flag1, "movetime"))
     {
-        errno = 0;
-        int msToSearch = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-        // if the client sent a valid time
-        if (errno == 0)
-        {
-            SearchArgs* searchArgsPtr = malloc(sizeof(SearchArgs));
-            searchArgsPtr->searchConstraint = msToSearch;
-            searchArgsPtr->searchFunction = searchByTime;
-            pthread_create(&searchThread, NULL, handleSearchThread, (void*)searchArgsPtr);
-        }
+        return goMovetime();
     }
-    // if we are trying to run our custom perft tests
+    // if we are trying to run our own custom perft tests
     else if (!strcmp(flag1, "perft"))
     {
-        // if we want to run the perft suite
-        char* flag2 = strtok(NULL, delimiter);
-        if (!strcmp(flag2, "suite"))
-        {
-            runPerftSuite();
-        }
-        // if we want to get node counts for each move
-        else
-        {
-            errno = 0;
-            int depth = (int)strtol(flag2, NULL, 10);
-            if (errno == 0)
-            {
-                runPerft(depth);
-            }
-        }
+        return goPerft();
     }
+    return 1;
 }
 
-void handleStopCommand()
+static int positionFen()
 {
-    atomic_store(&isSearching, 0);
-}
-
-void handlePositionCommand()
-{
-    char* delimiter = " ";
-    char* flag1 = strtok(NULL, delimiter);
-    if (flag1 == NULL)
-    {
-        printLog("Client sent malformed position command\n");
-    }
-    // if a "startpos" flag was sent
-    if (!strcmp(flag1, "startpos"))
-    {
-        // load the initial position
-        loadFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-    }
-    // if a "fen" flag was sent
-    else if (!strcmp(flag1, "fen"))
-    {
-        // load a custom fen
-        char fen[128] = "";
-        for (
-            // start by reading the next word
-            char* fenPart = strtok(NULL, delimiter);
-            // the fen ends at the "moves" flag or at the end of the command
-            fenPart != NULL && strcmp(fenPart, "moves");
-            // continue reading the next word
-            fenPart = strtok(NULL, delimiter))
-        {
-            strcat(fen, fenPart);
-            strcat(fen, " ");
-        }
-        if (loadFen(fen))
-        {
-            printLog("Client sent malformed FEN %s\n", fen);
-        }
-    }
-
+    // load a custom fen
+    char fen[128] = "";
     for (
-        char* commandMoveStr = strtok(NULL, delimiter);
-        commandMoveStr != NULL;
-        commandMoveStr = strtok(NULL, delimiter))
+        // start by reading the next word
+        char* fenPart = strtok(NULL, delimiter);
+        // the fen ends at the "moves" flag or at the end of the command
+        fenPart != NULL && strcmp(fenPart, "moves");
+        // continue reading the next word
+        fenPart = strtok(NULL, delimiter))
     {
-        // if we find the "moves" flag
-        if (!strcmp(commandMoveStr, "moves"))
-        {
-            // eat the flag and continue parsing
-            continue;
-        }
+        strcat(fen, fenPart);
+        strcat(fen, " ");
+    }
+    if (loadFen(fen))
+    {
+        printLog("Client sent malformed FEN %s\n", fen);
+        return 1;
+    }
+    return 0;
+}
+
+static int positionMoves()
+{
+    char* commandMoveStr = strtok(NULL, delimiter);
+    if (commandMoveStr == NULL)
+    {
+        printLog("Client sent malformed move string %s\n", commandMoveStr);
+    }
+    while (commandMoveStr != NULL)
+    {
         Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
         genMoves(moves);
         // iterate through all moves in current position
@@ -201,30 +220,78 @@ void handlePositionCommand()
         if (!foundMove)
         {
             printLog("Client sent illegal move %s\n", commandMoveStr);
+            return 1;
         }
+        commandMoveStr = strtok(NULL, delimiter);
     }
+    return 0;
 }
 
-void handleCommand(char* command)
+static int handlePositionCommand()
 {
-    const char* delimiter = " ";
+    char* delimiter = " ";
+    char* flag1 = strtok(NULL, delimiter);
+    if (flag1 == NULL)
+    {
+        printLog("Client sent malformed position command\n");
+        return 1;
+    }
+    // the client wants to load the initial position
+    if (!strcmp(flag1, "startpos"))
+    {
+        loadFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    }
+    // the client wants to load a custom fen
+    else if (!strcmp(flag1, "fen"))
+    {
+        if (positionFen())
+        {
+            return 1;
+        }
+    }
+    else
+    {
+        printLog("Client sent malformed position command");
+        return 1;
+    }
+
+    char* movesFlag = strtok(NULL, delimiter);
+    // the client wants to play some moves after loading position
+    if (movesFlag != NULL)
+    {
+        if (!strcmp(movesFlag, "moves"))
+        {
+            return positionMoves();
+        }
+        printLog("Client sent malformed moves flag\n");
+        return 1;
+    }
+    return 0;
+}
+
+static int handleCommand(char* command)
+{
     const char* flag1 = strtok(command, delimiter);
     if (flag1 == NULL)
     {
         printLog("Client sent malformed command\n");
+        return 1;
     }
     if (!strcmp(flag1, "position"))
     {
-        handlePositionCommand();
+        return handlePositionCommand();
     }
     else if (!strcmp(flag1, "go"))
     {
-        handleGoCommand();
+        return handleGoCommand();
     }
     else if (!strcmp(flag1, "stop"))
     {
-        handleStopCommand();
+        cancelTime = SEARCH_CANCELLED;
+        return 0;
     }
+    printLog("Client sent malformed command\n");
+    return 1;
 }
 
 
@@ -232,40 +299,47 @@ int runUci()
 {
     while ((getchar()) != '\n');
 
+    // identify ourselves to the client
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
     fflush(stdout);
 
+    size_t commandCapacity = 32;
+    char* command = malloc(sizeof(char) * commandCapacity);
     for (;;)
     {
-        // heap allocate some memory. this way it is always valid to free it
-        size_t commandCapacity = 1;
-        char* command = malloc(sizeof(char) * commandCapacity);
         ssize_t commandLen = getline(&command, &commandCapacity, stdin);
         if (commandLen <= 1)
         {
-            free(command);
+            printLog("Client sent a command with a length less than two\n");
             continue;
         }
+        // replace newline with a null terminator
         command[commandLen - 1] = '\0';
-
-        if (strcmp(command, "quit") == 0)
+        // the client wants to kill the program
+        if (!strcmp(command, "quit"))
         {
-            free(command);
             break;
         }
-        else if (strcmp(command, "isready") == 0)
+        // the client wants to make sure we are still alive
+        else if (!strcmp(command, "isready"))
         {
             printf("readyok\n");
             fflush(stdout);
         }
+        // the client wants us to exit a search immediately
+        else if (!strcmp(command, "stop"))
+        {
+            cancelTime = SEARCH_CANCELLED;
+        }
+        // the client wants to run a more complicated command
         else
         {
             handleCommand(command);
         }
-        free(command);
     }
 
-    return 1;
+    free(command);
+    return 0;
 }
