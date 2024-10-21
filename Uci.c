@@ -66,24 +66,34 @@ static int goInfinite()
 static int goTimeControl()
 {
     errno = 0;
+
+    int whiteMsIncrement = 0;
+    int blackMsIncrement = 0;
+
     int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
     strtok(NULL, delimiter); // eat "btime" flag
     int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-    strtok(NULL, delimiter); // eat "winc" flag
-    int whiteMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-    strtok(NULL, delimiter); // eat "binc" flag
-    int blackMsIncrememnt = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+
+
+    char* nextFlag = strtok(NULL, delimiter);
+    if (nextFlag != NULL && !strcmp(nextFlag, "winc"))
+    {
+        whiteMsIncrement = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        strtok(NULL, delimiter); // eat "binc" flag
+        blackMsIncrement = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    }
+
     if (errno ||
         whiteMsRemaining < 0 ||
         blackMsRemaining < 0 ||
-        whiteMsIncrememnt < 0 ||
-        blackMsIncrememnt < 0)
+        whiteMsIncrement < 0 ||
+        blackMsIncrement < 0)
     {
         printLog("Client sent a malformed time control\n");
         return 1;
     }
     int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
-    int msIncrement = position.isWhitesTurn ? whiteMsIncrememnt : blackMsIncrememnt;
+    int msIncrement = position.isWhitesTurn ? whiteMsIncrement : blackMsIncrement;
     U64* targetCancelTime = malloc(sizeof(U64));
     *targetCancelTime = getMillis() + getSearchTimeEstimate(msRemaining, msIncrement);
     pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
