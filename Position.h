@@ -24,6 +24,8 @@ typedef struct
     U64 black;
     U64 occupied;
 
+    int whiteAdvantage;
+
     U64 zobristHash;
     U64 history[MAX_MOVES_IN_GAME];
 } Position;

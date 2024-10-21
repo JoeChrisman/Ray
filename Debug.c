@@ -91,6 +91,7 @@ void runPerftSuite()
         const char* fen = tests[test];
         loadFen(fen);
         const U64 expectedZobristHash = position.zobristHash;
+        const int expectedWhiteAdvantage = position.whiteAdvantage;
         double totalTestSecs = 0;
         const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
@@ -115,6 +116,12 @@ void runPerftSuite()
             {
                 printf("[FAILED ZOBRIST HASH] - position: %s, depth %d: expected %llu, actual %llu\n",
                        fen, depth, expectedZobristHash, position.zobristHash);
+                numFailed++;
+            }
+            else if (position.whiteAdvantage != expectedWhiteAdvantage)
+            {
+                printf("[FAILED EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
+                       fen, depth, expectedWhiteAdvantage, position.whiteAdvantage);
                 numFailed++;
             }
             else
