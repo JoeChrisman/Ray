@@ -424,6 +424,49 @@ void unMakeMove(Move move, Irreversibles irreversibles)
     updateOccupancy();
 }
 
+int isZugzwang(int color)
+{
+    if (color == 1)
+    {
+        return !(
+            position.pieces[WHITE_BISHOP] |
+            position.pieces[WHITE_KNIGHT] |
+            position.pieces[WHITE_ROOK] |
+            position.pieces[WHITE_QUEEN]);
+    }
+    return !(
+        position.pieces[BLACK_BISHOP] |
+        position.pieces[BLACK_KNIGHT] |
+        position.pieces[BLACK_ROOK] |
+        position.pieces[BLACK_QUEEN]);
+}
+
+void makeNullMove()
+{
+    position.isWhitesTurn = !position.isWhitesTurn;
+    position.zobristHash ^= zobristSideToMove;
+    if (position.irreversibles.enPassant != EMPTY_BOARD)
+    {
+        position.zobristHash ^= zobristEnPassant[GET_SQUARE(position.irreversibles.enPassant)];
+        position.irreversibles.enPassant = EMPTY_BOARD;
+    }
+    position.irreversibles.plies++;
+    position.history[position.plies++] = position.zobristHash;
+}
+
+void unMakeNullMove(const Irreversibles irreversibles)
+{
+    position.isWhitesTurn = !position.isWhitesTurn;
+    position.zobristHash ^= zobristSideToMove;
+    position.plies--;
+    if (irreversibles.enPassant != EMPTY_BOARD)
+    {
+        position.zobristHash ^= zobristEnPassant[GET_SQUARE(irreversibles.enPassant)];
+    }
+    position.irreversibles = irreversibles;
+}
+
+
 static void updateOccupancy()
 {
     position.white =

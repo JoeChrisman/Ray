@@ -84,7 +84,7 @@ MoveInfo searchByDepth(int depth)
         const Move currentMove = moves[numMoves++];
         Irreversibles irreversibles = position.irreversibles;
         makeMove(currentMove);
-        int score = -search(MIN_SCORE, MAX_SCORE, position.isWhitesTurn ? 1 : -1, (int)depth);
+        int score = -search(MIN_SCORE, MAX_SCORE, 0, position.isWhitesTurn ? 1 : -1, (int)depth);
         unMakeMove(currentMove, irreversibles);
 
         // if the search was interrupted
@@ -204,7 +204,7 @@ static int quiescenceSearch(int alpha, int beta, int color)
     return alpha;
 }
 
-static int search(int alpha, int beta, int color, int depth)
+static int search(int alpha, int beta, int isNullMove, int color, int depth)
 {
     /*
      * check expensive termination conditions every few thousand leaf nodes.
@@ -241,17 +241,30 @@ static int search(int alpha, int beta, int color, int depth)
 
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(moves);
+    const int isInCheck = isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]);
     // if there are no legal moves
     if (lastMove == moves)
     {
         stats.numLeafNodes++;
         // checkmate
-        if (isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]))
+        if (isInCheck)
         {
             return MIN_SCORE + MAX_SEARCH_DEPTH - depth;
         }
         // stalemate
         return CONTEMPT;
+    }
+
+    if (!isInCheck && !isNullMove && depth > 3 && !isZugzwang(color))
+    {
+        const Irreversibles irreversibles = position.irreversibles;
+        makeNullMove();
+        int score = -search(-beta, -beta + 1, 1, -color, depth - 3);
+        unMakeNullMove(irreversibles);
+        if (score >= beta)
+        {
+            return beta;
+        }
     }
 
     stats.numNonLeafNodes++;
@@ -260,7 +273,7 @@ static int search(int alpha, int beta, int color, int depth)
         sortMove(move, lastMove, depth);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        const int score = -search(-beta, -alpha, -color, depth - 1);
+        const int score = -search(-beta, -alpha, 0, -color, depth - 1);
         unMakeMove(*move, irreversibles);
 
         if (score > alpha)

@@ -38,6 +38,10 @@ int loadFen(const char* fen);
 void makeMove(Move move);
 void unMakeMove(Move move, Irreversibles irreversibles);
 
+int isZugzwang(int color);
+void makeNullMove();
+void unMakeNullMove(Irreversibles irreversibles);
+
 static inline void updateOccupancy();
 
 
