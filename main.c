@@ -26,6 +26,7 @@ int main(int argc, char** argv)
             seed = seedArgument;
         }
     }
+
     srand(seed);
     initZobrist();
     initAttackTables();
@@ -33,7 +34,7 @@ int main(int argc, char** argv)
     initHashTable(DEFAULT_HASH_TABLE_MEGABYTES);
     printLog("Seed is %d\n", seed);
 
-    printf("Ray version 1.6.0\n");
+    printf("Ray version 1.6.1\n");
     fflush(stdout);
 
     char input[4] = "";
@@ -45,5 +46,7 @@ int main(int argc, char** argv)
         }
         memset(input, '\0', sizeof(input));
     }
+
+    free(hashTable);
     return 1;
 }

@@ -291,6 +291,35 @@ static int handlePositionCommand()
 
 static int handleSetoptionCommand()
 {
+    char* nameFlag = strtok(NULL, delimiter);
+    char* argName = strtok(NULL, delimiter);
+    char* valueFlag = strtok(NULL, delimiter);
+    char* argValue = strtok(NULL, delimiter);
+
+    if (nameFlag == NULL ||
+        valueFlag == NULL ||
+        argName == NULL ||
+        argValue == NULL ||
+        strcmp("name", nameFlag) != 0 ||
+        strcmp("value", valueFlag) != 0)
+    {
+        printLog("Client sent malformed setoption command\n");
+        return 1;
+    }
+
+    if (strcmp("Hash", argName) == 0)
+    {
+        errno = 0;
+        int hashTableMb = (int)strtol(argValue, NULL, 10);
+        if (hashTableMb < MIN_HASH_TABLE_MEGABYTES ||
+            hashTableMb > MAX_HASH_TABLE_MEGABYTES)
+        {
+            printLog("Client tried to resize hash table out of range\n");
+            return 1;
+        }
+        return initHashTable(hashTableMb);
+    }
+
     return 0;
 }
 
@@ -310,6 +339,10 @@ static int handleCommand(char* command)
     else if (!strcmp(flag1, "go"))
     {
         return handleGoCommand();
+    }
+    else if (!strcmp(flag1, "setoption"))
+    {
+        return handleSetoptionCommand();
     }
     else if (!strcmp(flag1, "stop"))
     {
