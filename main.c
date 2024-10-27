@@ -3,19 +3,37 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 #include "Uci.h"
 #include "Zobrist.h"
 #include "AttackTables.h"
+#include "HashTable.h"
 #include "Move.h"
 
-int main()
+int main(int argc, char** argv)
 {
-    srand(time(NULL) ^ getpid());
+    int seed = (int)(time(NULL) ^ getpid());
+    if (argc > 1)
+    {
+        errno = 0;
+        int seedArgument = (int)strtol(argv[1], NULL, 10);
+        if (errno != 0)
+        {
+            printLog("Program started with invalid seed, using random seed instead.\n");
+        }
+        else
+        {
+            seed = seedArgument;
+        }
+    }
+    srand(seed);
     initZobrist();
     initAttackTables();
     initCaptureScores();
+    initHashTable(DEFAULT_HASH_TABLE_MEGABYTES);
+    printLog("Seed is %d\n", seed);
 
-    printf("Ray version 1.5.0\n");
+    printf("Ray version 1.6.0\n");
     fflush(stdout);
 
     char input[4] = "";

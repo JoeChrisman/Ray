@@ -11,17 +11,6 @@
 
 Position position = {0};
 
-const int CASTLING_FLAGS[NUM_SQUARES] = {
-    ~BLACK_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~BLACK_CASTLE, 0xF, 0xF, ~BLACK_CASTLE_KINGSIDE,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F, 0x0F,
-    ~WHITE_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~WHITE_CASTLE, 0xF, 0xF, ~WHITE_CASTLE_KINGSIDE
-};
-
 void clearPosition()
 {
     memset(&position, 0, sizeof(position));
@@ -428,17 +417,17 @@ int isZugzwang(int color)
 {
     if (color == 1)
     {
-        return !(
+        return GET_NUM_PIECES(
             position.pieces[WHITE_BISHOP] |
             position.pieces[WHITE_KNIGHT] |
             position.pieces[WHITE_ROOK] |
-            position.pieces[WHITE_QUEEN]);
+            position.pieces[WHITE_QUEEN]) < 2;
     }
-    return !(
+    return GET_NUM_PIECES(
         position.pieces[BLACK_BISHOP] |
         position.pieces[BLACK_KNIGHT] |
         position.pieces[BLACK_ROOK] |
-        position.pieces[BLACK_QUEEN]);
+        position.pieces[BLACK_QUEEN]) < 2;
 }
 
 void makeNullMove()

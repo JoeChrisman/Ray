@@ -9,6 +9,7 @@
 #include "Search.h"
 #include "Debug.h"
 #include "MoveGen.h"
+#include "HashTable.h"
 
 volatile U64 cancelTime = 0;
 
@@ -21,6 +22,11 @@ void* spawnGoDepth(void* targetDepth)
     if (searchResult.move != NO_MOVE)
     {
         printf("bestmove %s\n", getStrFromMove(searchResult.move));
+        fflush(stdout);
+    }
+    else
+    {
+        printLog("Search by depth returned a NO_MOVE\n");
     }
     fflush(stdout);
     cancelTime = SEARCH_CANCELLED;
@@ -35,7 +41,12 @@ void* spawnGoMovetime(void* targetCancelTime)
     if (searchResult.move != NO_MOVE)
     {
         printf("bestmove %s\n", getStrFromMove(searchResult.move));
-    }    fflush(stdout);
+        fflush(stdout);
+    }
+    else
+    {
+        printLog("Search by time returned a NO_MOVE\n");
+    }
     cancelTime = SEARCH_CANCELLED;
     return NULL;
 }
@@ -278,6 +289,12 @@ static int handlePositionCommand()
     return 0;
 }
 
+static int handleSetoptionCommand()
+{
+    return 0;
+}
+
+
 static int handleCommand(char* command)
 {
     const char* flag1 = strtok(command, delimiter);
@@ -308,10 +325,15 @@ int runUci()
 {
     while ((getchar()) != '\n');
 
-    // identify ourselves to the client
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
+
+    printf("option name Hash type spin default %d min %d max %d\n",
+           DEFAULT_HASH_TABLE_MEGABYTES,
+           MIN_HASH_TABLE_MEGABYTES,
+           MAX_HASH_TABLE_MEGABYTES);
+
     fflush(stdout);
 
     size_t commandCapacity = 32;

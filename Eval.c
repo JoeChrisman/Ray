@@ -227,11 +227,8 @@ int evaluate()
     const float endgameWeight = getEndgameWeight();
     const float midgameWeight = 1.0f - endgameWeight;
 
-    whiteAdvantage += (int)((float)whiteKingSafety * midgameWeight);
-    whiteAdvantage -= (int)((float)blackKingSafety * midgameWeight);
+    const int whiteKingSafetyAdvantage = (int)((float)(whiteKingSafety - blackKingSafety) * midgameWeight);
+    const int whiteKingActivityAdvantage = (int)((float)(whiteKingActivity - blackKingActivity) * endgameWeight);
 
-    whiteAdvantage += (int)((float)whiteKingActivity * endgameWeight);
-    whiteAdvantage -= (int)((float)blackKingActivity * endgameWeight);
-
-    return whiteAdvantage;
+    return whiteAdvantage + whiteKingSafetyAdvantage + whiteKingActivityAdvantage;
 }

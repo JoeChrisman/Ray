@@ -28,6 +28,6 @@ add_executable(Ray main.c
         Zobrist.h
         Zobrist.c
         Move.c
-        Transpositions.c
-        Transpositions.h
+        HashTable.c
+        HashTable.h
 )

@@ -4,48 +4,50 @@
 #include "Move.h"
 
 #define MAX_SEARCH_DEPTH 64
+
 #define MAX_SCORE 50000
 #define MIN_SCORE (-50000)
+#define INVALID_SCORE INT32_MAX
+
 #define CONTEMPT 150
+
+#define IS_MATE (MAX_SCORE - MAX_MOVES_IN_GAME)
 
 #define SEARCH_FOREVER UINT64_MAX
 #define SEARCH_CANCELLED 0
-
-static Move killers[MAX_SEARCH_DEPTH][2];
 
 typedef struct
 {
     Move move;
     int score;
+    int depth;
     int msElapsed;
 } MoveInfo;
 
-/*
- * These are stats recorded for one depth-first search.
- * They are cleared between searches in the time-based search
- */
 typedef struct
 {
     U64 numLeafNodes;
     U64 numNonLeafNodes;
 } SearchStats;
 
-extern SearchStats stats;
+static void printSearchResult(MoveInfo moveInfo);
 
-MoveInfo searchByDepth(int depth);
 MoveInfo searchByTime(U64 targetCancelTime);
+MoveInfo searchByDepth(int depth);
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement);
 
-static int isRepetition();
-static void sortMove(Move* const move, const Move* moveListEnd, int depth, Move principalMove);
 static int search(int alpha, int beta, int isNullMove, int color, int depth);
-
-/*
- * A search used on leaf nodes to resolve all captures in the position.
- * The goal is to never evaluate positions where captures are possible.
- * https://www.chessprogramming.org/Quiescence_Search
- */
 static int quiescenceSearch(int alpha, int beta, int color);
+
+static int isRepetition();
+
+static void sortMove(
+    Move* moveListStart,
+    const Move* moveListEnd,
+    int depth,
+    Move bestHashMove);
+
+static Move killers[MAX_SEARCH_DEPTH][2];
 
 #endif
