@@ -74,10 +74,30 @@ Move* genCaptures(Move* moves)
     return moves;
 }
 
-// this will only work if the moves have been generated
-int isKingAttackedFast(U64 king)
+int isKingInCheck(int color)
 {
-    return !(king & safe);
+    const U64 king = position.boards[color == 1 ? WHITE_KING : BLACK_KING];
+    const int kingSquare = GET_SQUARE(king);
+
+    const U64 enemyKnights = position.boards[color == 1 ? BLACK_KNIGHT : WHITE_KNIGHT];
+    const U64 enemyBishops = position.boards[color == 1 ? BLACK_BISHOP : WHITE_BISHOP];
+    const U64 enemyRooks = position.boards[color == 1 ? BLACK_ROOK : WHITE_ROOK];
+    const U64 enemyQueens = position.boards[color == 1 ? BLACK_QUEEN : WHITE_QUEEN];
+
+    const U64 ordinalMoves = getOrdinalSlidingMoves(kingSquare, position.occupied);
+    const U64 cardinalMoves = getCardinalSlidingMoves(kingSquare, position.occupied);
+    const U64 knightMoves = knightAttacks[kingSquare];
+
+    const U64 ordinalAttackers = ordinalMoves & (enemyBishops | enemyQueens);
+    const U64 cardinalAttackers = cardinalMoves & (enemyRooks | enemyQueens);
+    const U64 knightAttackers = knightMoves & enemyKnights;
+
+    const U64 pawnMoves = color == 1 ?
+        (BOARD_NORTH_EAST(king) & NOT_A_FILE) | (BOARD_NORTH_WEST(king) & NOT_H_FILE) :
+        (BOARD_SOUTH_EAST(king) & NOT_A_FILE) | (BOARD_SOUTH_WEST(king) & NOT_H_FILE);
+    const U64 pawnAttackers = pawnMoves & position.boards[color == 1 ? BLACK_PAWN : WHITE_PAWN];
+
+    return pawnAttackers || knightAttackers || ordinalAttackers || cardinalAttackers;
 }
 
 static Move* genWhitePawnMoves(Move* moves)

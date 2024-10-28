@@ -244,19 +244,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return CONTEMPT;
     }
 
-    Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    Move* lastMove = genMoves(firstMove);
-    const int isInCheck = isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]);
-
-    if (lastMove == firstMove)
-    {
-        stats.numLeafNodes++;
-        if (isInCheck)
-        {
-            return MIN_SCORE + position.plies;
-        }
-        return CONTEMPT;
-    }
+    const int isInCheck = isKingInCheck(color);
 
     if (isInCheck)
     {
@@ -276,17 +264,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return quiescenceSearch(alpha, beta, color);
     }
 
-    stats.numNonLeafNodes++;
-
-    int cutoffValue = INVALID_SCORE;
-    HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
-    if (cutoffValue != INVALID_SCORE)
-    {
-        return cutoffValue;
-    }
-    Move bestHashMove = hashTableEntry->bestMove;
-
-    if (!isInCheck && !isNullMove && depth >= 4 && !isZugzwang(color))
+    if (!isInCheck && !isNullMove && depth > 3 && !isZugzwang(color))
     {
         const Irreversibles irreversibles = position.irreversibles;
         makeNullMove();
@@ -297,6 +275,28 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             return beta;
         }
     }
+
+    Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    Move* lastMove = genMoves(firstMove);
+    if (lastMove == firstMove)
+    {
+        stats.numLeafNodes++;
+        if (isInCheck)
+        {
+            return MIN_SCORE + position.plies;
+        }
+        return CONTEMPT;
+    }
+
+    stats.numNonLeafNodes++;
+
+    int cutoffValue = INVALID_SCORE;
+    HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
+    if (cutoffValue != INVALID_SCORE)
+    {
+        return cutoffValue;
+    }
+    Move bestHashMove = hashTableEntry->bestMove;
 
     Move bestMove = NO_MOVE;
     int raisedAlpha = 0;

@@ -44,7 +44,7 @@ static inline U64 getResolverSquares(
     U64 attackerRooks,
     U64 attackerQueens);
 
-extern int isKingAttackedFast(U64 king);
+extern int isKingInCheck(int color);
 
 static inline Move* genWhitePromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
 static inline Move* genBlackPromotions(Move* moves, U64 eastCaptures, U64 westCaptures, U64 pushes);
