@@ -244,19 +244,6 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return CONTEMPT;
     }
 
-    if (depth <= 0)
-    {
-        if ((stats.numLeafNodes++ & 8191) == 8191)
-        {
-            if (getMillis() >= cancelTime - 10)
-            {
-                cancelTime = SEARCH_CANCELLED;
-                return 0;
-            }
-        }
-        return quiescenceSearch(alpha, beta, color);
-    }
-
     Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(firstMove);
     const int isInCheck = isKingAttackedFast(position.boards[color == 1 ? WHITE_KING : BLACK_KING]);
@@ -269,6 +256,24 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             return MIN_SCORE + position.plies;
         }
         return CONTEMPT;
+    }
+
+    if (isInCheck)
+    {
+        depth++;
+    }
+
+    if (depth <= 0)
+    {
+        if ((stats.numLeafNodes++ & 8191) == 8191)
+        {
+            if (getMillis() >= cancelTime - 10)
+            {
+                cancelTime = SEARCH_CANCELLED;
+                return 0;
+            }
+        }
+        return quiescenceSearch(alpha, beta, color);
     }
 
     stats.numNonLeafNodes++;

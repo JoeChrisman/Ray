@@ -6,9 +6,6 @@
 #define MIN_HASH_TABLE_MEGABYTES 32
 #define MAX_HASH_TABLE_MEGABYTES 1024
 
-int initHashTable(int numMegabytes);
-static int numHashTableEntries;
-
 typedef uint8_t NodeType;
 #define NO_NODE 0
 #define PV_NODE 1
@@ -25,6 +22,9 @@ typedef struct
 } HashEntry;
 
 static HashEntry* hashTable;
+
+int initHashTable(int numMegabytes);
+static int numHashTableEntries;
 
 HashEntry* probeHashTable(
     U64 hash,
