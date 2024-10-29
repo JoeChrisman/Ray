@@ -1,5 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
+
 #include "Search.h"
 #include "Position.h"
 #include "MoveGen.h"
@@ -7,150 +9,21 @@
 #include "Uci.h"
 #include "HashTable.h"
 #include "Notation.h"
+#include "Debug.h"
+
+#define INVALID_SCORE INT32_MAX
+#define CONTEMPT 150
 
 SearchStats stats = {0};
 
-static void printSearchResult(MoveInfo moveInfo)
-{
-    printf("info depth %d ", moveInfo.depth);
-    if (moveInfo.score > IS_MATE)
-    {
-        printf("score mate %d ", (MAX_SCORE - position.plies - moveInfo.score) / 2 + 1);
-    }
-    else if (moveInfo.score < -IS_MATE)
-    {
-        printf("score mate %d ", -((MAX_SCORE - position.plies + moveInfo.score) / 2 + 1));
-    }
-    else
-    {
-        printf("score cp %d ", moveInfo.score);
-    }
-    printf("time %d ", moveInfo.msElapsed);
-    printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
-    printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
-    printf("pv ");
-    printPrincipalVariation(moveInfo.depth);
-    fflush(stdout);
-}
-
-MoveInfo searchByTime(U64 targetCancelTime)
-{
-    U64 msRemaining = targetCancelTime - getMillis();
-    memset(killers, 0, sizeof(killers));
-    memset(&stats, 0, sizeof(stats));
-
-    cancelTime = SEARCH_FOREVER;
-    MoveInfo bestMove = searchByDepth(1);
-    cancelTime = targetCancelTime;
-    for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
-    {
-        memset(&stats, 0, sizeof(stats));
-        MoveInfo searchResult = searchByDepth(depth);
-
-        if (cancelTime == SEARCH_CANCELLED)
-        {
-            if (searchResult.move != NO_MOVE && searchResult.score > bestMove.score)
-            {
-                printLog(1, "Search at depth %d was cancelled, and an improvement was found\n", depth);
-                return searchResult;
-            }
-            else
-            {
-                printLog(1, "Search at depth %d was cancelled, no improvement was found\n", depth);
-                break;
-            }
-        }
-        bestMove = searchResult;
-        msRemaining -= bestMove.msElapsed;
-        printSearchResult(bestMove);
-        printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, null move pruning: %llu, "
-                    "hash pruning: %llu, branching factor: %.2f, move ordering accuracy: %.2f%%\n",
-                 stats.numLeafNodes,
-                 stats.numNonLeafNodes,
-                 stats.numNullMovesPruned,
-                 stats.numHashMovesPruned,
-                 (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
-                 100.0f - ((double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numMovesGenerated * 100.0f));
-
-        if (bestMove.msElapsed * 10 > msRemaining)
-        {
-            printLog(1, "Completing the next search will take too long\n");
-            break;
-        }
-    }
-
-    return bestMove;
-}
-
-MoveInfo searchByDepth(int depth)
-{
-    U64 startTime = getMillis();
-    Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    int numEqualMoves = 0;
-
-    int bestScore = MIN_SCORE;
-    Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    Move* lastMove = genMoves(firstMove);
-    if (firstMove == lastMove)
-    {
-        printLog(1, "Search at depth %d tried to generate legal moves, but there were none\n", depth);
-        MoveInfo noResult = {0};
-        return noResult;
-    }
-    for (Move* move = firstMove; move < lastMove; move++)
-    {
-        Irreversibles irreversibles = position.irreversibles;
-        makeMove(*move);
-        int score = -search(MIN_SCORE, MAX_SCORE, 0, position.isWhitesTurn ? 1 : -1, depth - 1);
-        unMakeMove(*move, irreversibles);
-
-        if (cancelTime == SEARCH_CANCELLED)
-        {
-            printLog(1, "Search at depth %d was cancelled\n", depth);
-            break;
-        }
-
-        printLog(2, "Search at depth %d: %s, %d\n", depth, getStrFromMove(*move), score);
-        if (score > bestScore)
-        {
-            bestScore = score;
-            memset(equalMoves, NO_MOVE, sizeof(equalMoves));
-            numEqualMoves = 0;
-            equalMoves[numEqualMoves++] = *move;
-        }
-        // if this move is equal to the best move so far
-        else if (score == bestScore)
-        {
-            // add it to the end of the equal moves array
-            equalMoves[numEqualMoves++] = *move;
-        }
-    }
-
-    if (numEqualMoves == 0)
-    {
-        printLog(1, "Search at depth %d was cancelled before searching any moves\n", depth);
-        MoveInfo noResult = {0};
-        return noResult;
-    }
-
-    MoveInfo bestMove = {0};
-    bestMove.move = equalMoves[rand() % numEqualMoves];
-    bestMove.score = bestScore;
-    bestMove.depth = depth;
-    bestMove.msElapsed = (int)(getMillis() - startTime);
-
-    HashEntry* entry = getHashTableEntry(position.zobristHash);
-    writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestMove.move, bestScore, depth);
-    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestMove.move));
-    return bestMove;
-}
+static Move killers[MAX_SEARCH_DEPTH][2];
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement)
 {
     return (msRemaining + msIncrement * 19) / 20;
 }
 
-static void sortMove(
+static inline void sortMove(
     Move* moveListStart,
     const Move* const moveListEnd,
     int depth,
@@ -192,7 +65,7 @@ static void sortMove(
     *moveListStart = bestMove;
 }
 
-static int isRepetition()
+static inline int isRepetition()
 {
     for (int ply = position.plies - 2; ply >= position.plies - position.irreversibles.plies; ply -= 2)
     {
@@ -288,7 +161,6 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
-            stats.numNullMovesPruned++;
             return beta;
         }
     }
@@ -355,4 +227,138 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         alpha,
         depth);
     return alpha;
+}
+
+static void printSearchResult(MoveInfo moveInfo)
+{
+    printf("info depth %d ", moveInfo.depth);
+    if (moveInfo.score > IS_MATE)
+    {
+        printf("score mate %d ", (MAX_SCORE - position.plies - moveInfo.score) / 2 + 1);
+    }
+    else if (moveInfo.score < -IS_MATE)
+    {
+        printf("score mate %d ", -((MAX_SCORE - position.plies + moveInfo.score) / 2 + 1));
+    }
+    else
+    {
+        printf("score cp %d ", moveInfo.score);
+    }
+    printf("time %d ", moveInfo.msElapsed);
+    printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
+    printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
+    printf("pv ");
+    printPrincipalVariation(moveInfo.depth);
+    fflush(stdout);
+}
+
+MoveInfo searchByTime(U64 targetCancelTime)
+{
+    U64 msRemaining = targetCancelTime - getMillis();
+    memset(killers, 0, sizeof(killers));
+    memset(&stats, 0, sizeof(stats));
+
+    cancelTime = SEARCH_FOREVER;
+    MoveInfo bestMove = searchByDepth(1);
+    cancelTime = targetCancelTime;
+    for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
+    {
+        memset(&stats, 0, sizeof(stats));
+        MoveInfo searchResult = searchByDepth(depth);
+
+        if (cancelTime == SEARCH_CANCELLED)
+        {
+            if (searchResult.move != NO_MOVE && searchResult.score > bestMove.score)
+            {
+                printLog(1, "Search at depth %d was cancelled, and an improvement was found\n", depth);
+                return searchResult;
+            }
+            else
+            {
+                printLog(1, "Search at depth %d was cancelled, no improvement was found\n", depth);
+                break;
+            }
+        }
+        bestMove = searchResult;
+        msRemaining -= bestMove.msElapsed;
+        printSearchResult(bestMove);
+        printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, null move pruning: %llu, "
+                    "hash pruning: %llu, branching factor: %.2f, move ordering accuracy: %.2f%%\n",
+                 stats.numLeafNodes,
+                 stats.numNonLeafNodes,
+                 stats.numHashMovesPruned,
+                 (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
+                 100.0f - ((double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numMovesGenerated * 100.0f));
+
+        if (bestMove.msElapsed * 10 > msRemaining)
+        {
+            printLog(1, "Completing the next search will take too long\n");
+            break;
+        }
+    }
+
+    return bestMove;
+}
+
+MoveInfo searchByDepth(int depth)
+{
+    U64 startTime = getMillis();
+    Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    int numEqualMoves = 0;
+
+    int bestScore = MIN_SCORE;
+    Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    Move* lastMove = genMoves(firstMove);
+    if (firstMove == lastMove)
+    {
+        printLog(1, "Search at depth %d tried to generate legal moves, but there were none\n", depth);
+        MoveInfo noResult = {0};
+        return noResult;
+    }
+    for (Move* move = firstMove; move < lastMove; move++)
+    {
+        Irreversibles irreversibles = position.irreversibles;
+        makeMove(*move);
+        int score = -search(MIN_SCORE, MAX_SCORE, 0, position.isWhitesTurn ? 1 : -1, depth - 1);
+        unMakeMove(*move, irreversibles);
+
+        if (cancelTime == SEARCH_CANCELLED)
+        {
+            printLog(1, "Search at depth %d was cancelled\n", depth);
+            break;
+        }
+
+        printLog(2, "Search at depth %d: %s, %d\n", depth, getStrFromMove(*move), score);
+        if (score > bestScore)
+        {
+            bestScore = score;
+            memset(equalMoves, NO_MOVE, sizeof(equalMoves));
+            numEqualMoves = 0;
+            equalMoves[numEqualMoves++] = *move;
+        }
+            // if this move is equal to the best move so far
+        else if (score == bestScore)
+        {
+            // add it to the end of the equal moves array
+            equalMoves[numEqualMoves++] = *move;
+        }
+    }
+
+    if (numEqualMoves == 0)
+    {
+        printLog(1, "Search at depth %d was cancelled before searching any moves\n", depth);
+        MoveInfo noResult = {0};
+        return noResult;
+    }
+
+    MoveInfo bestMove = {0};
+    bestMove.move = equalMoves[rand() % numEqualMoves];
+    bestMove.score = bestScore;
+    bestMove.depth = depth;
+    bestMove.msElapsed = (int)(getMillis() - startTime);
+
+    HashEntry* entry = getHashTableEntry(position.zobristHash);
+    writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestMove.move, bestScore, depth);
+    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestMove.move));
+    return bestMove;
 }

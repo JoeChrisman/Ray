@@ -1,19 +1,7 @@
 #ifndef RAY_DEFS_H
 #define RAY_DEFS_H
 
-#include <stdio.h>
 #include <stdint.h>
-#include <stdarg.h>
-#include <assert.h>
-
-#define LOGGING_LEVEL 1
-#define LOGGING_VERBOSE 0
-
-#if LOGGING_LEVEL > 0
-    void printLog(int logLevel, const char *format, ...);
-#else
-#define printLog (void*(0))
-#endif
 
 typedef uint64_t U64;
 #define EMPTY_BOARD 0x0000000000000000
@@ -64,8 +52,23 @@ typedef uint64_t U64;
 
 extern const U64 FILES[8];
 extern const U64 RANKS[8];
-
 U64 getMillis();
+U64 getRandomU64();
+
+#define A8 0
+#define C8 2
+#define D8 3
+#define E8 4
+#define F8 5
+#define G8 6
+#define H8 7
+#define A1 56
+#define C1 58
+#define D1 59
+#define E1 60
+#define F1 61
+#define G1 62
+#define H1 63
 
 #define GET_RANK(square) (7 - ((square) / 8))
 #define GET_FILE(square) ((square) % 8)
@@ -87,20 +90,5 @@ U64 getMillis();
 
 #define IS_WHITE_PIECE(piece) ((piece) < BLACK_PAWN && (piece) != NO_PIECE)
 #define IS_BLACK_PIECE(piece) ((piece) > WHITE_KING)
-
-#define A8 0
-#define C8 2
-#define D8 3
-#define E8 4
-#define F8 5
-#define G8 6
-#define H8 7
-#define A1 56
-#define C1 58
-#define D1 59
-#define E1 60
-#define F1 61
-#define G1 62
-#define H1 63
 
 #endif

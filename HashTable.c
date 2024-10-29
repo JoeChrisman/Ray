@@ -1,13 +1,47 @@
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <assert.h>
 
 #include "HashTable.h"
 #include "Notation.h"
 #include "Position.h"
 #include "Move.h"
 #include "Search.h"
+#include "Debug.h"
 
-int initHashTable(int numMegabytes)
+#define HASH_TABLE_MEGABYTES 512
+
+U64 zobristSideToMove;
+U64 zobristCastling[16];
+U64 zobristEnPassant[8];
+U64 zobristPieces[NUM_SQUARES][NUM_PIECE_TYPES + 1];
+
+void initZobrist()
+{
+    zobristSideToMove = getRandomU64();
+    for (int i = 0; i < 16; i++)
+    {
+        zobristCastling[i] = getRandomU64();
+    }
+    for (int i = 0; i < 8; i++)
+    {
+        zobristEnPassant[i] = getRandomU64();
+    }
+    for (int square = A8; square <= H1; square++)
+    {
+        zobristPieces[square][NO_PIECE] = 0x0LL;
+        for (int piece = WHITE_PAWN; piece <= BLACK_KING; piece++)
+        {
+            zobristPieces[square][piece] = getRandomU64();
+        }
+    }
+    printLog(1, "Initialized zobrist hashes\n");
+}
+
+static int numHashTableEntries;
+
+int initHashTable()
 {
     const int entrySize = sizeof(HashEntry);
     if (hashTable != NULL)
@@ -17,7 +51,7 @@ int initHashTable(int numMegabytes)
         hashTable = NULL;
     }
 
-    const int numBytes = numMegabytes * 1024 * 1024;
+    const int numBytes = HASH_TABLE_MEGABYTES * 1024 * 1024;
     const int goalNumEntries = numBytes / entrySize;
 
     numHashTableEntries = INT32_MAX;
@@ -31,13 +65,13 @@ int initHashTable(int numMegabytes)
     {
         memset(hashTable, 0, entrySize * numHashTableEntries);
         printLog(1, "Allocated %dMB hash table with %d bytes and with %d entries\n",
-                 numMegabytes,
+                 HASH_TABLE_MEGABYTES,
                  entrySize * numHashTableEntries,
                  numHashTableEntries);
         return 0;
     }
     printLog(1, "Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
-             numMegabytes,
+             HASH_TABLE_MEGABYTES,
              entrySize * numHashTableEntries,
              numHashTableEntries);
     return 1;

@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <pthread.h>
 
 #include "Uci.h"
 #include "Position.h"
@@ -13,7 +14,10 @@
 
 volatile U64 cancelTime = 0;
 
-void* spawnGoDepth(void* targetDepth)
+static pthread_t searchThread;
+static const char* delimiter = " ";
+
+static void* spawnGoDepth(void* targetDepth)
 {
     int depth = *(int*)targetDepth;
     free(targetDepth);
@@ -33,7 +37,7 @@ void* spawnGoDepth(void* targetDepth)
     return NULL;
 }
 
-void* spawnGoMovetime(void* targetCancelTime)
+static void* spawnGoMovetime(void* targetCancelTime)
 {
     cancelTime = *(U64*)targetCancelTime;
     free(targetCancelTime);
@@ -167,7 +171,7 @@ static int handleGoCommand()
     {
         return goInfinite();
     }
-    // the client is wants us to search with time constraints
+    // the client wants us to search with time constraints
     else if (flag1 != NULL && !strcmp(flag1, "wtime"))
     {
         return goTimeControl();
@@ -249,7 +253,6 @@ static int positionMoves()
 
 static int handlePositionCommand()
 {
-    char* delimiter = " ";
     char* flag1 = strtok(NULL, delimiter);
     if (flag1 == NULL)
     {
@@ -289,41 +292,6 @@ static int handlePositionCommand()
     return 0;
 }
 
-static int handleSetoptionCommand()
-{
-    char* nameFlag = strtok(NULL, delimiter);
-    char* argName = strtok(NULL, delimiter);
-    char* valueFlag = strtok(NULL, delimiter);
-    char* argValue = strtok(NULL, delimiter);
-
-    if (nameFlag == NULL ||
-        valueFlag == NULL ||
-        argName == NULL ||
-        argValue == NULL ||
-        strcmp("name", nameFlag) != 0 ||
-        strcmp("value", valueFlag) != 0)
-    {
-        printLog(1, "Client sent malformed setoption command\n");
-        return 1;
-    }
-
-    if (strcmp("Hash", argName) == 0)
-    {
-        errno = 0;
-        int hashTableMb = (int)strtol(argValue, NULL, 10);
-        if (hashTableMb < MIN_HASH_TABLE_MEGABYTES ||
-            hashTableMb > MAX_HASH_TABLE_MEGABYTES)
-        {
-            printLog(1, "Client tried to resize hash table out of range\n");
-            return 1;
-        }
-        return initHashTable(hashTableMb);
-    }
-
-    return 0;
-}
-
-
 static int handleCommand(char* command)
 {
     const char* flag1 = strtok(command, delimiter);
@@ -339,10 +307,6 @@ static int handleCommand(char* command)
     else if (!strcmp(flag1, "go"))
     {
         return handleGoCommand();
-    }
-    else if (!strcmp(flag1, "setoption"))
-    {
-        return handleSetoptionCommand();
     }
     else if (!strcmp(flag1, "stop"))
     {
@@ -361,12 +325,6 @@ int runUci()
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
     printf("uciok\n");
-
-    printf("option name Hash type spin default %d min %d max %d\n",
-           DEFAULT_HASH_TABLE_MEGABYTES,
-           MIN_HASH_TABLE_MEGABYTES,
-           MAX_HASH_TABLE_MEGABYTES);
-
     fflush(stdout);
 
     size_t commandCapacity = 32;
@@ -379,8 +337,8 @@ int runUci()
             printLog(1, "Client sent a command with a length less than two\n");
             continue;
         }
-        // replace newline with a null terminator
         command[commandLen - 1] = '\0';
+
         // the client wants to kill the program
         if (!strcmp(command, "quit"))
         {

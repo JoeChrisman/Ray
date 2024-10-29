@@ -1,11 +1,53 @@
 #include <time.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdarg.h>
+
 #include "Debug.h"
 #include "Move.h"
 #include "Position.h"
 #include "MoveGen.h"
 #include "Notation.h"
+
+#if LOGGING_LEVEL > 0
+void printLog(int logLevel, const char *format, ...)
+{
+    if ((!LOGGING_VERBOSE && logLevel == LOGGING_LEVEL) ||
+        (LOGGING_VERBOSE && logLevel <= LOGGING_LEVEL))
+    {
+        va_list args;
+        va_start(args, format);
+        printf("[DEBUG] ");
+        vprintf(format, args);
+        fflush(stdout);
+        va_end(args);
+    }
+}
+#endif
+
+/*
+ * get the number of leaf nodes in the current
+ * position for a given depth
+ */
+U64 perft(int depth)
+{
+    if (depth <= 0)
+    {
+        return 1;
+    }
+
+    Move moveList[MAX_MOVES_IN_POSITION] = {NO_MOVE};
+    Move* moveListEnd = genMoves(moveList);
+    U64 sum = 0;
+    for (Move* move = moveList; move < moveListEnd; move++)
+    {
+        Irreversibles irreversibles = position.irreversibles;
+        makeMove(*move);
+        sum += perft(depth - 1);
+        unMakeMove(*move, irreversibles);
+    }
+    return sum;
+}
 
 /*
  * go through each move and print the number of leaf nodes
@@ -32,7 +74,7 @@ void runPerft(int depth)
 
 /*
  * load several test positions and validate the number
- * of leaf nodes in each position given a varying number of depths
+ * of leaf nodes in each position given in a test file
  */
 void runPerftSuite()
 {
@@ -142,31 +184,6 @@ void runPerftSuite()
 
     printf(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
     printf(" - perft suite completed in %f seconds, with %d passed and %d failed\n", totalSuiteSecs, numPassed, numFailed);
-}
-
-/*
- * get the number of leaf nodes in the current
- * position for a given depth
- */
-U64 perft(int depth)
-{
-    if (depth <= 0)
-    {
-        return 1;
-    }
-
-    Move moveList[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    Move* moveListEnd = genMoves(moveList);
-    U64 sum = 0;
-    for (Move* move = moveList; move < moveListEnd; move++)
-    {
-        Irreversibles irreversibles = position.irreversibles;
-        makeMove(*move);
-        sum += perft(depth - 1);
-        unMakeMove(*move, irreversibles);
-    }
-    return sum;
-
 }
 
 void printBitboard(const U64 board)

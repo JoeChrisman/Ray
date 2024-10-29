@@ -25,8 +25,6 @@ add_executable(Ray main.c
         Debug.c
         Eval.h
         Eval.c
-        Zobrist.h
-        Zobrist.c
         Move.c
         HashTable.c
         HashTable.h

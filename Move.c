@@ -1,6 +1,22 @@
+#include "Defs.h"
 #include "Move.h"
 
-int createMove(int from, int to, int moved, int captured, int promoted, int flags)
+static const int capturingScores[13] = {
+    0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0
+};
+static const int capturedScores[13] = {
+    0, 5, 10, 10, 15, 20, 0, 5, 10, 10, 15, 20, 0
+};
+
+static int captureScores[NUM_PIECE_TYPES + 1][NUM_PIECE_TYPES + 1];
+
+Move createMove(
+    int from,
+    int to,
+    int moved,
+    int captured,
+    int promoted,
+    int flags)
 {
     return (
         (from) |
@@ -11,13 +27,6 @@ int createMove(int from, int to, int moved, int captured, int promoted, int flag
         ((captureScores[moved][captured]) << SCORE_SHIFT) |
         flags);
 }
-
-static const int capturingScores[13] = {
-    0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0
-};
-static const int capturedScores[13] = {
-    0, 5, 10, 10, 15, 20, 0, 5, 10, 10, 15, 20, 0
-};
 
 void initCaptureScores()
 {

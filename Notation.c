@@ -24,7 +24,7 @@ int getPieceFromChar(char piece)
     }
 }
 
-char getCharFromPiece(int piece)
+static char getCharFromPiece(int piece)
 {
     switch (piece)
     {
@@ -44,6 +44,16 @@ char getCharFromPiece(int piece)
     }
 }
 
+static char getCharFromRank(char rank)
+{
+    return (char)('1' + rank);
+}
+
+static char getCharFromFile(char file)
+{
+    return (char)('a' + file);
+}
+
 int getRankFromChar(char rank)
 {
     return (int)(rank - '1');
@@ -52,16 +62,6 @@ int getRankFromChar(char rank)
 int getFileFromChar(char file)
 {
     return (int)(file - 'a');
-}
-
-char getCharFromRank(char rank)
-{
-    return (char)('1' + rank);
-}
-
-char getCharFromFile(char file)
-{
-    return (char)('a' + file);
 }
 
 const char* getStrFromMove(Move move)

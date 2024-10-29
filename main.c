@@ -4,11 +4,12 @@
 #include <time.h>
 #include <unistd.h>
 #include <errno.h>
+
 #include "Uci.h"
-#include "Zobrist.h"
 #include "AttackTables.h"
 #include "HashTable.h"
 #include "Move.h"
+#include "Debug.h"
 
 int main(int argc, char** argv)
 {
@@ -31,7 +32,7 @@ int main(int argc, char** argv)
     initZobrist();
     initAttackTables();
     initCaptureScores();
-    initHashTable(DEFAULT_HASH_TABLE_MEGABYTES);
+    initHashTable();
     printLog(1, "Seed is %d\n", seed);
 
     printf("Ray version 1.6.5\n");

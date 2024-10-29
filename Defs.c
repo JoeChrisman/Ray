@@ -1,27 +1,17 @@
 #include <time.h>
+#include <stdlib.h>
 #include "Defs.h"
-
-#if LOGGING_LEVEL > 0
-void printLog(int logLevel, const char *format, ...)
-{
-    if ((!LOGGING_VERBOSE && logLevel == LOGGING_LEVEL) ||
-        (LOGGING_VERBOSE && logLevel <= LOGGING_LEVEL))
-    {
-        va_list args;
-        va_start(args, format);
-        printf("[DEBUG] ");
-        vprintf(format, args);
-        fflush(stdout);
-        va_end(args);
-    }
-}
-#endif
 
 U64 getMillis()
 {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
     return (U64)ts.tv_sec * 1000 + (ts.tv_nsec / 1000000);
+}
+
+U64 getRandomU64()
+{
+    return (U64)rand() | (U64)rand() << 32;
 }
 
 const U64 FILES[8] = {

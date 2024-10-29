@@ -2,9 +2,12 @@
 #include "Defs.h"
 #include "Move.h"
 
-#define DEFAULT_HASH_TABLE_MEGABYTES 512
-#define MIN_HASH_TABLE_MEGABYTES 32
-#define MAX_HASH_TABLE_MEGABYTES 1024
+void initZobrist();
+
+extern U64 zobristSideToMove;
+extern U64 zobristCastling[16];
+extern U64 zobristEnPassant[8];
+extern U64 zobristPieces[NUM_SQUARES][NUM_PIECE_TYPES + 1];
 
 typedef uint8_t NodeType;
 #define NO_NODE 0
@@ -22,9 +25,9 @@ typedef struct
 } HashEntry;
 
 static HashEntry* hashTable;
+int initHashTable();
 
-int initHashTable(int numMegabytes);
-static int numHashTableEntries;
+HashEntry* getHashTableEntry(U64 hash);
 
 HashEntry* probeHashTable(
     U64 hash,
@@ -40,7 +43,5 @@ void writeHashTableEntry(
     Move bestMove,
     int bestScore,
     int depth);
-
-HashEntry* getHashTableEntry(U64 hash);
 
 void printPrincipalVariation(int depth);

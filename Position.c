@@ -3,11 +3,25 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <errno.h>
+
 #include "Defs.h"
-#include "Zobrist.h"
+#include "HashTable.h"
 #include "Position.h"
 #include "Notation.h"
 #include "Eval.h"
+
+#define WHITE_CASTLE 0x3
+#define BLACK_CASTLE 0xC
+static const int CASTLING_FLAGS[NUM_SQUARES] = {
+    ~BLACK_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~BLACK_CASTLE, 0xF, 0xF, ~BLACK_CASTLE_KINGSIDE,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    0xF,                     0xF, 0xF, 0xF, 0xF,           0xF, 0xF, 0xF,
+    ~WHITE_CASTLE_QUEENSIDE, 0xF, 0xF, 0xF, ~WHITE_CASTLE, 0xF, 0xF, ~WHITE_CASTLE_KINGSIDE
+};
 
 Position position = {0};
 
@@ -154,6 +168,27 @@ int loadFen(const char* fen)
     position.plies = (numFullMoves - 1) * 2;
 
     return 0;
+}
+
+static void updateOccupancy()
+{
+    position.white =
+        position.boards[WHITE_PAWN] |
+        position.boards[WHITE_KNIGHT] |
+        position.boards[WHITE_BISHOP] |
+        position.boards[WHITE_ROOK] |
+        position.boards[WHITE_QUEEN] |
+        position.boards[WHITE_KING];
+
+    position.black =
+        position.boards[BLACK_PAWN] |
+        position.boards[BLACK_KNIGHT] |
+        position.boards[BLACK_BISHOP] |
+        position.boards[BLACK_ROOK] |
+        position.boards[BLACK_QUEEN] |
+        position.boards[BLACK_KING];
+
+    position.occupied = position.white | position.black;
 }
 
 void makeMove(Move move)
@@ -453,26 +488,4 @@ void unMakeNullMove(const Irreversibles irreversibles)
         position.zobristHash ^= zobristEnPassant[GET_SQUARE(irreversibles.enPassant)];
     }
     position.irreversibles = irreversibles;
-}
-
-
-static void updateOccupancy()
-{
-    position.white =
-        position.boards[WHITE_PAWN] |
-        position.boards[WHITE_KNIGHT] |
-        position.boards[WHITE_BISHOP] |
-        position.boards[WHITE_ROOK] |
-        position.boards[WHITE_QUEEN] |
-        position.boards[WHITE_KING];
-
-    position.black =
-        position.boards[BLACK_PAWN] |
-        position.boards[BLACK_KNIGHT] |
-        position.boards[BLACK_BISHOP] |
-        position.boards[BLACK_ROOK] |
-        position.boards[BLACK_QUEEN] |
-        position.boards[BLACK_KING];
-
-    position.occupied = position.white | position.black;
 }

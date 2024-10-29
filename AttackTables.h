@@ -18,18 +18,4 @@ extern U64 ordinalAttacks[NUM_SQUARES][512];
 extern U64 knightAttacks[NUM_SQUARES];
 extern U64 kingAttacks[NUM_SQUARES];
 
-static inline void initCardinalAttackTable();
-static inline void initOrdinalAttackTable();
-static inline void initKnightAttackTable();
-static inline void initKingAttackTable();
-
-static inline U64 random64();
-static inline U64 getMagicNumber(int square, int isCardinal);
-
-static inline U64 getBishopBlockers(int from);
-static inline U64 getRookBlockers(int from);
-static inline U64 getBishopAttacks(int from, U64 blockers, int isCaptures);
-static inline U64 getRookAttacks(int from, U64 blockers, int isCaptures);
-
-
 #endif
