@@ -19,7 +19,7 @@ int main(int argc, char** argv)
         int seedArgument = (int)strtol(argv[1], NULL, 10);
         if (errno != 0)
         {
-            printLog("Program started with invalid seed, using random seed instead.\n");
+            printLog(1, "Program started with invalid seed, using random seed instead.\n");
         }
         else
         {
@@ -32,7 +32,7 @@ int main(int argc, char** argv)
     initAttackTables();
     initCaptureScores();
     initHashTable(DEFAULT_HASH_TABLE_MEGABYTES);
-    printLog("Seed is %d\n", seed);
+    printLog(1, "Seed is %d\n", seed);
 
     printf("Ray version 1.6.5\n");
     fflush(stdout);

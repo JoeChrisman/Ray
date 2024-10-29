@@ -28,7 +28,6 @@ static void printSearchResult(MoveInfo moveInfo)
     printf("time %d ", moveInfo.msElapsed);
     printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
     printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
-    printf("bf %f ", (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes);
     printf("pv ");
     printPrincipalVariation(moveInfo.depth);
     fflush(stdout);
@@ -52,22 +51,30 @@ MoveInfo searchByTime(U64 targetCancelTime)
         {
             if (searchResult.move != NO_MOVE && searchResult.score > bestMove.score)
             {
-                printLog("Search at depth %d was cancelled, and an improvement was found\n", depth);
+                printLog(1, "Search at depth %d was cancelled, and an improvement was found\n", depth);
                 return searchResult;
             }
             else
             {
-                printLog("Search at depth %d was cancelled, no improvement was found\n", depth);
+                printLog(1, "Search at depth %d was cancelled, no improvement was found\n", depth);
                 break;
             }
         }
         bestMove = searchResult;
         msRemaining -= bestMove.msElapsed;
         printSearchResult(bestMove);
+        printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, null move pruning: %llu, "
+                    "hash pruning: %llu, branching factor: %.2f, move ordering accuracy: %.2f%%\n",
+                 stats.numLeafNodes,
+                 stats.numNonLeafNodes,
+                 stats.numNullMovesPruned,
+                 stats.numHashMovesPruned,
+                 (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
+                 100.0f - ((double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numMovesGenerated * 100.0f));
 
         if (bestMove.msElapsed * 10 > msRemaining)
         {
-            printLog("Completing the next search will take too long\n");
+            printLog(1, "Completing the next search will take too long\n");
             break;
         }
     }
@@ -86,7 +93,7 @@ MoveInfo searchByDepth(int depth)
     Move* lastMove = genMoves(firstMove);
     if (firstMove == lastMove)
     {
-        printLog("Search at depth %d tried to generate legal moves, but there were none\n", depth);
+        printLog(1, "Search at depth %d tried to generate legal moves, but there were none\n", depth);
         MoveInfo noResult = {0};
         return noResult;
     }
@@ -99,11 +106,11 @@ MoveInfo searchByDepth(int depth)
 
         if (cancelTime == SEARCH_CANCELLED)
         {
-            printLog("Search at depth %d was cancelled\n", depth);
+            printLog(1, "Search at depth %d was cancelled\n", depth);
             break;
         }
 
-        printLog("Search at depth %d: %s, %d\n", depth, getStrFromMove(*move), score);
+        printLog(2, "Search at depth %d: %s, %d\n", depth, getStrFromMove(*move), score);
         if (score > bestScore)
         {
             bestScore = score;
@@ -121,7 +128,7 @@ MoveInfo searchByDepth(int depth)
 
     if (numEqualMoves == 0)
     {
-        printLog("Search at depth %d was cancelled before searching any moves\n", depth);
+        printLog(1, "Search at depth %d was cancelled before searching any moves\n", depth);
         MoveInfo noResult = {0};
         return noResult;
     }
@@ -134,7 +141,7 @@ MoveInfo searchByDepth(int depth)
 
     HashEntry* entry = getHashTableEntry(position.zobristHash);
     writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestMove.move, bestScore, depth);
-    printLog("Search depth %d found best move: %s\n", depth, getStrFromMove(bestMove.move));
+    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestMove.move));
     return bestMove;
 }
 
@@ -253,7 +260,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
     if (depth <= 0)
     {
-        if ((stats.numLeafNodes++ & 8191) == 8191)
+        if ((stats.numLeafNodes++ & 32767) == 32767)
         {
             if (getMillis() >= cancelTime - 10)
             {
@@ -264,6 +271,15 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return quiescenceSearch(alpha, beta, color);
     }
 
+    int cutoffValue = INVALID_SCORE;
+    HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
+    if (cutoffValue != INVALID_SCORE)
+    {
+        stats.numHashMovesPruned++;
+        stats.numLeafNodes++;
+        return cutoffValue;
+    }
+
     if (!isInCheck && !isNullMove && depth > 3 && !isZugzwang(color))
     {
         const Irreversibles irreversibles = position.irreversibles;
@@ -272,12 +288,14 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
+            stats.numNullMovesPruned++;
             return beta;
         }
     }
 
     Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(firstMove);
+    stats.numMovesGenerated += lastMove - firstMove;
     if (lastMove == firstMove)
     {
         stats.numLeafNodes++;
@@ -287,18 +305,9 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         }
         return CONTEMPT;
     }
-
     stats.numNonLeafNodes++;
-
-    int cutoffValue = INVALID_SCORE;
-    HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
-    if (cutoffValue != INVALID_SCORE)
-    {
-        return cutoffValue;
-    }
-    Move bestHashMove = hashTableEntry->bestMove;
-
     Move bestMove = NO_MOVE;
+    Move bestHashMove = hashTableEntry->bestMove;
     int raisedAlpha = 0;
     for (Move* move = firstMove; move < lastMove; move++)
     {

@@ -1,15 +1,19 @@
 #include <time.h>
 #include "Defs.h"
 
-#if IS_LOGGING_ENABLED
-void printLog(const char *format, ...)
+#if LOGGING_LEVEL > 0
+void printLog(int logLevel, const char *format, ...)
 {
-    va_list args;
-    va_start(args, format);
-    printf("[DEBUG] ");
-    vprintf(format, args);
-    fflush(stdout);
-    va_end(args);
+    if ((!LOGGING_VERBOSE && logLevel == LOGGING_LEVEL) ||
+        (LOGGING_VERBOSE && logLevel <= LOGGING_LEVEL))
+    {
+        va_list args;
+        va_start(args, format);
+        printf("[DEBUG] ");
+        vprintf(format, args);
+        fflush(stdout);
+        va_end(args);
+    }
 }
 #endif
 

@@ -28,6 +28,9 @@ typedef struct
 {
     U64 numLeafNodes;
     U64 numNonLeafNodes;
+    U64 numNullMovesPruned;
+    U64 numHashMovesPruned;
+    U64 numMovesGenerated;
 } SearchStats;
 
 static void printSearchResult(MoveInfo moveInfo);

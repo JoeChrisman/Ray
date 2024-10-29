@@ -29,5 +29,5 @@ void initZobrist()
             zobristPieces[square][piece] = getRandomU64();
         }
     }
-    printLog("Initialized zobrist hashes\n");
+    printLog(1, "Initialized zobrist hashes\n");
 }

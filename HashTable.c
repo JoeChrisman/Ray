@@ -12,7 +12,7 @@ int initHashTable(int numMegabytes)
     const int entrySize = sizeof(HashEntry);
     if (hashTable != NULL)
     {
-        printLog("Deallocated hash table, size was %d bytes\n", entrySize * numHashTableEntries);
+        printLog(1, "Deallocated hash table, size was %d bytes\n", entrySize * numHashTableEntries);
         free(hashTable);
         hashTable = NULL;
     }
@@ -30,13 +30,13 @@ int initHashTable(int numMegabytes)
     if (hashTable != NULL)
     {
         memset(hashTable, 0, entrySize * numHashTableEntries);
-        printLog("Allocated %dMB hash table with %d bytes and with %d entries\n",
+        printLog(1, "Allocated %dMB hash table with %d bytes and with %d entries\n",
                  numMegabytes,
                  entrySize * numHashTableEntries,
                  numHashTableEntries);
         return 0;
     }
-    printLog("Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
+    printLog(1, "Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
              numMegabytes,
              entrySize * numHashTableEntries,
              numHashTableEntries);

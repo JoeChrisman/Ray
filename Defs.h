@@ -6,12 +6,13 @@
 #include <stdarg.h>
 #include <assert.h>
 
-#define IS_LOGGING_ENABLED 0
+#define LOGGING_LEVEL 1
+#define LOGGING_VERBOSE 0
 
-#if IS_LOGGING_ENABLED
-void printLog(const char *format, ...);
+#if LOGGING_LEVEL > 0
+    void printLog(int logLevel, const char *format, ...);
 #else
-#define printLog(format, ...) ((void)0)
+#define printLog (void*(0))
 #endif
 
 typedef uint64_t U64;

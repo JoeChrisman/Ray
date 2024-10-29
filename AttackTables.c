@@ -14,7 +14,7 @@ void initAttackTables()
     initOrdinalAttackTable();
     initKnightAttackTable();
     initKingAttackTable();
-    printLog("Initialized attack tables\n");
+    printLog(1, "Initialized attack tables\n");
 }
 
 static void initCardinalAttackTable()
