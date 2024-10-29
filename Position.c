@@ -418,16 +418,16 @@ int isZugzwang(int color)
     if (color == 1)
     {
         return GET_NUM_PIECES(
-            position.pieces[WHITE_BISHOP] |
-            position.pieces[WHITE_KNIGHT] |
-            position.pieces[WHITE_ROOK] |
-            position.pieces[WHITE_QUEEN]) < 2;
+            position.boards[WHITE_BISHOP] |
+            position.boards[WHITE_KNIGHT] |
+            position.boards[WHITE_ROOK] |
+            position.boards[WHITE_QUEEN]) < 2;
     }
     return GET_NUM_PIECES(
-        position.pieces[BLACK_BISHOP] |
-        position.pieces[BLACK_KNIGHT] |
-        position.pieces[BLACK_ROOK] |
-        position.pieces[BLACK_QUEEN]) < 2;
+        position.boards[BLACK_BISHOP] |
+        position.boards[BLACK_KNIGHT] |
+        position.boards[BLACK_ROOK] |
+        position.boards[BLACK_QUEEN]) < 2;
 }
 
 void makeNullMove()
