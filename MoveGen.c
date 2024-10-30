@@ -405,7 +405,7 @@ static inline Move* genQueenMoves(Move* moves, int movingType, U64 allowed)
     return moves;
 }
 
-inline Move* genKingMoves(Move* moves, int movingType, U64 allowed)
+static inline Move* genKingMoves(Move* moves, int movingType, U64 allowed)
 {
     const int king = GET_SQUARE(position.boards[movingType]);
     U64 kingMoves = kingAttacks[king] & allowed & safe;
@@ -418,7 +418,7 @@ inline Move* genKingMoves(Move* moves, int movingType, U64 allowed)
     return moves;
 }
 
-inline Move* genCastles(
+static inline Move* genCastles(
     Move* moves,
     U64 kingsideSafe,
     U64 queensideSafe,

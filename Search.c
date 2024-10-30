@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <assert.h>
 
 #include "Search.h"
 #include "Position.h"
@@ -14,14 +15,22 @@
 #define INVALID_SCORE INT32_MAX
 #define CONTEMPT 150
 
-SearchStats stats = {0};
+#define HASH_MOVEORDER MAX_SCORE
+#define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
+#define KILLER_MOVEORDER (MAX_SCORE - 2000)
+#define HISTORY_MOVEORDER MIN_SCORE
 
-static Move killers[MAX_SEARCH_DEPTH][2];
+#define MAX_HISTORY_SCORE (MAX_SCORE + KILLER_MOVEORDER)
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement)
 {
     return (msRemaining + msIncrement * 19) / 20;
 }
+
+static SearchStats stats = {0};
+
+static Move killers[MAX_SEARCH_DEPTH][2];
+static int history[NUM_SQUARES][NUM_SQUARES];
 
 static inline void sortMove(
     Move* moveListStart,
@@ -33,25 +42,39 @@ static inline void sortMove(
     int bestScore = MIN_SCORE;
     for (Move* move = moveListStart; move < moveListEnd; move++)
     {
-        // captures go first. good captures in front of bad ones
-        int score = MAX_SCORE - 1000 + GET_SCORE(*move);
+        int score = 0;
         // if we are not in the quiescent search
         if (depth != -1)
         {
-            // if we are in the principal variation
             if (*move == bestHashMove)
             {
-                // search the principal variation move before all others
-                score = MAX_SCORE;
+                // put the hash move before all other moves
+                score = HASH_MOVEORDER;
             }
-            else if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
+            else if (GET_PIECE_CAPTURED(*move) != NO_PIECE)
             {
-                // put killer moves after a principal variation move and captures
+                // put captures after hash move, better captures in front of others
+                score = CAPTURE_MOVEORDER + GET_SCORE(*move);
+            }
+            else
+            {
+                // put quiet moves that caused a beta cutoff after captures
                 if (killers[depth][0] == *move || killers[depth][1] == *move)
                 {
-                    score = MAX_SCORE - 2000;
+                    score = KILLER_MOVEORDER;
+                }
+                // put non-killer quiet moves after killer moves and sort them by history
+                else
+                {
+                    score = HISTORY_MOVEORDER + history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
                 }
             }
+        }
+        // if we are in the quiescence search
+        else
+        {
+            // captures go first, better captures in front of others
+            score = GET_SCORE(*move);
         }
 
         if (score >= bestScore)
@@ -65,20 +88,12 @@ static inline void sortMove(
     *moveListStart = bestMove;
 }
 
-static inline int isRepetition()
-{
-    for (int ply = position.plies - 2; ply >= position.plies - position.irreversibles.plies; ply -= 2)
-    {
-        if (position.zobristHash == position.history[ply])
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static int quiescenceSearch(int alpha, int beta, int color)
 {
+    assert(alpha < beta);
+    assert(alpha >= MIN_SCORE);
+    assert(alpha <= MAX_SCORE);
+
     int score = evaluate() * color;
     if (score >= beta)
     {
@@ -111,8 +126,37 @@ static int quiescenceSearch(int alpha, int beta, int color)
     return alpha;
 }
 
+static inline int isRepetition()
+{
+    for (int ply = position.plies - 2; ply >= position.plies - position.irreversibles.plies; ply -= 2)
+    {
+        if (position.zobristHash == position.history[ply])
+        {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+inline static void ageHistory()
+{
+    for (int from = A8; from < H1; from++)
+    {
+        for (int to = A8; to < H1; to++)
+        {
+            history[from][to] /= 8;
+        }
+    }
+}
+
 static int search(int alpha, int beta, int isNullMove, int color, int depth)
 {
+    assert(alpha < beta);
+    assert(alpha >= MIN_SCORE);
+    assert(alpha <= MAX_SCORE);
+    assert(depth < MAX_SEARCH_DEPTH);
+    assert(depth > 0);
+
     if (cancelTime == SEARCH_CANCELLED)
     {
         return 0;
@@ -141,6 +185,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
                 return 0;
             }
         }
+        assert(!isInCheck);
         return quiescenceSearch(alpha, beta, color);
     }
 
@@ -167,7 +212,6 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
     Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(firstMove);
-    stats.numMovesGenerated += lastMove - firstMove;
     if (lastMove == firstMove)
     {
         stats.numLeafNodes++;
@@ -177,6 +221,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         }
         return CONTEMPT;
     }
+
     stats.numNonLeafNodes++;
     Move bestMove = NO_MOVE;
     Move bestHashMove = hashTableEntry->bestMove;
@@ -202,10 +247,22 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             bestMove = *move;
             if (score >= beta)
             {
+                if (move == firstMove)
+                {
+                    stats.numBetaCutoffOnMove1++;
+                }
                 if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
                 {
                     killers[depth][1] = killers[depth][0];
                     killers[depth][0] = *move;
+
+                    int* const historyScore = &history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
+                    const int historyBonus = depth * depth;
+                    if (historyBonus > MAX_HISTORY_SCORE - *historyScore)
+                    {
+                        ageHistory();
+                    }
+                    *historyScore += historyBonus;
                 }
 
                 writeHashTableEntry(
@@ -229,79 +286,87 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
     return alpha;
 }
 
-static void printSearchResult(MoveInfo moveInfo)
+static void printSearchResult(SearchResult searchResult)
 {
-    printf("info depth %d ", moveInfo.depth);
-    if (moveInfo.score > IS_MATE)
+    printf("info depth %d ", searchResult.depth);
+    if (searchResult.score > IS_MATE)
     {
-        printf("score mate %d ", (MAX_SCORE - position.plies - moveInfo.score) / 2 + 1);
+        printf("score mate %d ", (MAX_SCORE - position.plies - searchResult.score) / 2 + 1);
     }
-    else if (moveInfo.score < -IS_MATE)
+    else if (searchResult.score < -IS_MATE)
     {
-        printf("score mate %d ", -((MAX_SCORE - position.plies + moveInfo.score) / 2 + 1));
+        printf("score mate %d ", -((MAX_SCORE - position.plies + searchResult.score) / 2 + 1));
     }
     else
     {
-        printf("score cp %d ", moveInfo.score);
+        printf("score cp %d ", searchResult.score);
     }
-    printf("time %d ", moveInfo.msElapsed);
+    printf("time %d ", searchResult.msElapsed);
     printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
-    printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)moveInfo.msElapsed + 1) * 1000));
+    printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)searchResult.msElapsed + 1) * 1000));
     printf("pv ");
-    printPrincipalVariation(moveInfo.depth);
+    printPrincipalVariation(searchResult.depth);
     fflush(stdout);
+
+    printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, hash pruning: %llu, "
+                "branching factor: %.2f, move ordering accuracy: %.2f%%\n",
+             stats.numLeafNodes,
+             stats.numNonLeafNodes,
+             stats.numHashMovesPruned,
+             (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
+             (double)stats.numBetaCutoffOnMove1 / (double)stats.numNonLeafNodes * 100.0f);
 }
 
-MoveInfo searchByTime(U64 targetCancelTime)
+static void prepareSearchByTime()
+{
+    memset(killers, 0, sizeof(killers));
+    memset(history, 0, sizeof(history));
+    memset(&stats, 0, sizeof(stats));
+}
+
+SearchResult searchByTime(U64 targetCancelTime)
 {
     U64 msRemaining = targetCancelTime - getMillis();
-    memset(killers, 0, sizeof(killers));
-    memset(&stats, 0, sizeof(stats));
+    prepareSearchByTime();
 
     cancelTime = SEARCH_FOREVER;
-    MoveInfo bestMove = searchByDepth(1);
+    SearchResult bestSearchResult = searchByDepth(1);
     cancelTime = targetCancelTime;
     for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
     {
+        if (bestSearchResult.msElapsed * 4 > msRemaining)
+        {
+            printLog(1, "Completing the next search will take too long\n");
+            break;
+        }
+
         memset(&stats, 0, sizeof(stats));
-        MoveInfo searchResult = searchByDepth(depth);
+        SearchResult searchResult = searchByDepth(depth);
 
         if (cancelTime == SEARCH_CANCELLED)
         {
-            if (searchResult.move != NO_MOVE && searchResult.score > bestMove.score)
+            if (searchResult.move != NO_MOVE && searchResult.score > bestSearchResult.score)
             {
                 printLog(1, "Search at depth %d was cancelled, and an improvement was found\n", depth);
                 return searchResult;
             }
             else
             {
-                printLog(1, "Search at depth %d was cancelled, no improvement was found\n", depth);
+                printLog(1, "Search at depth %d was cancelled, and no improvement was found\n", depth);
                 break;
             }
         }
-        bestMove = searchResult;
-        msRemaining -= bestMove.msElapsed;
-        printSearchResult(bestMove);
-        printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, null move pruning: %llu, "
-                    "hash pruning: %llu, branching factor: %.2f, move ordering accuracy: %.2f%%\n",
-                 stats.numLeafNodes,
-                 stats.numNonLeafNodes,
-                 stats.numHashMovesPruned,
-                 (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
-                 100.0f - ((double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numMovesGenerated * 100.0f));
-
-        if (bestMove.msElapsed * 10 > msRemaining)
-        {
-            printLog(1, "Completing the next search will take too long\n");
-            break;
-        }
+        bestSearchResult = searchResult;
+        msRemaining -= bestSearchResult.msElapsed;
+        printSearchResult(bestSearchResult);
     }
 
-    return bestMove;
+    return bestSearchResult;
 }
 
-MoveInfo searchByDepth(int depth)
+SearchResult searchByDepth(int depth)
 {
+    ageHistory();
     U64 startTime = getMillis();
     Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     int numEqualMoves = 0;
@@ -312,7 +377,7 @@ MoveInfo searchByDepth(int depth)
     if (firstMove == lastMove)
     {
         printLog(1, "Search at depth %d tried to generate legal moves, but there were none\n", depth);
-        MoveInfo noResult = {0};
+        SearchResult noResult = {0};
         return noResult;
     }
     for (Move* move = firstMove; move < lastMove; move++)
@@ -336,10 +401,8 @@ MoveInfo searchByDepth(int depth)
             numEqualMoves = 0;
             equalMoves[numEqualMoves++] = *move;
         }
-            // if this move is equal to the best move so far
         else if (score == bestScore)
         {
-            // add it to the end of the equal moves array
             equalMoves[numEqualMoves++] = *move;
         }
     }
@@ -347,18 +410,18 @@ MoveInfo searchByDepth(int depth)
     if (numEqualMoves == 0)
     {
         printLog(1, "Search at depth %d was cancelled before searching any moves\n", depth);
-        MoveInfo noResult = {0};
+        SearchResult noResult = {0};
         return noResult;
     }
 
-    MoveInfo bestMove = {0};
-    bestMove.move = equalMoves[rand() % numEqualMoves];
-    bestMove.score = bestScore;
-    bestMove.depth = depth;
-    bestMove.msElapsed = (int)(getMillis() - startTime);
+    SearchResult bestSearchResult = {0};
+    bestSearchResult.move = equalMoves[rand() % numEqualMoves];
+    bestSearchResult.score = bestScore;
+    bestSearchResult.depth = depth;
+    bestSearchResult.msElapsed = (int)(getMillis() - startTime);
 
     HashEntry* entry = getHashTableEntry(position.zobristHash);
-    writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestMove.move, bestScore, depth);
-    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestMove.move));
-    return bestMove;
+    writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestSearchResult.move, bestScore, depth);
+    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestSearchResult.move));
+    return bestSearchResult;
 }

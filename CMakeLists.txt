@@ -7,6 +7,7 @@ set(CMAKE_C_FLAGS_RELEASE "-O3 -Wall")
 
 add_executable(Ray main.c
         Defs.h
+        Defs.c
         Uci.h
         Uci.c
         Position.h
@@ -16,7 +17,6 @@ add_executable(Ray main.c
         Move.h
         AttackTables.h
         AttackTables.c
-        Defs.c
         MoveGen.h
         MoveGen.c
         Search.h

@@ -209,13 +209,22 @@ void printBitboard(const U64 board)
 
 void printMove(Move move)
 {
-    int moved = GET_PIECE_MOVED(move);
-    int captured = GET_PIECE_CAPTURED(move);
-    int from = GET_SQUARE_FROM(move);
-    int to = GET_SQUARE_TO(move);
+    const int moved = GET_PIECE_MOVED(move);
+    const int captured = GET_PIECE_CAPTURED(move);
+    const int from = GET_SQUARE_FROM(move);
+    const int to = GET_SQUARE_TO(move);
 
-    printf("from: %d, to: %d, moved: %d, captured: %d, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
-           from, to, moved, captured, IS_EN_PASSANT_CAPTURE(move), IS_DOUBLE_PAWN_PUSH(move), GET_SCORE(move));
+    const char pieceMoved = getCharFromPiece(moved);
+    const char pieceCaptured = getCharFromPiece(captured);
+
+    printf("from: %d, to: %d, moved: %c, captured: %c, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
+           from,
+           to,
+           pieceMoved,
+           pieceCaptured,
+           IS_EN_PASSANT_CAPTURE(move),
+           IS_DOUBLE_PAWN_PUSH(move),
+           GET_SCORE(move));
 }
 
 

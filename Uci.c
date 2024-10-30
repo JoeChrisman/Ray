@@ -22,7 +22,7 @@ static void* spawnGoDepth(void* targetDepth)
     int depth = *(int*)targetDepth;
     free(targetDepth);
     cancelTime = SEARCH_FOREVER;
-    MoveInfo searchResult = searchByDepth(depth);
+    SearchResult searchResult = searchByDepth(depth);
     if (searchResult.move != NO_MOVE)
     {
         printf("bestmove %s\n", getStrFromMove(searchResult.move));
@@ -41,7 +41,7 @@ static void* spawnGoMovetime(void* targetCancelTime)
 {
     cancelTime = *(U64*)targetCancelTime;
     free(targetCancelTime);
-    MoveInfo searchResult = searchByTime(cancelTime);
+    SearchResult searchResult = searchByTime(cancelTime);
     if (searchResult.move != NO_MOVE)
     {
         printf("bestmove %s\n", getStrFromMove(searchResult.move));

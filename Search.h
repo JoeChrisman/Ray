@@ -19,18 +19,18 @@ typedef struct
     int score;
     int depth;
     int msElapsed;
-} MoveInfo;
+} SearchResult;
 
 typedef struct
 {
     U64 numLeafNodes;
     U64 numNonLeafNodes;
     U64 numHashMovesPruned;
-    U64 numMovesGenerated;
+    U64 numBetaCutoffOnMove1;
 } SearchStats;
 
-MoveInfo searchByTime(U64 targetCancelTime);
-MoveInfo searchByDepth(int depth);
+SearchResult searchByTime(U64 targetCancelTime);
+SearchResult searchByDepth(int depth);
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement);
 

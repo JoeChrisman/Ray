@@ -10,7 +10,7 @@
 #if LOGGING_LEVEL > 0
 void printLog(int logLevel, const char *format, ...);
 #else
-#define printLog (void*(0))
+#define printLog(logLevel, format, ...) ((void)0)
 #endif
 
 void runPerftSuite();

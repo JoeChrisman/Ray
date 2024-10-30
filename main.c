@@ -13,6 +13,7 @@
 
 int main(int argc, char** argv)
 {
+
     int seed = (int)(time(NULL) ^ getpid());
     if (argc > 1)
     {

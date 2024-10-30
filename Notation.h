@@ -4,6 +4,8 @@
 #include "Move.h"
 
 int getPieceFromChar(char piece);
+char getCharFromPiece(int piece);
+
 int getRankFromChar(char rank);
 int getFileFromChar(char file);
 

@@ -24,7 +24,7 @@ int getPieceFromChar(char piece)
     }
 }
 
-static char getCharFromPiece(int piece)
+char getCharFromPiece(int piece)
 {
     switch (piece)
     {
