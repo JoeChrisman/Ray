@@ -24,10 +24,13 @@ typedef struct
 typedef struct
 {
     U64 numLeafNodes;
-    U64 numNonLeafNodes;
-    U64 numHashMovesPruned;
-    U64 numBetaCutoffOnMove1;
+    U64 numBranchNodes;
+
+    U64 numHashMoveSuccess;
+    U64 numHashHits;
 } SearchStats;
+
+extern SearchStats stats;
 
 SearchResult searchByTime(U64 targetCancelTime);
 SearchResult searchByDepth(int depth);

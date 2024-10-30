@@ -27,7 +27,7 @@ int getSearchTimeEstimate(int msRemaining, int msIncrement)
     return (msRemaining + msIncrement * 19) / 20;
 }
 
-static SearchStats stats = {0};
+SearchStats stats = {0};
 
 static Move killers[MAX_SEARCH_DEPTH][2];
 static int history[NUM_SQUARES][NUM_SQUARES];
@@ -155,7 +155,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
     assert(alpha >= MIN_SCORE);
     assert(alpha <= MAX_SCORE);
     assert(depth < MAX_SEARCH_DEPTH);
-    assert(depth > 0);
+    assert(depth >= 0);
 
     if (cancelTime == SEARCH_CANCELLED)
     {
@@ -193,7 +193,6 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
     HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
     if (cutoffValue != INVALID_SCORE)
     {
-        stats.numHashMovesPruned++;
         stats.numLeafNodes++;
         return cutoffValue;
     }
@@ -206,6 +205,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
+            stats.numLeafNodes++;
             return beta;
         }
     }
@@ -222,7 +222,8 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return CONTEMPT;
     }
 
-    stats.numNonLeafNodes++;
+    stats.numBranchNodes++;
+
     Move bestMove = NO_MOVE;
     Move bestHashMove = hashTableEntry->bestMove;
     int raisedAlpha = 0;
@@ -249,7 +250,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             {
                 if (move == firstMove)
                 {
-                    stats.numBetaCutoffOnMove1++;
+                    stats.numHashMoveSuccess++;
                 }
                 if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
                 {
@@ -288,6 +289,8 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
 static void printSearchResult(SearchResult searchResult)
 {
+    const U64 totalNodes = stats.numBranchNodes + stats.numLeafNodes;
+
     printf("info depth %d ", searchResult.depth);
     if (searchResult.score > IS_MATE)
     {
@@ -302,19 +305,15 @@ static void printSearchResult(SearchResult searchResult)
         printf("score cp %d ", searchResult.score);
     }
     printf("time %d ", searchResult.msElapsed);
-    printf("nodes %llu ", stats.numLeafNodes + stats.numNonLeafNodes);
-    printf("nps %d ", (int)((double)(stats.numLeafNodes + stats.numNonLeafNodes) / ((double)searchResult.msElapsed + 1) * 1000));
+    printf("nodes %llu ", totalNodes);
+    printf("nps %d ", (int)((double)totalNodes / ((double)searchResult.msElapsed + 1) * 1000));
     printf("pv ");
     printPrincipalVariation(searchResult.depth);
     fflush(stdout);
 
-    printLog(1, "Leaf nodes: %llu, non leaf nodes: %llu, hash pruning: %llu, "
-                "branching factor: %.2f, move ordering accuracy: %.2f%%\n",
-             stats.numLeafNodes,
-             stats.numNonLeafNodes,
-             stats.numHashMovesPruned,
-             (double)(stats.numNonLeafNodes + stats.numLeafNodes) / (double)stats.numNonLeafNodes,
-             (double)stats.numBetaCutoffOnMove1 / (double)stats.numNonLeafNodes * 100.0f);
+    printLog(1, "Branching factor: %.2f\n", (double)totalNodes / (double)stats.numBranchNodes);
+    printLog(1, "Hash hits %.2f%%\n",  (double)stats.numHashHits / (double)(totalNodes) * 100.0f);
+    printLog(1, "Move ordering %.2f%%\n", (double)stats.numHashMoveSuccess / (double)stats.numBranchNodes * 100.0f);
 }
 
 static void prepareSearchByTime()

@@ -90,6 +90,7 @@ HashEntry* probeHashTable(
         memset(entry, 0, sizeof(HashEntry));
         return entry;
     }
+    stats.numHashHits++;
 
     if (entry->depth < depth)
     {
