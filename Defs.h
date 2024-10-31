@@ -91,4 +91,7 @@ U64 getRandomU64();
 #define IS_WHITE_PIECE(piece) ((piece) < BLACK_PAWN && (piece) != NO_PIECE)
 #define IS_BLACK_PIECE(piece) ((piece) > WHITE_KING)
 
+#define MIN(a, b) (((a) < (b)) ? (a) : (b));
+#define MAX(a, b) (((a) > (b)) ? (a) : (b));
+
 #endif

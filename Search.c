@@ -140,9 +140,9 @@ static inline int isRepetition()
 
 inline static void ageHistory()
 {
-    for (int from = A8; from < H1; from++)
+    for (int from = A8; from <= H1; from++)
     {
-        for (int to = A8; to < H1; to++)
+        for (int to = A8; to <= H1; to++)
         {
             history[from][to] /= 8;
         }
@@ -258,12 +258,13 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
                     killers[depth][0] = *move;
 
                     int* const historyScore = &history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
+                    assert(*historyScore < MAX_HISTORY_SCORE);
                     const int historyBonus = depth * depth;
-                    if (historyBonus > MAX_HISTORY_SCORE - *historyScore)
+                    *historyScore = MIN(MAX_HISTORY_SCORE, *historyScore + historyBonus);
+                    if (*historyScore >= MAX_HISTORY_SCORE)
                     {
                         ageHistory();
                     }
-                    *historyScore += historyBonus;
                 }
 
                 writeHashTableEntry(
