@@ -5,14 +5,17 @@
 
 #define INVALID_MOVE_SCORE (-1)
 
-static const int capturingScores[13] = {
+static const int capturingScores[NUM_PIECE_TYPES + 1] = {
     0, 1, 2, 3, 4, 5, 6, 1, 2, 3, 4, 5, 6
 };
-static const int capturedScores[13] = {
+static const int capturedScores[NUM_PIECE_TYPES + 1] = {
     0, 6, 11, 11, 16, 21, 0, 6, 11, 11, 16, 21, 0
 };
+static const int promotionScores[NUM_PIECE_TYPES + 1] = {
+    0, 0, 20, 20, 30, 40, 0, 0, 20, 20, 30, 40, 0
+};
 
-static int captureScores[NUM_PIECE_TYPES + 1][NUM_PIECE_TYPES + 1];
+static int moveScores[NUM_PIECE_TYPES + 1][NUM_PIECE_TYPES + 1][NUM_PIECE_TYPES + 1] = {{{INVALID_MOVE_SCORE}}};
 
 void initCaptureScores()
 {
@@ -20,21 +23,24 @@ void initCaptureScores()
     {
         for (int captured = NO_PIECE; captured <= NUM_PIECE_TYPES; captured++)
         {
-            if (captured == NO_PIECE)
+            for (int promoted = NO_PIECE; promoted <= NUM_PIECE_TYPES; promoted++)
             {
-                captureScores[moved][captured] = 0;
-            }
-            else if (moved == NO_PIECE ||
-                captured == WHITE_KING ||
-                captured == BLACK_KING ||
-                IS_WHITE_PIECE(moved) == IS_WHITE_PIECE(captured)
-                )
-            {
-                captureScores[moved][captured] = INVALID_MOVE_SCORE;
-            }
-            else
-            {
-                captureScores[moved][captured] = capturedScores[captured] - capturingScores[moved];
+                if (captured == NO_PIECE)
+                {
+                    moveScores[moved][captured][promoted] = promotionScores[promoted];
+                }
+                else if (moved != NO_PIECE &&
+                         captured != WHITE_KING &&
+                         captured != BLACK_KING &&
+                         promoted != WHITE_PAWN &&
+                         promoted != BLACK_PAWN &&
+                         promoted != WHITE_KING &&
+                         promoted != BLACK_KING &&
+                         IS_WHITE_PIECE(moved) == IS_WHITE_PIECE(promoted) &&
+                         IS_WHITE_PIECE(moved) != IS_WHITE_PIECE(captured))
+                {
+                    moveScores[moved][captured][promoted] = capturedScores[captured] - capturingScores[moved] + promotionScores[promoted];
+                }
             }
         }
     }
@@ -53,7 +59,9 @@ Move createMove(
     assert(to >= A8 && to <= H1);
     assert(captured != WHITE_KING);
     assert(captured != BLACK_KING);
-    assert(captureScores[moved][captured] != INVALID_MOVE_SCORE);
+    assert(moveScores[moved][captured][promoted] != INVALID_MOVE_SCORE);
+    assert(moveScores[moved][captured][promoted] >= 0);
+    assert(moveScores[moved][captured][promoted] < 64);
 
     return (
         (from) |
@@ -61,6 +69,6 @@ Move createMove(
         ((moved) << PIECE_MOVED_SHIFT) |
         ((captured) << PIECE_CAPTURED_SHIFT) |
         ((promoted) << PIECE_PROMOTED_SHIFT) |
-        ((captureScores[moved][captured]) << SCORE_SHIFT) |
+        ((moveScores[moved][captured][promoted]) << SCORE_SHIFT) |
         flags);
 }
