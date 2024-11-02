@@ -158,7 +158,7 @@ void writeHashTableEntry(
 
 HashEntry* getHashTableEntry(U64 hash)
 {
-    return hashTable + hash % numHashTableEntries;
+    return hashTable + (hash & (numHashTableEntries - 1));
 }
 
 U64 zobristSideToMove;

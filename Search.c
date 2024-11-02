@@ -360,7 +360,6 @@ SearchResult searchByTime(U64 targetCancelTime)
         msRemaining -= bestSearchResult.msElapsed;
         printSearchResult(bestSearchResult);
     }
-
     return bestSearchResult;
 }
 

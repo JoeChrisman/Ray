@@ -32,7 +32,6 @@ int main(int argc, char** argv)
     srand(seed);
     initZobrist();
     initAttackTables();
-    initCaptureScores();
     initHashTable();
     printLog(1, "Seed is %d\n", seed);
 
