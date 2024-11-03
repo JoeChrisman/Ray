@@ -28,4 +28,6 @@ add_executable(Ray main.c
         Move.c
         HashTable.c
         HashTable.h
+        MoveOrder.h
+        MoveOrder.c
 )

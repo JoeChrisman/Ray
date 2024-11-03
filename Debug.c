@@ -190,7 +190,7 @@ void printBitboard(const U64 board)
 {
     for (int square = 0; square < NUM_SQUARES; square++)
     {
-        if (A_FILE & GET_BOARD(square))
+        if (GET_FILE(square) == 0)
         {
             printf("\n");
         }

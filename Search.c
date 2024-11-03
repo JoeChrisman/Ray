@@ -11,82 +11,12 @@
 #include "HashTable.h"
 #include "Notation.h"
 #include "Debug.h"
+#include "MoveOrder.h"
 
 #define INVALID_SCORE INT32_MAX
 #define CONTEMPT 150
 
-#define HASH_MOVEORDER MAX_SCORE
-#define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
-#define KILLER_MOVEORDER (MAX_SCORE - 2000)
-#define HISTORY_MOVEORDER MIN_SCORE
-
-#define MAX_HISTORY_SCORE (MAX_SCORE + KILLER_MOVEORDER)
-
-int getSearchTimeEstimate(int msRemaining, int msIncrement)
-{
-    return (msRemaining + msIncrement * 19) / 20;
-}
-
 SearchStats stats = {0};
-
-static Move killers[MAX_SEARCH_DEPTH][2];
-static int history[NUM_SQUARES][NUM_SQUARES];
-
-static inline void sortMove(
-    Move* moveListStart,
-    const Move* const moveListEnd,
-    int depth,
-    Move bestHashMove)
-{
-    Move* bestMovePtr = NULL;
-    int bestScore = MIN_SCORE;
-    for (Move* move = moveListStart; move < moveListEnd; move++)
-    {
-        int score = 0;
-        // if we are not in the quiescent search
-        if (depth != -1)
-        {
-            if (*move == bestHashMove)
-            {
-                // put the hash move before all other moves
-                score = HASH_MOVEORDER;
-            }
-            else if (GET_PIECE_CAPTURED(*move) != NO_PIECE)
-            {
-                // put captures after hash move, better captures in front of others
-                score = CAPTURE_MOVEORDER + GET_SCORE(*move);
-            }
-            else
-            {
-                // put quiet moves that caused a beta cutoff after captures
-                if (killers[depth][0] == *move || killers[depth][1] == *move)
-                {
-                    score = KILLER_MOVEORDER;
-                }
-                // put non-killer quiet moves after killer moves and sort them by history
-                else
-                {
-                    score = HISTORY_MOVEORDER + history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
-                }
-            }
-        }
-        // if we are in the quiescence search
-        else
-        {
-            // captures go first, better captures in front of others
-            score = GET_SCORE(*move);
-        }
-
-        if (score >= bestScore)
-        {
-            bestScore = score;
-            bestMovePtr = move;
-        }
-    }
-    const Move bestMove = *bestMovePtr;
-    *bestMovePtr = *moveListStart;
-    *moveListStart = bestMove;
-}
 
 static int quiescenceSearch(int alpha, int beta, int color)
 {
@@ -108,7 +38,7 @@ static int quiescenceSearch(int alpha, int beta, int color)
     Move* captureListEnd = genCaptures(captureListStart);
     for (Move* capture = captureListStart; capture < captureListEnd; capture++)
     {
-        sortMove(capture, captureListEnd, -1, NO_MOVE);
+        pickCapture(capture, captureListEnd);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*capture);
         score = -quiescenceSearch(-beta, -alpha, -color);
@@ -136,17 +66,6 @@ static inline int isRepetition()
         }
     }
     return 0;
-}
-
-inline static void ageHistory()
-{
-    for (int from = A8; from <= H1; from++)
-    {
-        for (int to = A8; to <= H1; to++)
-        {
-            history[from][to] /= 8;
-        }
-    }
 }
 
 static const int futilityMargins[4] = {0, 250, 700, 1200};
@@ -226,15 +145,15 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
     stats.numBranchNodes++;
 
-    Move bestMove = NO_MOVE;
-    Move bestHashMove = hashTableEntry->bestMove;
-    int raisedAlpha = 0;
     int isFutilityPruning = (
         depth <= 3 &&
         !isInCheck &&
         hashTableEntry->type != PV_NODE &&
         position.whiteAdvantage * color + futilityMargins[depth] < alpha);
 
+    Move bestHashMove = hashTableEntry->bestMove;
+    int raisedAlpha = 0;
+    Move bestMove = NO_MOVE;
     for (Move* move = firstMove; move < lastMove; move++)
     {
         if (isFutilityPruning &&
@@ -244,7 +163,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             continue;
         }
 
-        sortMove(move, lastMove, depth, bestHashMove);
+        pickMove(move, lastMove, depth, bestHashMove);
 
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
@@ -267,19 +186,10 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
                 {
                     stats.numHashMoveSuccess++;
                 }
-                if (GET_PIECE_CAPTURED(*move) == NO_PIECE)
+                if (!IS_QUIET_MOVE(*move))
                 {
-                    killers[depth][1] = killers[depth][0];
-                    killers[depth][0] = *move;
-
-                    int* const historyScore = &history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
-                    assert(*historyScore < MAX_HISTORY_SCORE);
-                    const int historyBonus = depth * depth;
-                    *historyScore = MIN(MAX_HISTORY_SCORE, *historyScore + historyBonus);
-                    if (*historyScore >= MAX_HISTORY_SCORE)
-                    {
-                        ageHistory();
-                    }
+                    addToKillers(depth, *move);
+                    addToHistory(depth, *move);
                 }
 
                 writeHashTableEntry(
@@ -332,10 +242,15 @@ static void printSearchResult(SearchResult searchResult)
     printLog(1, "Move ordering %.2f%%\n", (double)stats.numHashMoveSuccess / (double)stats.numBranchNodes * 100.0f);
 }
 
+int getSearchTimeEstimate(int msRemaining, int msIncrement)
+{
+    return (msRemaining + msIncrement * 19) / 20;
+}
+
 static void prepareSearchByTime()
 {
-    memset(killers, 0, sizeof(killers));
-    memset(history, 0, sizeof(history));
+    resetKillers();
+    resetHistory();
     memset(&stats, 0, sizeof(stats));
 }
 

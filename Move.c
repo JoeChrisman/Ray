@@ -2,6 +2,7 @@
 
 #include "Defs.h"
 #include "Move.h"
+#include "Debug.h"
 
 static const int capturingScores[NUM_PIECE_TYPES + 1] = {
     0, 1, 2, 3, 4, 5, 5, 1, 2, 3, 4, 5, 5
