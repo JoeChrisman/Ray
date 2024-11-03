@@ -149,6 +149,8 @@ inline static void ageHistory()
     }
 }
 
+static const int futilityMargins[4] = {0, 250, 700, 1200};
+
 static int search(int alpha, int beta, int isNullMove, int color, int depth)
 {
     assert(alpha < beta);
@@ -227,8 +229,21 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
     Move bestMove = NO_MOVE;
     Move bestHashMove = hashTableEntry->bestMove;
     int raisedAlpha = 0;
+    int isFutilityPruning = (
+        depth <= 3 &&
+        !isInCheck &&
+        hashTableEntry->type != PV_NODE &&
+        position.whiteAdvantage * color + futilityMargins[depth] < alpha);
+
     for (Move* move = firstMove; move < lastMove; move++)
     {
+        if (isFutilityPruning &&
+            *move != bestHashMove &&
+            IS_QUIET_MOVE(*move))
+        {
+            continue;
+        }
+
         sortMove(move, lastMove, depth, bestHashMove);
 
         Irreversibles irreversibles = position.irreversibles;

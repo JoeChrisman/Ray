@@ -45,6 +45,8 @@ typedef uint32_t Move;
 #define IS_DOUBLE_PAWN_PUSH(move)   ((move) & DOUBLE_PAWN_PUSH_FLAG)
 #define IS_EN_PASSANT_CAPTURE(move) ((move) & EN_PASSANT_CAPTURE_FLAG)
 
+#define IS_QUIET_MOVE(move) (GET_SCORE(move) == 0)
+
 Move createMove(
     int from,
     int to,
