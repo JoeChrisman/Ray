@@ -1,8 +1,11 @@
+#include <assert.h>
+
 #include "Position.h"
 #include "Eval.h"
 
-#define ISOLATED_PAWN_PENALTY (-30)
+#define ISOLATED_PAWN_PENALTY (-20)
 #define DOUBLED_PAWN_PENALTY (-10)
+#define BISHOP_PAIR_BONUS 35
 
 const int PIECE_SCORES[13] = {
     0,    // NULL_PIECE
@@ -331,5 +334,15 @@ inline int evaluate()
     const int whiteKingActivityAdvantage = (int)((float)(whiteKingActivity - blackKingActivity) * endgameWeight);
     const int whiteStructureAdvantage = getWhiteStructureScore() - getBlackStructureScore();
 
-    return whiteAdvantage + whiteStructureAdvantage + whiteKingSafetyAdvantage + whiteKingActivityAdvantage;
+    const int whiteBishopPair = GET_NUM_PIECES(position.boards[WHITE_BISHOP]) >= 2;
+    const int blackBishopPair = GET_NUM_PIECES(position.boards[BLACK_BISHOP]) >= 2;
+    const int whiteBishopPairAdvantage = (whiteBishopPair - blackBishopPair) * BISHOP_PAIR_BONUS;
+    assert(whiteBishopPair - blackBishopPair >= -1);
+    assert(blackBishopPair - whiteBishopPair >= -1);
+
+    return whiteAdvantage +
+        whiteBishopPairAdvantage +
+        whiteStructureAdvantage +
+        whiteKingSafetyAdvantage +
+        whiteKingActivityAdvantage;
 }
