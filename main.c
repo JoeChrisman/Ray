@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     initHashTable();
     printLog(1, "Seed is %d\n", seed);
 
-    printf("Ray version 1.7.0\n");
+    printf("Ray version 1.7.1\n");
     fflush(stdout);
 
     char input[4] = "";

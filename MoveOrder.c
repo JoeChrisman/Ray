@@ -84,20 +84,17 @@ void pickMove(
         {
             score = HASH_MOVEORDER;
         }
-        else if (GET_PIECE_CAPTURED(*move) != NO_PIECE)
+        else if (!IS_QUIET_MOVE(*move))
         {
             score = CAPTURE_MOVEORDER + GET_SCORE(*move);
         }
+        else if (killers[depth][0] == *move || killers[depth][1] == *move)
+        {
+            score = KILLER_MOVEORDER;
+        }
         else
         {
-            if (killers[depth][0] == *move || killers[depth][1] == *move)
-            {
-                score = KILLER_MOVEORDER;
-            }
-            else
-            {
-                score = HISTORY_MOVEORDER + history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
-            }
+            score = HISTORY_MOVEORDER + history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
         }
         if (score >= bestScore)
         {

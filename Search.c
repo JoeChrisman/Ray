@@ -186,7 +186,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
                 {
                     stats.numHashMoveSuccess++;
                 }
-                if (!IS_QUIET_MOVE(*move))
+                if (IS_QUIET_MOVE(*move))
                 {
                     addToKillers(depth, *move);
                     addToHistory(depth, *move);
