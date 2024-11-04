@@ -70,10 +70,14 @@ U64 getRandomU64();
 #define G1 62
 #define H1 63
 
-#define IS_VALID_SQUARE(square) ((square) >= A8 && (square) <= H8)
+#define IS_VALID_SQUARE(square) ((square) >= A8 && (square) <= H1)
 
 #define GET_RANK(square) (7 - ((square) / 8))
 #define GET_FILE(square) ((square) % 8)
+
+#define IS_VALID_RANK(rank) ((rank) >= 0 && (rank) <= 7)
+#define IS_VALID_FILE(file) ((file) >= 0 && (file) <= 7)
+
 #define GET_SQUARE_FROM_LOCATION(rank, file) (((7 - (rank)) * 8) + (file))
 
 #define NO_PIECE     0
@@ -91,7 +95,7 @@ U64 getRandomU64();
 #define BLACK_KING   12
 
 #define IS_WHITE_PIECE(piece) ((piece) < BLACK_PAWN && (piece) != NO_PIECE)
-#define IS_BLACK_PIECE(piece) ((piece) > WHITE_KING)
+#define IS_BLACK_PIECE(piece) ((piece) > WHITE_KING && (piece) != NO_PIECE)
 #define IS_VALID_PIECE(piece) ((piece) >= WHITE_PAWN && (piece) <= BLACK_KING)
 
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
