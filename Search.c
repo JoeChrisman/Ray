@@ -16,6 +16,9 @@
 #define INVALID_SCORE INT32_MAX
 #define CONTEMPT 150
 
+#define TIMEOUT_CHECK_INTERVAL 0x3FFF
+#define TIMEOUT_MARGIN_MILLIS 50
+
 SearchStats stats = {0};
 
 static int quiescenceSearch(int alpha, int beta, int color)
@@ -98,9 +101,9 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
     if (depth <= 0)
     {
-        if ((stats.numLeafNodes++ & 32767) == 32767)
+        if ((stats.numLeafNodes++ & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
         {
-            if (getMillis() >= cancelTime - 10)
+            if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
             {
                 cancelTime = SEARCH_CANCELLED;
                 return 0;
