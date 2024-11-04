@@ -13,7 +13,6 @@
 
 int main(int argc, char** argv)
 {
-
     int seed = (int)(time(NULL) ^ getpid());
     if (argc > 1)
     {
@@ -31,11 +30,11 @@ int main(int argc, char** argv)
 
     srand(seed);
     initZobrist();
-    initAttackTables();
     initHashTable();
+    initAttackTables();
     printLog(1, "Seed is %d\n", seed);
 
-    printf("Ray version 1.7.1\n");
+    printf("Ray version 1.7.2\n");
     fflush(stdout);
 
     char input[4] = "";

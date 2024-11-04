@@ -4,14 +4,8 @@
 #include "Move.h"
 #include "Debug.h"
 
-static const int capturingScores[NUM_PIECE_TYPES + 1] = {
+static const int pieceScores[NUM_PIECE_TYPES + 1] = {
     0, 1, 2, 3, 4, 5, 5, 1, 2, 3, 4, 5, 5
-};
-static const int capturedScores[NUM_PIECE_TYPES + 1] = {
-    0, 6, 11, 11, 16, 21, 0, 6, 11, 11, 16, 21, 0
-};
-static const int promotionScores[NUM_PIECE_TYPES + 1] = {
-    0, 0, 20, 20, 20, 40, 0, 0, 20, 20, 20, 40, 0
 };
 
 Move createMove(
@@ -22,9 +16,9 @@ Move createMove(
     int promoted,
     int flags)
 {
-    const int isCaptureOrPromotion = (captured != NO_PIECE) || (promoted != NO_PIECE);
-    const int unfilteredScore = capturedScores[captured] - capturingScores[moved] + promotionScores[promoted];
-    const int score = isCaptureOrPromotion * unfilteredScore;
+    const int isPromotionOrCapture = (captured != NO_PIECE || promoted != NO_PIECE);
+    const int unfilteredScore = pieceScores[captured] - pieceScores[moved] + pieceScores[promoted] + 5;
+    const int score = isPromotionOrCapture * unfilteredScore;
 
     assert (from != to);
     assert (from >= A8 && from <= H1);
@@ -33,7 +27,8 @@ Move createMove(
     assert (captured != BLACK_KING);
     assert (score >= 0);
     assert (score < 64);
-    assert (isCaptureOrPromotion || score == 0);
+    assert ((captured != NO_PIECE || promoted != NO_PIECE) || score == 0);
+    assert ((captured == NO_PIECE && promoted == NO_PIECE) || score > 0);
 
     return (
         (from) |
