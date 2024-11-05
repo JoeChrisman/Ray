@@ -6,8 +6,6 @@ set(CMAKE_C_FLAGS_DEBUG "-g -O0 -Wall")
 set(CMAKE_C_FLAGS_RELEASE "-O3 -Wall")
 
 add_executable(Ray main.c
-        Defs.h
-        Defs.c
         Uci.h
         Uci.c
         Position.h
@@ -15,19 +13,25 @@ add_executable(Ray main.c
         Notation.c
         Notation.h
         Move.h
+        Move.c
         AttackTables.h
         AttackTables.c
         MoveGen.h
         MoveGen.c
         Search.h
         Search.c
-        Debug.h
-        Debug.c
         Eval.h
         Eval.c
-        Move.c
         HashTable.c
         HashTable.h
         MoveOrder.h
         MoveOrder.c
+        Bitboard.h
+        Bitboard.c
+        Utils.h
+        Utils.c
+        Perft.h
+        Perft.c
+        Piece.h
+        Square.h
 )

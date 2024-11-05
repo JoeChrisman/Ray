@@ -1,23 +1,24 @@
 #include <assert.h>
+#include <stdbool.h>
 
-#include "Defs.h"
+#include "Piece.h"
+#include "Square.h"
 #include "Move.h"
-#include "Debug.h"
 
-static const int pieceScores[NUM_PIECE_TYPES + 1] = {
+static const int mvvLvaValue[NUM_PIECE_TYPES + 1] = {
     0, 1, 2, 3, 4, 5, 5, 1, 2, 3, 4, 5, 5
 };
 
 Move createMove(
-    int from,
-    int to,
-    int moved,
-    int captured,
-    int promoted,
+    Square from,
+    Square to,
+    Piece moved,
+    Piece captured,
+    Piece promoted,
     int flags)
 {
-    const int isPromotionOrCapture = (captured != NO_PIECE || promoted != NO_PIECE);
-    const int unfilteredScore = pieceScores[captured] - pieceScores[moved] + pieceScores[promoted] + 5;
+    const bool isPromotionOrCapture = (captured != NO_PIECE || promoted != NO_PIECE);
+    const int unfilteredScore = mvvLvaValue[captured] - mvvLvaValue[moved] + mvvLvaValue[promoted] + 5;
     const int score = isPromotionOrCapture * unfilteredScore;
 
     assert (from != to);

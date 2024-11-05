@@ -1,35 +1,15 @@
-#include <time.h>
-#include <string.h>
 #include <stdio.h>
-#include <stdarg.h>
+#include <string.h>
 
-#include "Debug.h"
+#include "Bitboard.h"
 #include "Move.h"
 #include "Position.h"
 #include "MoveGen.h"
 #include "Notation.h"
+#include "Utils.h"
+#include "Perft.h"
 
-#if LOGGING_LEVEL > 0
-void printLog(int logLevel, const char *format, ...)
-{
-    if ((!LOGGING_VERBOSE && logLevel == LOGGING_LEVEL) ||
-        (LOGGING_VERBOSE && logLevel <= LOGGING_LEVEL))
-    {
-        va_list args;
-        va_start(args, format);
-        printf("[DEBUG] ");
-        vprintf(format, args);
-        fflush(stdout);
-        va_end(args);
-    }
-}
-#endif
-
-/*
- * get the number of leaf nodes in the current
- * position for a given depth
- */
-U64 perft(int depth)
+static Bitboard perft(int depth)
 {
     if (depth <= 0)
     {
@@ -38,7 +18,7 @@ U64 perft(int depth)
 
     Move moveList[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* moveListEnd = genMoves(moveList);
-    U64 sum = 0;
+    Bitboard sum = 0;
     for (Move* move = moveList; move < moveListEnd; move++)
     {
         Irreversibles irreversibles = position.irreversibles;
@@ -49,22 +29,18 @@ U64 perft(int depth)
     return sum;
 }
 
-/*
- * go through each move and print the number of leaf nodes
- * after that move is played for a given depth
- */
 void runPerft(int depth)
 {
     Move moves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     genMoves(moves);
-    U64 sum = 0;
+    Bitboard sum = 0;
     for (int i = 0; moves[i] != NO_MOVE; i++)
     {
         const Move move = moves[i];
         const char* moveStr = getStrFromMove(move);
         Position before = position;
         makeMove(move);
-        U64 result = perft(depth - 1);
+        Bitboard result = perft(depth - 1);
         printf("%s: %llu\n", moveStr, result);
         sum += result;
         position = before;
@@ -125,16 +101,16 @@ void runPerftSuite()
         testNum++;
     }
 
-    double totalSuiteSecs = 0;
+    double totalSuiteMillis = 0;
     int numFailed = 0;
     int numPassed = 0;
     for (int test = 0; test < numTests; test++)
     {
         const char* fen = tests[test];
         loadFen(fen);
-        const U64 expectedZobristHash = position.zobristHash;
+        const Bitboard expectedZobristHash = position.hash;
         const int expectedWhiteAdvantage = position.whiteAdvantage;
-        double totalTestSecs = 0;
+        double totalTestMillis = 0;
         const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
         {
@@ -143,10 +119,10 @@ void runPerftSuite()
             {
                 break;
             }
-            clock_t start = clock();
+            uint64_t start = getMillis();
             const int actualLeafCount = (int)perft(depth);
-            const double elapsed = (double)(clock() - start) / CLOCKS_PER_SEC;
-            totalTestSecs += elapsed;
+            const double elapsed = (double)(getMillis() - start);
+            totalTestMillis += elapsed;
 
             if (actualLeafCount != expectedLeafCount)
             {
@@ -154,10 +130,10 @@ void runPerftSuite()
                        fen, depth, expectedLeafCount, actualLeafCount);
                 numFailed++;
             }
-            else if (position.zobristHash != expectedZobristHash)
+            else if (position.hash != expectedZobristHash)
             {
                 printf("[FAILED ZOBRIST HASH] - position: %s, depth %d: expected %llu, actual %llu\n",
-                       fen, depth, expectedZobristHash, position.zobristHash);
+                       fen, depth, expectedZobristHash, position.hash);
                 numFailed++;
             }
             else if (position.whiteAdvantage != expectedWhiteAdvantage)
@@ -173,93 +149,15 @@ void runPerftSuite()
         }
         if (failsBefore == numFailed)
         {
-            printf("[PASSED] - test %d passed in %f seconds\n", test, totalTestSecs);
+            printf("[PASSED] - test %d passed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
         }
         else
         {
-            printf("[FAILED] - test %d failed in %f seconds\n", test, totalTestSecs);
+            printf("[FAILED] - test %d failed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
         }
-        totalSuiteSecs += totalTestSecs;
+        totalSuiteMillis += totalTestMillis;
     }
 
     printf(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
-    printf(" - perft suite completed in %f seconds, with %d passed and %d failed\n", totalSuiteSecs, numPassed, numFailed);
-}
-
-void printBitboard(const U64 board)
-{
-    for (int square = 0; square < NUM_SQUARES; square++)
-    {
-        if (GET_FILE(square) == 0)
-        {
-            printf("\n");
-        }
-        if (board & GET_BOARD(square))
-        {
-            printf(" 1 ");
-        }
-        else
-        {
-            printf(" . ");
-        }
-    }
-    printf("\n");
-    fflush(stdout);
-}
-
-void printMove(Move move)
-{
-    const int moved = GET_PIECE_MOVED(move);
-    const int captured = GET_PIECE_CAPTURED(move);
-    const int from = GET_SQUARE_FROM(move);
-    const int to = GET_SQUARE_TO(move);
-
-    const char pieceMoved = getCharFromPiece(moved);
-    const char pieceCaptured = getCharFromPiece(captured);
-
-    printf("from: %d, to: %d, moved: %c, captured: %c, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
-           from,
-           to,
-           pieceMoved,
-           pieceCaptured,
-           IS_EN_PASSANT_CAPTURE(move),
-           IS_DOUBLE_PAWN_PUSH(move),
-           GET_SCORE(move));
-}
-
-
-void printPosition()
-{
-    printf("isWhitesTurn: %d\n", position.isWhitesTurn);
-    printf("zobristHash: %llu\n", position.zobristHash);
-    printf("occupied:\n");
-    printBitboard(position.occupied);
-    printf("white:\n");
-    printBitboard(position.white);
-    printf("black:\n");
-    printBitboard(position.black);
-    printf("white pawns:\n");
-    printBitboard(position.boards[WHITE_PAWN]);
-    printf("white knights:\n");
-    printBitboard(position.boards[WHITE_KNIGHT]);
-    printf("white bishops:\n");
-    printBitboard(position.boards[WHITE_BISHOP]);
-    printf("white rooks:\n");
-    printBitboard(position.boards[WHITE_ROOK]);
-    printf("white queens:\n");
-    printBitboard(position.boards[WHITE_QUEEN]);
-    printf("white king:\n");
-    printBitboard(position.boards[WHITE_KING]);
-    printf("black pawns:\n");
-    printBitboard(position.boards[BLACK_PAWN]);
-    printf("black knights:\n");
-    printBitboard(position.boards[BLACK_KNIGHT]);
-    printf("black bishops:\n");
-    printBitboard(position.boards[BLACK_BISHOP]);
-    printf("black rooks:\n");
-    printBitboard(position.boards[BLACK_ROOK]);
-    printf("black queens:\n");
-    printBitboard(position.boards[BLACK_QUEEN]);
-    printf("black king:\n");
-    printBitboard(position.boards[BLACK_KING]);
+    printf(" - perft suite completed in %.2f seconds, with %d passed and %d failed\n", totalSuiteMillis / 1000, numPassed, numFailed);
 }

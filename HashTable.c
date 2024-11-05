@@ -3,12 +3,12 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "HashTable.h"
-#include "Notation.h"
 #include "Position.h"
-#include "Move.h"
+#include "Notation.h"
+#include "Bitboard.h"
 #include "Search.h"
-#include "Debug.h"
+#include "Utils.h"
+#include "HashTable.h"
 
 #define HASH_TABLE_MEGABYTES 512
 
@@ -52,9 +52,9 @@ int initHashTable()
 
 void printPrincipalVariation(int depth)
 {
-    HashEntry* entry = getHashTableEntry(position.zobristHash);
+    HashEntry* entry = getHashTableEntry(position.hash);
     if (depth &&
-        entry->hash == position.zobristHash &&
+        entry->hash == position.hash &&
         entry->bestMove != NO_MOVE &&
         entry->type != NO_NODE)
     {
@@ -71,7 +71,7 @@ void printPrincipalVariation(int depth)
 }
 
 HashEntry* probeHashTable(
-    U64 hash,
+    uint64_t hash,
     int* cutoffValue,
     int alpha,
     int beta,
@@ -125,7 +125,7 @@ HashEntry* probeHashTable(
 
 void writeHashTableEntry(
     HashEntry* entry,
-    U64 hash,
+    uint64_t hash,
     NodeType entryType,
     Move bestMove,
     int bestScore,
@@ -156,33 +156,33 @@ void writeHashTableEntry(
     entry->depth = (uint8_t)depth;
 }
 
-HashEntry* getHashTableEntry(U64 hash)
+HashEntry* getHashTableEntry(uint64_t hash)
 {
     return hashTable + (hash & (numHashTableEntries - 1));
 }
 
-U64 zobristSideToMove;
-U64 zobristCastling[16];
-U64 zobristEnPassant[8];
-U64 zobristPieces[NUM_SQUARES][NUM_PIECE_TYPES + 1];
+Bitboard zobristSideToMove;
+Bitboard zobristCastling[16];
+Bitboard zobristEnPassant[8];
+Bitboard zobristPieces[NUM_SQUARES][NUM_PIECE_TYPES + 1];
 
 void initZobrist()
 {
-    zobristSideToMove = getRandomU64();
-    for (int i = 0; i < 16; i++)
+    zobristSideToMove = get64RandomBits();
+    for (int castleFlags = 0; castleFlags < 16; castleFlags++)
     {
-        zobristCastling[i] = getRandomU64();
+        zobristCastling[castleFlags] = get64RandomBits();
     }
-    for (int i = 0; i < 8; i++)
+    for (int file = 0; file < 8; file++)
     {
-        zobristEnPassant[i] = getRandomU64();
+        zobristEnPassant[file] = get64RandomBits();
     }
-    for (int square = A8; square <= H1; square++)
+    for (Square square = A8; square <= H1; square++)
     {
-        zobristPieces[square][NO_PIECE] = 0x0LL;
-        for (int piece = WHITE_PAWN; piece <= BLACK_KING; piece++)
+        zobristPieces[square][NO_PIECE] = 0;
+        for (Piece piece = WHITE_PAWN; piece <= BLACK_KING; piece++)
         {
-            zobristPieces[square][piece] = getRandomU64();
+            zobristPieces[square][piece] = get64RandomBits();
         }
     }
     printLog(1, "Initialized zobrist hashes\n");

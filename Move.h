@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#include "Piece.h"
+#include "Square.h"
+
 typedef uint32_t Move;
 #define NO_MOVE 0
 /*
@@ -48,11 +51,11 @@ typedef uint32_t Move;
 #define IS_QUIET_MOVE(move) (GET_SCORE(move) == 0)
 
 Move createMove(
-    int from,
-    int to,
-    int moved,
-    int captured,
-    int promoted,
+    Square from,
+    Square to,
+    Piece moved,
+    Piece captured,
+    Piece promoted,
     int flags);
 
 void initCaptureScores();

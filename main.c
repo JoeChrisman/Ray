@@ -5,11 +5,12 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "Uci.h"
-#include "AttackTables.h"
 #include "HashTable.h"
-#include "Move.h"
-#include "Debug.h"
+#include "AttackTables.h"
+#include "Uci.h"
+#include "Utils.h"
+
+#define VERSION "1.7.3"
 
 int main(int argc, char** argv)
 {
@@ -20,7 +21,7 @@ int main(int argc, char** argv)
         int seedArgument = (int)strtol(argv[1], NULL, 10);
         if (errno != 0)
         {
-            printLog(1, "Program started with invalid seed, using random seed instead.\n");
+            printLog(1, "Program started with invalid seed, using a random seed instead.\n");
         }
         else
         {
@@ -34,7 +35,7 @@ int main(int argc, char** argv)
     initAttackTables();
     printLog(1, "Seed is %d\n", seed);
 
-    printf("Ray version 1.7.2\n");
+    printf("Ray version %s\n", VERSION);
     fflush(stdout);
 
     char input[4] = "";

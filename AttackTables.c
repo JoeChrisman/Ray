@@ -1,40 +1,44 @@
 #include <stdlib.h>
+#include <stdbool.h>
 
+#include "Square.h"
+#include "Bitboard.h"
+#include "Utils.h"
+#include "Piece.h"
 #include "AttackTables.h"
-#include "Debug.h"
 
 MagicSquare ordinalMagics[NUM_SQUARES];
 MagicSquare cardinalMagics[NUM_SQUARES];
-U64 ordinalAttacks[NUM_SQUARES][512];
-U64 cardinalAttacks[NUM_SQUARES][4096];
-U64 knightAttacks[NUM_SQUARES];
-U64 kingAttacks[NUM_SQUARES];
+Bitboard ordinalAttacks[NUM_SQUARES][512];
+Bitboard cardinalAttacks[NUM_SQUARES][4096];
+Bitboard knightAttacks[NUM_SQUARES];
+Bitboard kingAttacks[NUM_SQUARES];
 
 static void initKnightAttackTable()
 {
-    for (int square = 0; square < NUM_SQUARES; square++)
+    for (Square square = A8; square <= H1; square++)
     {
-        const U64 knight = GET_BOARD(square);
-        U64 attacks = BOARD_NORTH(BOARD_NORTH(knight)) | BOARD_SOUTH(BOARD_SOUTH(knight));
+        const Bitboard knight = GET_BOARD(square);
+        Bitboard attacks = BOARD_NORTH(BOARD_NORTH(knight)) | BOARD_SOUTH(BOARD_SOUTH(knight));
         knightAttacks[square] |= BOARD_EAST(attacks) & NOT_A_FILE;
         knightAttacks[square] |= BOARD_WEST(attacks) & NOT_H_FILE;
-        U64 eastAttacks = BOARD_EAST(BOARD_EAST(knight) & NOT_A_FILE) & NOT_A_FILE;
-        U64 westAttacks = BOARD_WEST(BOARD_WEST(knight) & NOT_H_FILE) & NOT_H_FILE;
+        Bitboard eastAttacks = BOARD_EAST(BOARD_EAST(knight) & NOT_A_FILE) & NOT_A_FILE;
+        Bitboard westAttacks = BOARD_WEST(BOARD_WEST(knight) & NOT_H_FILE) & NOT_H_FILE;
         knightAttacks[square] |= BOARD_NORTH(eastAttacks) | BOARD_SOUTH(eastAttacks);
         knightAttacks[square] |= BOARD_NORTH(westAttacks) | BOARD_SOUTH(westAttacks);
     }
 }
 
-static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
+static Bitboard getRookAttacks(Square from, Bitboard blockers, bool isCaptures)
 {
-    U64 attacks = EMPTY_BOARD;
+    Bitboard attacks = EMPTY_BOARD;
 
     int rank = GET_RANK(from);
     int file = GET_FILE(from);
     int targetRank = rank;
     while (targetRank++ < 7)
     {
-        U64 attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(targetRank, file));
+        Bitboard attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(targetRank, file));
         if (blockers & attack)
         {
             if (isCaptures)
@@ -48,7 +52,7 @@ static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
     int targetFile = file;
     while (targetFile++ < 7)
     {
-        U64 attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(rank, targetFile));
+        Bitboard attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(rank, targetFile));
         if (blockers & attack)
         {
             if (isCaptures)
@@ -62,7 +66,7 @@ static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
     targetRank = rank;
     while (targetRank-- > 0)
     {
-        U64 attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(targetRank, file));
+        Bitboard attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(targetRank, file));
         if (blockers & attack)
         {
             if (isCaptures)
@@ -76,7 +80,7 @@ static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
     targetFile = file;
     while (targetFile-- > 0)
     {
-        U64 attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(rank, targetFile));
+        Bitboard attack = GET_BOARD(GET_SQUARE_FROM_LOCATION(rank, targetFile));
         if (blockers & attack)
         {
             if (isCaptures)
@@ -91,26 +95,26 @@ static U64 getRookAttacks(int from, U64 blockers, int isCaptures)
     return attacks;
 }
 
-static U64 getRookBlockers(int from)
+static Bitboard getRookBlockers(Square from)
 {
     int rank = GET_RANK(from);
     int file = GET_FILE(from);
 
-    U64 leftAndRight = A_FILE | H_FILE;
-    U64 upAndDown = RANK_1 | RANK_8;
+    Bitboard leftAndRight = A_FILE | H_FILE;
+    Bitboard upAndDown = RANK_1 | RANK_8;
 
-    U64 endpoints = EMPTY_BOARD;
-    endpoints |= RANKS[rank] & leftAndRight;
-    endpoints |= FILES[file] & upAndDown;
+    Bitboard endpoints = EMPTY_BOARD;
+    endpoints |= ranks[rank] & leftAndRight;
+    endpoints |= files[file] & upAndDown;
     endpoints &= ~GET_BOARD(from);
-    return getRookAttacks(from, endpoints, 0) & ~GET_BOARD(from);
+    return getRookAttacks(from, endpoints, false) & ~GET_BOARD(from);
 }
 
-static U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
+static Bitboard getBishopAttacks(Square from, Bitboard blockers, bool isCaptures)
 {
-    U64 attacks = EMPTY_BOARD;
+    Bitboard attacks = EMPTY_BOARD;
 
-    U64 attack = GET_BOARD(from);
+    Bitboard attack = GET_BOARD(from);
     while (!(attack & RANK_8) && !(attack & H_FILE))
     {
         attack = BOARD_NORTH_EAST(attack);
@@ -169,36 +173,36 @@ static U64 getBishopAttacks(int from, U64 blockers, int isCaptures)
     return attacks;
 }
 
-static U64 getBishopBlockers(int from)
+static Bitboard getBishopBlockers(Square from)
 {
-    U64 endpoints = A_FILE |
-                    H_FILE |
-                    RANK_1 |
-                    RANK_8;
+    Bitboard endpoints = A_FILE |
+                         H_FILE |
+                         RANK_1 |
+                         RANK_8;
     endpoints &= ~GET_BOARD(from);
-    return getBishopAttacks(from, endpoints, 0) & ~GET_BOARD(from);
+    return getBishopAttacks(from, endpoints, false) & ~GET_BOARD(from);
 }
 
-static U64 getMagicNumber(int square, int isCardinal)
+static Bitboard getMagicNumber(Square square, bool isCardinal)
 {
-    U64 blockerMask = isCardinal ? cardinalMagics[square].blockers : ordinalMagics[square].blockers;
+    Bitboard blockerMask = isCardinal ? cardinalMagics[square].blockers : ordinalMagics[square].blockers;
     const int numPermutations = 1 << GET_NUM_PIECES(blockerMask);
     const int maxPermutations = isCardinal ? 4096 : 512;
 
-    U64 attacks[maxPermutations];
-    U64 blockers[maxPermutations];
-    U64 attacksSeen[maxPermutations];
+    Bitboard attacks[maxPermutations];
+    Bitboard blockers[maxPermutations];
+    Bitboard attacksSeen[maxPermutations];
 
     for (int permutation = 0; permutation < numPermutations; permutation++)
     {
-        U64 actualBlockers = 0;
+        Bitboard actualBlockers = 0;
         int blockerPermutation = permutation;
-        U64 possibleBlockers = blockerMask;
+        Bitboard possibleBlockers = blockerMask;
         while (possibleBlockers)
         {
-            int blockerSquare = GET_SQUARE(possibleBlockers);
+            Square blockerSquare = GET_SQUARE(possibleBlockers);
             POP_SQUARE(possibleBlockers, blockerSquare);
-            U64 blocker = GET_BOARD(blockerSquare);
+            Bitboard blocker = GET_BOARD(blockerSquare);
             if (blockerPermutation % 2)
             {
                 actualBlockers |= blocker;
@@ -206,8 +210,9 @@ static U64 getMagicNumber(int square, int isCardinal)
             blockerPermutation >>= 1;
         }
         blockers[permutation] = actualBlockers;
-        attacks[permutation] = isCardinal ? getRookAttacks(square, actualBlockers, 1)
-                                          : getBishopAttacks(square, actualBlockers, 1);
+        attacks[permutation] = isCardinal ?
+            getRookAttacks(square, actualBlockers, true) :
+            getBishopAttacks(square, actualBlockers, true);
     }
 
     while (1)
@@ -216,7 +221,7 @@ static U64 getMagicNumber(int square, int isCardinal)
         {
             attacksSeen[i] = 0;
         }
-        uint64_t magic = getRandomU64() & getRandomU64() & getRandomU64();
+        uint64_t magic = get64RandomBits() & get64RandomBits() & get64RandomBits();
 
         for (int permutation = 0; permutation < numPermutations; permutation++)
         {
@@ -252,27 +257,27 @@ static U64 getMagicNumber(int square, int isCardinal)
 
 static void initCardinalAttackTable()
 {
-    for (int square = 0; square < NUM_SQUARES; square++)
+    for (Square square = A8; square <= H1; square++)
     {
         cardinalMagics[square].blockers = getRookBlockers(square);
-        cardinalMagics[square].magic = getMagicNumber(square, 1);
+        cardinalMagics[square].magic = getMagicNumber(square, true);
     }
 }
 
 static void initOrdinalAttackTable()
 {
-    for (int square = 0; square < NUM_SQUARES; square++)
+    for (Square square = A8; square <= H1; square++)
     {
         ordinalMagics[square].blockers = getBishopBlockers(square);
-        ordinalMagics[square].magic = getMagicNumber(square, 0);
+        ordinalMagics[square].magic = getMagicNumber(square, false);
     }
 }
 
 static void initKingAttackTable()
 {
-    for (int square = 0; square < NUM_SQUARES; square++)
+    for (Square square = A8; square <= H1; square++)
     {
-        U64 attacks = GET_BOARD(square);
+        Bitboard attacks = GET_BOARD(square);
         attacks |= BOARD_EAST(attacks) & NOT_A_FILE;
         attacks |= BOARD_WEST(attacks) & NOT_H_FILE;
         attacks |= BOARD_NORTH(attacks);

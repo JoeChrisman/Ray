@@ -1,8 +1,8 @@
 #ifndef RAY_SEARCH_H
 #define RAY_SEARCH_H
 
-#include "Defs.h"
 #include "Move.h"
+#include "Bitboard.h"
 
 #define MAX_SEARCH_DEPTH 64
 
@@ -12,6 +12,8 @@
 
 #define SEARCH_FOREVER UINT64_MAX
 #define SEARCH_CANCELLED 0
+
+extern volatile uint64_t cancelTime;
 
 typedef struct
 {
@@ -23,16 +25,16 @@ typedef struct
 
 typedef struct
 {
-    U64 numLeafNodes;
-    U64 numBranchNodes;
+    Bitboard numLeafNodes;
+    Bitboard numBranchNodes;
 
-    U64 numHashMoveSuccess;
-    U64 numHashHits;
+    Bitboard numHashMoveSuccess;
+    Bitboard numHashHits;
 } SearchStats;
 
 extern SearchStats stats;
 
-SearchResult searchByTime(U64 targetCancelTime);
+SearchResult searchByTime(Bitboard targetCancelTime);
 SearchResult searchByDepth(int depth);
 
 int getSearchTimeEstimate(int msRemaining, int msIncrement);

@@ -1,13 +1,16 @@
 #include <assert.h>
 
+#include "Bitboard.h"
 #include "Position.h"
+#include "Square.h"
+#include "Piece.h"
 #include "Eval.h"
 
 #define ISOLATED_PAWN_PENALTY (-20)
 #define DOUBLED_PAWN_PENALTY (-10)
 #define BISHOP_PAIR_BONUS 35
 
-const int PIECE_SCORES[13] = {
+const int pieceScores[13] = {
     0,    // NULL_PIECE
     100,  // WHITE_PAWN
     310,  // WHITE_KNIGHT
@@ -23,7 +26,7 @@ const int PIECE_SCORES[13] = {
     0     // BLACK_KING
 };
 
-const int PLACEMENT_SCORES[13][64] = {
+const int placementScores[13][64] = {
     // NO_PIECE
     {
         0,   0,   0,   0,   0,   0,   0,   0,
@@ -210,22 +213,22 @@ static const int BLACK_PASSED_PAWN_SCORES[8] = {
     0, 150, 90, 60, 40, 30, 20, 0
 };
 
-static inline int getPawnStructureScore(int isWhite)
+static inline int getPawnStructureScore(Color color)
 {
     int score = 0;
-    const U64 friendlyPawns = position.boards[isWhite ? WHITE_PAWN : BLACK_PAWN];
-    const U64 enemyPawns = position.boards[isWhite ? BLACK_PAWN : WHITE_PAWN];
-    U64 friendlies = friendlyPawns;
+    const Bitboard friendlyPawns = position.bitboards[color == WHITE ? WHITE_PAWN : BLACK_PAWN];
+    const Bitboard enemyPawns = position.bitboards[color == WHITE ? BLACK_PAWN : WHITE_PAWN];
+    Bitboard friendlies = friendlyPawns;
     while (friendlies)
     {
-        const int friendlyPawn = GET_SQUARE(friendlies);
+        const Square friendlyPawn = GET_SQUARE(friendlies);
         assert(IS_VALID_SQUARE(friendlyPawn));
         POP_SQUARE(friendlies, friendlyPawn);
         const int rank = GET_RANK(friendlyPawn);
         const int file = GET_FILE(friendlyPawn);
-        const U64 fileMask = FILES[file];
+        const Bitboard fileMask = files[file];
 
-        const U64 adjacentFiles =
+        const Bitboard adjacentFiles =
             ((fileMask << 1) & NOT_A_FILE) |
             ((fileMask >> 1) & NOT_H_FILE);
 
@@ -237,14 +240,14 @@ static inline int getPawnStructureScore(int isWhite)
         {
             score += DOUBLED_PAWN_PENALTY;
         }
-        const U64 passerMask = isWhite ?
+        const Bitboard passerMask = color == WHITE ?
             (FULL_BOARD >> ((rank + 1) * 8)) :
             (FULL_BOARD << ((7 - rank + 1) * 8));
         if (!(passerMask & (adjacentFiles | fileMask) & enemyPawns))
         {
             if (!(passerMask & fileMask & friendlyPawns))
             {
-                score += isWhite ?
+                score += color == WHITE ?
                     WHITE_PASSED_PAWN_SCORES[rank] :
                     BLACK_PASSED_PAWN_SCORES[rank];
             }
@@ -253,29 +256,33 @@ static inline int getPawnStructureScore(int isWhite)
     return score;
 }
 
-static inline int getPawnShieldScore(U64 friendlyKing, U64 friendlyPawns)
+static inline int getPawnShieldScore(Bitboard friendlyKing, Bitboard friendlyPawns)
 {
     assert(GET_NUM_PIECES(friendlyKing) == 1);
     assert(IS_VALID_SQUARE(GET_SQUARE(friendlyKing)));
 
-    U64 kingZone = BOARD_NORTH(friendlyKing) | BOARD_SOUTH(friendlyKing);
+    Bitboard kingZone = BOARD_NORTH(friendlyKing) | BOARD_SOUTH(friendlyKing);
     kingZone |= BOARD_EAST(kingZone) & ~A_FILE;
     kingZone |= BOARD_WEST(kingZone) & ~H_FILE;
-    const U64 closePawns = friendlyPawns & kingZone;
+    const Bitboard closePawns = friendlyPawns & kingZone;
     kingZone |= BOARD_NORTH(kingZone) | BOARD_SOUTH(kingZone);
-    const U64 farPawns = friendlyPawns & kingZone & ~closePawns;
-    int numClosePawns = GET_NUM_PIECES(closePawns);
-    int numFarPawns = GET_NUM_PIECES(farPawns);
+    const Bitboard farPawns = friendlyPawns & kingZone & ~closePawns;
+    const int numClosePawns = GET_NUM_PIECES(closePawns);
+    const int numFarPawns = GET_NUM_PIECES(farPawns);
     return numClosePawns * 10 + numFarPawns * 2;
 }
 
 static inline float getEndgameWeight()
 {
-    int knights = 4 - GET_NUM_PIECES(position.boards[WHITE_KNIGHT] | position.boards[BLACK_KNIGHT]);
-    int bishops = 4 - GET_NUM_PIECES(position.boards[WHITE_BISHOP] | position.boards[BLACK_BISHOP]);
-    int rooks = 8 - GET_NUM_PIECES(position.boards[WHITE_ROOK] | position.boards[BLACK_ROOK]) * 2;
-    int queens = 16 - GET_NUM_PIECES(position.boards[WHITE_QUEEN] | position.boards[BLACK_QUEEN]) * 8;
-    float weight = 1.0f - ((float)(32 - knights - bishops - rooks - queens) / 32.0f);
+    const int numKnights = 4 - GET_NUM_PIECES(
+        position.bitboards[WHITE_KNIGHT] | position.bitboards[BLACK_KNIGHT]);
+    const int numBishops = 4 - GET_NUM_PIECES(
+        position.bitboards[WHITE_BISHOP] | position.bitboards[BLACK_BISHOP]);
+    const int numRooks = 8 - GET_NUM_PIECES(
+        position.bitboards[WHITE_ROOK] | position.bitboards[BLACK_ROOK]) * 2;
+    const int numQueens = 16 - GET_NUM_PIECES(
+        position.bitboards[WHITE_QUEEN] | position.bitboards[BLACK_QUEEN]) * 8;
+    const float weight = 1.0f - ((float)(32 - numKnights - numBishops - numRooks - numQueens) / 32.0f);
     if (weight < 0.0f)
     {
         return 0.0f;
@@ -284,19 +291,19 @@ static inline float getEndgameWeight()
     return weight;
 }
 
-inline int evaluate()
+int evaluate()
 {
     const float endgameWeight = getEndgameWeight();
     const float midgameWeight = 1.0f - endgameWeight;
     assert(midgameWeight + endgameWeight == 1.0f);
 
-    const U64 whiteKing = position.boards[WHITE_KING];
-    const U64 blackKing = position.boards[BLACK_KING];
+    const Bitboard whiteKing = position.bitboards[WHITE_KING];
+    const Bitboard blackKing = position.bitboards[BLACK_KING];
     assert(GET_NUM_PIECES(whiteKing) == 1);
     assert(GET_NUM_PIECES(blackKing) == 1);
 
-    const int whiteKingSquare = GET_SQUARE(whiteKing);
-    const int blackKingSquare = GET_SQUARE(blackKing);
+    const Square whiteKingSquare = GET_SQUARE(whiteKing);
+    const Square blackKingSquare = GET_SQUARE(blackKing);
     assert(IS_VALID_SQUARE(whiteKingSquare));
     assert(IS_VALID_SQUARE(blackKingSquare));
 
@@ -304,18 +311,18 @@ inline int evaluate()
     const int blackKingSafety = BLACK_KING_SAFETY_SCORES[blackKingSquare];
     const int whiteKingActivity = KING_ACTIVITY_SCORES[whiteKingSquare];
     const int blackKingActivity = KING_ACTIVITY_SCORES[blackKingSquare];
-    const int whitePawnShieldScore = getPawnShieldScore(whiteKing, position.boards[WHITE_PAWN]);
-    const int blackPawnShieldScore = getPawnShieldScore(blackKing, position.boards[BLACK_PAWN]);
+    const int whitePawnShieldScore = getPawnShieldScore(whiteKing, position.bitboards[WHITE_PAWN]);
+    const int blackPawnShieldScore = getPawnShieldScore(blackKing, position.bitboards[BLACK_PAWN]);
 
-    const int whiteBishopPair = GET_NUM_PIECES(position.boards[WHITE_BISHOP]) >= 2;
-    const int blackBishopPair = GET_NUM_PIECES(position.boards[BLACK_BISHOP]) >= 2;
+    const int whiteBishopPair = GET_NUM_PIECES(position.bitboards[WHITE_BISHOP]) >= 2;
+    const int blackBishopPair = GET_NUM_PIECES(position.bitboards[BLACK_BISHOP]) >= 2;
     assert(whiteBishopPair - blackBishopPair >= -1);
     assert(blackBishopPair - whiteBishopPair >= -1);
 
     const int whiteKingSafetyAdvantage = (int)((float)(whiteKingSafety - blackKingSafety) * midgameWeight);
     const int whiteKingPawnShieldAdvantage = (int)((float)(whitePawnShieldScore - blackPawnShieldScore) * midgameWeight);
     const int whiteKingActivityAdvantage = (int)((float)(whiteKingActivity - blackKingActivity) * endgameWeight);
-    const int whiteStructureAdvantage = getPawnStructureScore(1) - getPawnStructureScore(0);
+    const int whiteStructureAdvantage = getPawnStructureScore(WHITE) - getPawnStructureScore(BLACK);
     const int whiteBishopPairAdvantage = (whiteBishopPair - blackBishopPair) * BISHOP_PAIR_BONUS;
 
     return position.whiteAdvantage +

@@ -3,8 +3,8 @@
 
 #include "Move.h"
 
-int getPieceFromChar(char piece);
-char getCharFromPiece(int piece);
+Piece getPieceFromChar(char piece);
+char getCharFromPiece(Piece piece);
 
 int getRankFromChar(char rank);
 int getFileFromChar(char file);

@@ -4,15 +4,15 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include "Uci.h"
+#include "Bitboard.h"
+#include "Search.h"
+#include "Move.h"
 #include "Position.h"
 #include "Notation.h"
-#include "Search.h"
-#include "Debug.h"
+#include "Utils.h"
 #include "MoveGen.h"
-#include "HashTable.h"
-
-volatile U64 cancelTime = 0;
+#include "Perft.h"
+#include "Uci.h"
 
 static pthread_t searchThread;
 static const char* delimiter = " ";
@@ -39,7 +39,7 @@ static void* spawnGoDepth(void* targetDepth)
 
 static void* spawnGoMovetime(void* targetCancelTime)
 {
-    cancelTime = *(U64*)targetCancelTime;
+    cancelTime = *(Bitboard*)targetCancelTime;
     free(targetCancelTime);
     SearchResult searchResult = searchByTime(cancelTime);
     if (searchResult.move != NO_MOVE)
@@ -72,7 +72,7 @@ static int goDepth()
 
 static int goInfinite()
 {
-    U64* targetCancelTime = malloc(sizeof(U64));
+    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
     *targetCancelTime = SEARCH_FOREVER;
     pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
     return 0;
@@ -107,9 +107,9 @@ static int goTimeControl()
         printLog(1, "Client sent a malformed time control\n");
         return 1;
     }
-    int msRemaining = position.isWhitesTurn ? whiteMsRemaining : blackMsRemaining;
-    int msIncrement = position.isWhitesTurn ? whiteMsIncrement : blackMsIncrement;
-    U64* targetCancelTime = malloc(sizeof(U64));
+    int msRemaining = position.sideToMove == WHITE ? whiteMsRemaining : blackMsRemaining;
+    int msIncrement = position.sideToMove == WHITE ? whiteMsIncrement : blackMsIncrement;
+    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
     *targetCancelTime = getMillis() + getSearchTimeEstimate(msRemaining, msIncrement);
     pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
     return 0;
@@ -124,7 +124,7 @@ static int goMovetime()
         printLog(1, "Client sent malformed go movetime command");
         return 1;
     }
-    U64* targetCancelTime = malloc(sizeof(U64));
+    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
     *targetCancelTime = getMillis() + msToSearch;
     pthread_create(&searchThread, NULL, spawnGoMovetime, (void*)targetCancelTime);
     return 0;
@@ -171,17 +171,17 @@ static int handleGoCommand()
     {
         return goInfinite();
     }
-    // the client wants us to search with time constraints
+    // the client wants us to search with a time control
     else if (flag1 != NULL && !strcmp(flag1, "wtime"))
     {
         return goTimeControl();
     }
-    // the client wants to search to a custom depth
+    // the client wants to search to a specific depth
     else if (!strcmp(flag1, "depth"))
     {
         return goDepth();
     }
-    // the client wants to search with a custom move time
+    // the client wants to search with a specific move time
     else if (!strcmp(flag1, "movetime"))
     {
         return goMovetime();
@@ -279,7 +279,7 @@ static int handlePositionCommand()
     }
 
     char* movesFlag = strtok(NULL, delimiter);
-    // the client wants to play some moves after loading position
+    // the client wants to play some moves after loading a position
     if (movesFlag != NULL)
     {
         if (!strcmp(movesFlag, "moves"))

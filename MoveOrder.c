@@ -3,6 +3,10 @@
 #include <assert.h>
 
 #include "Search.h"
+#include "Square.h"
+#include "Move.h"
+#include "Utils.h"
+#include "MoveOrder.h"
 
 #define HASH_MOVEORDER MAX_SCORE
 #define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
@@ -32,23 +36,23 @@ void addToKillers(int depth, Move move)
 
 void resetHistory()
 {
-    for (int i = A8; i <= H1; i++)
+    for (Square from = A8; from <= H1; from++)
     {
-        for (int j = A8; j <= H1; j++)
+        for (Square to = A8; to <= H1; to++)
         {
-            assert(history[i][j] <= MAX_HISTORY_SCORE);
-            history[i][j] = 0;
+            assert(history[from][to] <= MAX_HISTORY_SCORE);
+            history[from][to] = 0;
         }
     }
 }
 
 void ageHistory()
 {
-    for (int i = A8; i <= H1; i++)
+    for (Square from = A8; from <= H1; from++)
     {
-        for (int j = A8; j <= H1; j++)
+        for (Square to = A8; to <= H1; to++)
         {
-            history[i][j] /= HISTORY_AGING_FACTOR;
+            history[from][to] /= HISTORY_AGING_FACTOR;
         }
     }
 }
@@ -56,8 +60,8 @@ void ageHistory()
 void addToHistory(int depth, Move move)
 {
     assert(depth <= MAX_SEARCH_DEPTH);
-    const int from = GET_SQUARE_FROM(move);
-    const int to = GET_SQUARE_TO(move);
+    const Square from = GET_SQUARE_FROM(move);
+    const Square to = GET_SQUARE_TO(move);
 
     int* const historyScore = &history[from][to];
     assert(*historyScore < MAX_HISTORY_SCORE);

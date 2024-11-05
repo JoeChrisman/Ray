@@ -1,12 +1,14 @@
 #ifndef RAY_MOVEGEN_H
 #define RAY_MOVEGEN_H
 
-#include "Defs.h"
+#include <stdbool.h>
+
 #include "Move.h"
+#include "Position.h"
 
 Move* genMoves(Move* moves);
 Move* genCaptures(Move* moves);
 
-int isKingInCheck(int color);
+bool isKingInCheck(Color sideToMove);
 
 #endif

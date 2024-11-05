@@ -2,16 +2,18 @@
 #include <string.h>
 #include <stdio.h>
 #include <assert.h>
+#include <stdbool.h>
 
-#include "Search.h"
 #include "Position.h"
-#include "MoveGen.h"
 #include "Eval.h"
-#include "Uci.h"
-#include "HashTable.h"
-#include "Notation.h"
-#include "Debug.h"
+#include "MoveGen.h"
 #include "MoveOrder.h"
+#include "HashTable.h"
+#include "Utils.h"
+#include "Search.h"
+#include "Notation.h"
+#include "Uci.h"
+#include "Search.h"
 
 #define INVALID_SCORE INT32_MAX
 #define CONTEMPT 150
@@ -20,14 +22,15 @@
 #define TIMEOUT_MARGIN_MILLIS 50
 
 SearchStats stats = {0};
+volatile uint64_t cancelTime = 0;
 
-static int quiescenceSearch(int alpha, int beta, int color)
+static int quiescenceSearch(int alpha, int beta)
 {
     assert(alpha < beta);
     assert(alpha >= MIN_SCORE);
     assert(alpha <= MAX_SCORE);
 
-    int score = evaluate() * color;
+    int score = evaluate() * position.sideToMove;
     if (score >= beta)
     {
         return beta;
@@ -44,7 +47,7 @@ static int quiescenceSearch(int alpha, int beta, int color)
         pickCapture(capture, captureListEnd);
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*capture);
-        score = -quiescenceSearch(-beta, -alpha, -color);
+        score = -quiescenceSearch(-beta, -alpha);
         unMakeMove(*capture, irreversibles);
 
         if (score >= beta)
@@ -59,21 +62,9 @@ static int quiescenceSearch(int alpha, int beta, int color)
     return alpha;
 }
 
-static inline int isRepetition()
-{
-    for (int ply = position.plies - 2; ply >= position.plies - position.irreversibles.plies; ply -= 2)
-    {
-        if (position.zobristHash == position.history[ply])
-        {
-            return 1;
-        }
-    }
-    return 0;
-}
-
 static const int futilityMargins[4] = {0, 250, 700, 1200};
 
-static int search(int alpha, int beta, int isNullMove, int color, int depth)
+static int search(int alpha, int beta, bool wasNullMove, int depth)
 {
     assert(alpha < beta);
     assert(alpha >= MIN_SCORE);
@@ -92,7 +83,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
         return CONTEMPT;
     }
 
-    const int isInCheck = isKingInCheck(color);
+    const bool isInCheck = isKingInCheck(position.sideToMove);
 
     if (isInCheck)
     {
@@ -110,22 +101,30 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
             }
         }
         assert(!isInCheck);
-        return quiescenceSearch(alpha, beta, color);
+        return quiescenceSearch(alpha, beta);
     }
 
     int cutoffValue = INVALID_SCORE;
-    HashEntry* hashTableEntry = probeHashTable(position.zobristHash, &cutoffValue, alpha, beta, depth);
+    HashEntry* hashTableEntry = probeHashTable(
+        position.hash,
+        &cutoffValue,
+        alpha,
+        beta,
+        depth);
     if (cutoffValue != INVALID_SCORE)
     {
         stats.numLeafNodes++;
         return cutoffValue;
     }
 
-    if (!isInCheck && !isNullMove && depth > 3 && !isZugzwang(color))
+    if (!isInCheck &&
+        !wasNullMove &&
+        depth > 3
+        && !isZugzwang(position.sideToMove))
     {
         const Irreversibles irreversibles = position.irreversibles;
         makeNullMove();
-        int score = -search(-beta, -beta + 1, 1, -color, depth - 3);
+        int score = -search(-beta, -beta + 1, true, depth - 3);
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
@@ -148,11 +147,11 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
     stats.numBranchNodes++;
 
-    int isFutilityPruning = (
+    bool isFutilityPruning = (
         depth <= 3 &&
         !isInCheck &&
         hashTableEntry->type != PV_NODE &&
-        position.whiteAdvantage * color + futilityMargins[depth] < alpha);
+        position.whiteAdvantage * position.sideToMove + futilityMargins[depth] < alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
     int raisedAlpha = 0;
@@ -170,7 +169,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        const int score = -search(-beta, -alpha, 0, -color, depth - 1);
+        const int score = -search(-beta, -alpha, false, depth - 1);
         unMakeMove(*move, irreversibles);
 
         if (cancelTime == SEARCH_CANCELLED)
@@ -197,7 +196,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
                 writeHashTableEntry(
                     hashTableEntry,
-                    position.zobristHash,
+                    position.hash,
                     CUT_NODE,
                     bestMove,
                     beta,
@@ -208,7 +207,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
     }
     writeHashTableEntry(
         hashTableEntry,
-        position.zobristHash,
+        position.hash,
         raisedAlpha ? PV_NODE : ALL_NODE,
         bestMove,
         alpha,
@@ -218,7 +217,7 @@ static int search(int alpha, int beta, int isNullMove, int color, int depth)
 
 static void printSearchResult(SearchResult searchResult)
 {
-    const U64 totalNodes = stats.numBranchNodes + stats.numLeafNodes;
+    const Bitboard totalNodes = stats.numBranchNodes + stats.numLeafNodes;
 
     printf("info depth %d ", searchResult.depth);
     if (searchResult.score > IS_MATE)
@@ -257,9 +256,9 @@ static void prepareSearchByTime()
     memset(&stats, 0, sizeof(stats));
 }
 
-SearchResult searchByTime(U64 targetCancelTime)
+SearchResult searchByTime(Bitboard targetCancelTime)
 {
-    U64 msRemaining = targetCancelTime - getMillis();
+    uint64_t msRemaining = targetCancelTime - getMillis();
     prepareSearchByTime();
 
     cancelTime = SEARCH_FOREVER;
@@ -299,7 +298,7 @@ SearchResult searchByTime(U64 targetCancelTime)
 SearchResult searchByDepth(int depth)
 {
     ageHistory();
-    U64 startTime = getMillis();
+    uint64_t startTime = getMillis();
     Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     int numEqualMoves = 0;
 
@@ -316,7 +315,7 @@ SearchResult searchByDepth(int depth)
     {
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        int score = -search(MIN_SCORE, MAX_SCORE, 0, position.isWhitesTurn ? 1 : -1, depth - 1);
+        int score = -search(MIN_SCORE, MAX_SCORE, false, depth - 1);
         unMakeMove(*move, irreversibles);
 
         if (cancelTime == SEARCH_CANCELLED)
@@ -352,8 +351,8 @@ SearchResult searchByDepth(int depth)
     bestSearchResult.depth = depth;
     bestSearchResult.msElapsed = (int)(getMillis() - startTime);
 
-    HashEntry* entry = getHashTableEntry(position.zobristHash);
-    writeHashTableEntry(entry, position.zobristHash, PV_NODE, bestSearchResult.move, bestScore, depth);
+    HashEntry* entry = getHashTableEntry(position.hash);
+    writeHashTableEntry(entry, position.hash, PV_NODE, bestSearchResult.move, bestScore, depth);
     printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestSearchResult.move));
     return bestSearchResult;
 }

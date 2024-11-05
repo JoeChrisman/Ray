@@ -1,10 +1,12 @@
 #include <string.h>
 #include <ctype.h>
-#include "Notation.h"
-#include "Defs.h"
-#include "Move.h"
 
-int getPieceFromChar(char piece)
+#include "Piece.h"
+#include "Square.h"
+#include "Move.h"
+#include "Notation.h"
+
+Piece getPieceFromChar(char piece)
 {
     switch (piece)
     {
@@ -24,7 +26,7 @@ int getPieceFromChar(char piece)
     }
 }
 
-char getCharFromPiece(int piece)
+char getCharFromPiece(Piece piece)
 {
     switch (piece)
     {
@@ -72,13 +74,13 @@ const char* getStrFromMove(Move move)
         strcpy(moveStr, "0000");
         return moveStr;
     }
-    const int from = GET_SQUARE_FROM(move);
-    const int to = GET_SQUARE_TO(move);
+    const Square from = GET_SQUARE_FROM(move);
+    const Square to = GET_SQUARE_TO(move);
     moveStr[0] = getCharFromFile(GET_FILE(from));
     moveStr[1] = getCharFromRank(GET_RANK(from));
     moveStr[2] = getCharFromFile(GET_FILE(to));
     moveStr[3] = getCharFromRank(GET_RANK(to));
-    const int promoted = GET_PIECE_PROMOTED(move);
+    const Piece promoted = GET_PIECE_PROMOTED(move);
     if (promoted != NO_PIECE)
     {
         moveStr[4] = (char)tolower(getCharFromPiece(promoted));
