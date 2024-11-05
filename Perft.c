@@ -110,7 +110,7 @@ void runPerftSuite()
         loadFen(fen);
         const Bitboard expectedZobristHash = position.hash;
         const int expectedWhiteAdvantage = position.whiteAdvantage;
-        double totalTestMillis = 0;
+        Millis totalTestMillis = 0;
         const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
         {
@@ -119,9 +119,9 @@ void runPerftSuite()
             {
                 break;
             }
-            uint64_t start = getMillis();
+            Millis start = getMillis();
             const int actualLeafCount = (int)perft(depth);
-            const double elapsed = (double)(getMillis() - start);
+            const Millis elapsed = getMillis() - start;
             totalTestMillis += elapsed;
 
             if (actualLeafCount != expectedLeafCount)
@@ -159,5 +159,5 @@ void runPerftSuite()
     }
 
     printf(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
-    printf(" - perft suite completed in %.2f seconds, with %d passed and %d failed\n", totalSuiteMillis / 1000, numPassed, numFailed);
+    printf(" - perft suite completed in %.2f seconds, with %d passed and %d failed\n", (double)totalSuiteMillis / 1000, numPassed, numFailed);
 }

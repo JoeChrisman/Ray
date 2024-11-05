@@ -6,8 +6,8 @@
 #include "Bitboard.h"
 #include "Move.h"
 
-#define LOGGING_LEVEL 1
-#define LOGGING_VERBOSE 0
+#define LOGGING_LEVEL 3
+#define LOGGING_VERBOSE 1
 
 #if LOGGING_LEVEL > 0
 void printLog(int logLevel, const char *format, ...);
@@ -18,7 +18,9 @@ void printLog(int logLevel, const char *format, ...);
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
-uint64_t getMillis();
+
+typedef int64_t Millis;
+Millis getMillis();
 uint64_t get64RandomBits();
 
 void printBitboard(Bitboard board);

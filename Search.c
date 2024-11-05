@@ -4,25 +4,22 @@
 #include <assert.h>
 #include <stdbool.h>
 
-#include "Position.h"
+#include "SearchManager.h"
 #include "Eval.h"
+#include "Position.h"
 #include "MoveGen.h"
 #include "MoveOrder.h"
 #include "HashTable.h"
 #include "Utils.h"
 #include "Search.h"
-#include "Notation.h"
-#include "Uci.h"
-#include "Search.h"
 
 #define INVALID_SCORE INT32_MAX
 #define CONTEMPT 150
 
-#define TIMEOUT_CHECK_INTERVAL 0x3FFF
-#define TIMEOUT_MARGIN_MILLIS 50
+#define TIMEOUT_CHECK_INTERVAL 8191
+#define TIMEOUT_MARGIN_MILLIS 100
 
 SearchStats stats = {0};
-volatile uint64_t cancelTime = 0;
 
 static int quiescenceSearch(int alpha, int beta)
 {
@@ -64,7 +61,7 @@ static int quiescenceSearch(int alpha, int beta)
 
 static const int futilityMargins[4] = {0, 250, 700, 1200};
 
-static int search(int alpha, int beta, bool wasNullMove, int depth)
+int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 {
     assert(alpha < beta);
     assert(alpha >= MIN_SCORE);
@@ -124,7 +121,7 @@ static int search(int alpha, int beta, bool wasNullMove, int depth)
     {
         const Irreversibles irreversibles = position.irreversibles;
         makeNullMove();
-        int score = -search(-beta, -beta + 1, true, depth - 3);
+        int score = -alphaBetaSearch(-beta, -beta + 1, true, depth - 3);
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
@@ -169,7 +166,7 @@ static int search(int alpha, int beta, bool wasNullMove, int depth)
 
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        const int score = -search(-beta, -alpha, false, depth - 1);
+        const int score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
         unMakeMove(*move, irreversibles);
 
         if (cancelTime == SEARCH_CANCELLED)
@@ -186,7 +183,7 @@ static int search(int alpha, int beta, bool wasNullMove, int depth)
             {
                 if (move == firstMove)
                 {
-                    stats.numHashMoveSuccess++;
+                    stats.numFirstMoveSuccess++;
                 }
                 if (IS_QUIET_MOVE(*move))
                 {
@@ -213,146 +210,4 @@ static int search(int alpha, int beta, bool wasNullMove, int depth)
         alpha,
         depth);
     return alpha;
-}
-
-static void printSearchResult(SearchResult searchResult)
-{
-    const Bitboard totalNodes = stats.numBranchNodes + stats.numLeafNodes;
-
-    printf("info depth %d ", searchResult.depth);
-    if (searchResult.score > IS_MATE)
-    {
-        printf("score mate %d ", (MAX_SCORE - position.plies - searchResult.score) / 2 + 1);
-    }
-    else if (searchResult.score < -IS_MATE)
-    {
-        printf("score mate %d ", -((MAX_SCORE - position.plies + searchResult.score) / 2 + 1));
-    }
-    else
-    {
-        printf("score cp %d ", searchResult.score);
-    }
-    printf("time %d ", searchResult.msElapsed);
-    printf("nodes %llu ", totalNodes);
-    printf("nps %d ", (int)((double)totalNodes / ((double)searchResult.msElapsed + 1) * 1000));
-    printf("pv ");
-    printPrincipalVariation(searchResult.depth);
-    fflush(stdout);
-
-    printLog(1, "Branching factor: %.2f\n", (double)totalNodes / (double)stats.numBranchNodes);
-    printLog(1, "Hash hits %.2f%%\n",  (double)stats.numHashHits / (double)(totalNodes) * 100.0f);
-    printLog(1, "Move ordering %.2f%%\n", (double)stats.numHashMoveSuccess / (double)stats.numBranchNodes * 100.0f);
-}
-
-int getSearchTimeEstimate(int msRemaining, int msIncrement)
-{
-    return (msRemaining + msIncrement * 19) / 20;
-}
-
-static void prepareSearchByTime()
-{
-    resetKillers();
-    resetHistory();
-    memset(&stats, 0, sizeof(stats));
-}
-
-SearchResult searchByTime(Bitboard targetCancelTime)
-{
-    uint64_t msRemaining = targetCancelTime - getMillis();
-    prepareSearchByTime();
-
-    cancelTime = SEARCH_FOREVER;
-    SearchResult bestSearchResult = searchByDepth(1);
-    cancelTime = targetCancelTime;
-    for (int depth = 2; depth < MAX_SEARCH_DEPTH; depth++)
-    {
-        if (bestSearchResult.msElapsed * 4 > msRemaining)
-        {
-            printLog(1, "Completing the next search will take too long\n");
-            break;
-        }
-
-        memset(&stats, 0, sizeof(stats));
-        SearchResult searchResult = searchByDepth(depth);
-
-        if (cancelTime == SEARCH_CANCELLED)
-        {
-            if (searchResult.move != NO_MOVE && searchResult.score > bestSearchResult.score)
-            {
-                printLog(1, "Search at depth %d was cancelled, and an improvement was found\n", depth);
-                return searchResult;
-            }
-            else
-            {
-                printLog(1, "Search at depth %d was cancelled, and no improvement was found\n", depth);
-                break;
-            }
-        }
-        bestSearchResult = searchResult;
-        msRemaining -= bestSearchResult.msElapsed;
-        printSearchResult(bestSearchResult);
-    }
-    return bestSearchResult;
-}
-
-SearchResult searchByDepth(int depth)
-{
-    ageHistory();
-    uint64_t startTime = getMillis();
-    Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    int numEqualMoves = 0;
-
-    int bestScore = MIN_SCORE;
-    Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    Move* lastMove = genMoves(firstMove);
-    if (firstMove == lastMove)
-    {
-        printLog(1, "Search at depth %d tried to generate legal moves, but there were none\n", depth);
-        SearchResult noResult = {0};
-        return noResult;
-    }
-    for (Move* move = firstMove; move < lastMove; move++)
-    {
-        Irreversibles irreversibles = position.irreversibles;
-        makeMove(*move);
-        int score = -search(MIN_SCORE, MAX_SCORE, false, depth - 1);
-        unMakeMove(*move, irreversibles);
-
-        if (cancelTime == SEARCH_CANCELLED)
-        {
-            printLog(1, "Search at depth %d was cancelled\n", depth);
-            break;
-        }
-
-        printLog(2, "Search at depth %d: %s, %d\n", depth, getStrFromMove(*move), score);
-        if (score > bestScore)
-        {
-            bestScore = score;
-            memset(equalMoves, NO_MOVE, sizeof(equalMoves));
-            numEqualMoves = 0;
-            equalMoves[numEqualMoves++] = *move;
-        }
-        else if (score == bestScore)
-        {
-            equalMoves[numEqualMoves++] = *move;
-        }
-    }
-
-    if (numEqualMoves == 0)
-    {
-        printLog(1, "Search at depth %d was cancelled before searching any moves\n", depth);
-        SearchResult noResult = {0};
-        return noResult;
-    }
-
-    SearchResult bestSearchResult = {0};
-    bestSearchResult.move = equalMoves[rand() % numEqualMoves];
-    bestSearchResult.score = bestScore;
-    bestSearchResult.depth = depth;
-    bestSearchResult.msElapsed = (int)(getMillis() - startTime);
-
-    HashEntry* entry = getHashTableEntry(position.hash);
-    writeHashTableEntry(entry, position.hash, PV_NODE, bestSearchResult.move, bestScore, depth);
-    printLog(1, "Search depth %d found best move: %s\n", depth, getStrFromMove(bestSearchResult.move));
-    return bestSearchResult;
 }

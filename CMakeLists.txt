@@ -34,4 +34,6 @@ add_executable(Ray main.c
         Perft.c
         Piece.h
         Square.h
+        SearchManager.h
+        SearchManager.c
 )

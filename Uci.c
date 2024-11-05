@@ -3,9 +3,11 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <assert.h>
 
 #include "Bitboard.h"
 #include "Search.h"
+#include "SearchManager.h"
 #include "Move.h"
 #include "Position.h"
 #include "Notation.h"
@@ -17,41 +19,16 @@
 static pthread_t searchThread;
 static const char* delimiter = " ";
 
-static void* spawnGoDepth(void* targetDepth)
+static void* spawnSearchThread(void* searchOptions)
 {
-    int depth = *(int*)targetDepth;
-    free(targetDepth);
-    cancelTime = SEARCH_FOREVER;
-    SearchResult searchResult = searchByDepth(depth);
-    if (searchResult.move != NO_MOVE)
-    {
-        printf("bestmove %s\n", getStrFromMove(searchResult.move));
-        fflush(stdout);
-    }
-    else
-    {
-        printLog(1, "Search by depth returned a NO_MOVE\n");
-    }
+    SearchOptions options = *(SearchOptions*)searchOptions;
+    free(searchOptions);
+    SearchResult searchResult = search(options);
+    assert(searchResult.move != NO_MOVE);
+    assert(searchResult.score >= MIN_SCORE);
+    assert(searchResult.score <= MAX_SCORE);
+    printf("bestmove %s\n", getStrFromMove(searchResult.move));
     fflush(stdout);
-    cancelTime = SEARCH_CANCELLED;
-    return NULL;
-}
-
-static void* spawnGoMovetime(void* targetCancelTime)
-{
-    cancelTime = *(Bitboard*)targetCancelTime;
-    free(targetCancelTime);
-    SearchResult searchResult = searchByTime(cancelTime);
-    if (searchResult.move != NO_MOVE)
-    {
-        printf("bestmove %s\n", getStrFromMove(searchResult.move));
-        fflush(stdout);
-    }
-    else
-    {
-        printLog(1, "Search by time returned a NO_MOVE\n");
-    }
-    cancelTime = SEARCH_CANCELLED;
     return NULL;
 }
 
@@ -59,22 +36,23 @@ static int goDepth()
 {
     errno = 0;
     int depth = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-    if (errno || depth <= 0 || depth > MAX_SEARCH_DEPTH)
+    if (errno || depth <= 1 || depth > MAX_SEARCH_DEPTH)
     {
         printLog(1, "Client sent malformed go depth command");
         return 1;
     }
-    int* depthPtr = malloc(sizeof(int));
-    *depthPtr = depth;
-    pthread_create(&searchThread, NULL, spawnGoDepth, (void*)depthPtr);
+    SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
+    searchOptions->searchType = DEPTH_SEARCH;
+    searchOptions->depth = depth;
+    pthread_create(&searchThread, NULL, spawnSearchThread, (void*)searchOptions);
     return 0;
 }
 
 static int goInfinite()
 {
-    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
-    *targetCancelTime = SEARCH_FOREVER;
-    pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
+    SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
+    searchOptions->searchType = INFINITE_SEARCH;
+    pthread_create(&searchThread, NULL, spawnSearchThread, searchOptions);
     return 0;
 }
 
@@ -82,20 +60,18 @@ static int goTimeControl()
 {
     errno = 0;
 
-    int whiteMsIncrement = 0;
-    int blackMsIncrement = 0;
-
-    int whiteMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    Millis whiteMsRemaining = (Millis)strtol(strtok(NULL, delimiter), NULL, 10);
     strtok(NULL, delimiter); // eat "btime" flag
-    int blackMsRemaining = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+    Millis blackMsRemaining = (Millis)strtol(strtok(NULL, delimiter), NULL, 10);
 
-
+    Millis whiteMsIncrement = 0;
+    Millis blackMsIncrement = 0;
     char* nextFlag = strtok(NULL, delimiter);
     if (nextFlag != NULL && !strcmp(nextFlag, "winc"))
     {
-        whiteMsIncrement = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        whiteMsIncrement = (Millis)strtol(strtok(NULL, delimiter), NULL, 10);
         strtok(NULL, delimiter); // eat "binc" flag
-        blackMsIncrement = (int)strtol(strtok(NULL, delimiter), NULL, 10);
+        blackMsIncrement = (Millis)strtol(strtok(NULL, delimiter), NULL, 10);
     }
 
     if (errno ||
@@ -104,14 +80,16 @@ static int goTimeControl()
         whiteMsIncrement < 0 ||
         blackMsIncrement < 0)
     {
-        printLog(1, "Client sent a malformed time control\n");
+        printLog(1, "Client sent a malformed time control in go command\n");
         return 1;
     }
-    int msRemaining = position.sideToMove == WHITE ? whiteMsRemaining : blackMsRemaining;
-    int msIncrement = position.sideToMove == WHITE ? whiteMsIncrement : blackMsIncrement;
-    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
-    *targetCancelTime = getMillis() + getSearchTimeEstimate(msRemaining, msIncrement);
-    pthread_create(&searchThread, NULL, spawnGoMovetime, targetCancelTime);
+    Millis msRemaining = position.sideToMove == WHITE ? whiteMsRemaining : blackMsRemaining;
+    Millis msIncrement = position.sideToMove == WHITE ? whiteMsIncrement : blackMsIncrement;
+    SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
+    searchOptions->searchType = TIME_CONTROL_SEARCH;
+    searchOptions->msRemaining = msRemaining;
+    searchOptions->msIncrement = msIncrement;
+    pthread_create(&searchThread, NULL, spawnSearchThread, searchOptions);
     return 0;
 }
 
@@ -124,9 +102,10 @@ static int goMovetime()
         printLog(1, "Client sent malformed go movetime command");
         return 1;
     }
-    Bitboard* targetCancelTime = malloc(sizeof(Bitboard));
-    *targetCancelTime = getMillis() + msToSearch;
-    pthread_create(&searchThread, NULL, spawnGoMovetime, (void*)targetCancelTime);
+    SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
+    searchOptions->searchType = MOVE_TIME_SEARCH;
+    searchOptions->msRemaining = msToSearch;
+    pthread_create(&searchThread, NULL, spawnSearchThread, (void*)searchOptions);
     return 0;
 }
 

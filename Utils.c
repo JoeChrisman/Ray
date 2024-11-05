@@ -27,7 +27,7 @@ void printLog(int logLevel, const char *format, ...)
 }
 #endif
 
-uint64_t getMillis()
+Millis getMillis()
 {
     struct timespec ts;
     clock_gettime(CLOCK_REALTIME, &ts);
