@@ -59,6 +59,19 @@ static int quiescenceSearch(int alpha, int beta)
     return alpha;
 }
 
+static inline bool isTimeout()
+{
+    if ((stats.numLeafNodes & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
+    {
+        if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
+        {
+            cancelTime = SEARCH_CANCELLED;
+            return true;
+        }
+    }
+    return false;
+}
+
 static const int futilityMargins[4] = {0, 250, 700, 1200};
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
@@ -76,6 +89,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
     if (position.irreversibles.plies >= 100 || isRepetition())
     {
+        if (isTimeout())
+        {
+            return 0;
+        }
         stats.numLeafNodes++;
         return CONTEMPT;
     }
@@ -89,14 +106,11 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
     if (depth <= 0)
     {
-        if ((stats.numLeafNodes++ & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
+        if (isTimeout())
         {
-            if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
-            {
-                cancelTime = SEARCH_CANCELLED;
-                return 0;
-            }
+            return 0;
         }
+        stats.numLeafNodes++;
         assert(!isInCheck);
         return quiescenceSearch(alpha, beta);
     }
@@ -110,6 +124,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         depth);
     if (cutoffValue != INVALID_SCORE)
     {
+        if (isTimeout())
+        {
+            return 0;
+        }
         stats.numLeafNodes++;
         return cutoffValue;
     }
@@ -125,6 +143,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
+            if (isTimeout())
+            {
+                return 0;
+            }
             stats.numLeafNodes++;
             return beta;
         }
@@ -134,6 +156,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
     Move* lastMove = genMoves(firstMove);
     if (lastMove == firstMove)
     {
+        if (isTimeout())
+        {
+            return 0;
+        }
         stats.numLeafNodes++;
         if (isInCheck)
         {
