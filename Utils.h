@@ -6,8 +6,8 @@
 #include "Bitboard.h"
 #include "Move.h"
 
-#define LOGGING_LEVEL 3
-#define LOGGING_VERBOSE 1
+#define LOGGING_LEVEL 1
+#define LOGGING_VERBOSE 0
 
 #if LOGGING_LEVEL > 0
 void printLog(int logLevel, const char *format, ...);

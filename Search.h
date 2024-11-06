@@ -21,6 +21,7 @@ typedef struct
 {
     uint64_t numLeafNodes;
     uint64_t numBranchNodes;
+    uint64_t numQuietNodes;
     uint64_t numFirstMoveSuccess;
     uint64_t numHashHits;
 } SearchStats;

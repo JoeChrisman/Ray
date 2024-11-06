@@ -15,7 +15,8 @@ volatile Millis cancelTime = SEARCH_CANCELLED;
 
 static void printSearchResult(SearchResult searchResult)
 {
-    const Bitboard totalNodes = stats.numBranchNodes + stats.numLeafNodes;
+    const double numNodes = (double)(stats.numBranchNodes + stats.numQuietNodes);
+    const double numNonQuietNodes = (double)(stats.numBranchNodes + stats.numLeafNodes);
 
     printf("info depth %d ", searchResult.depth);
     if (searchResult.score > IS_MATE)
@@ -31,15 +32,20 @@ static void printSearchResult(SearchResult searchResult)
         printf("score cp %d ", searchResult.score);
     }
     printf("time %llu ", searchResult.msElapsed);
-    printf("nodes %llu ", totalNodes);
-    printf("nps %d ", (int)((double)totalNodes / ((double)searchResult.msElapsed + 1) * 1000));
+    printf("nodes %.0f ", numNodes);
+    printf("nps %.0f ", (numNodes / ((double)searchResult.msElapsed + 1) * 1000.0f));
     printf("pv ");
     printPrincipalVariation(searchResult.depth);
     fflush(stdout);
 
-    printLog(1, "Branching factor: %.2f\n", (double)totalNodes / (double)stats.numBranchNodes);
-    printLog(1, "Hash hits %.2f%%\n",  (double)stats.numHashHits / (double)(totalNodes) * 100.0f);
-    printLog(1, "Move ordering %.2f%%\n", (double)stats.numFirstMoveSuccess / (double)stats.numBranchNodes * 100.0f);
+    const double branchingFactor = numNonQuietNodes / stats.numBranchNodes;
+    const double quietPercent = (double)stats.numQuietNodes / numNodes * 100.0f;
+    const double hashHitPercent = (double)stats.numHashHits / numNonQuietNodes * 100.0f;
+    const double orderingPercent = (double)stats.numFirstMoveSuccess / stats.numBranchNodes * 100.0f;
+    printLog(1, "Branching factor: %.2f\n", branchingFactor);
+    printLog(1, "Quiet nodes: %.2f%%\n", quietPercent);
+    printLog(1, "Hash hits %.2f%%\n",  hashHitPercent);
+    printLog(1, "Move ordering %.2f%%\n", orderingPercent);
 }
 
 static SearchResult searchByDepth(int depth)
