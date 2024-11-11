@@ -30,8 +30,11 @@ void resetKillers()
 
 void addToKillers(int depth, Move move)
 {
-    killers[depth][1] = killers[depth][0];
-    killers[depth][0] = move;
+    if (killers[depth][0] != move)
+    {
+        killers[depth][1] = killers[depth][0];
+        killers[depth][0] = move;
+    }
 }
 
 void resetHistory()
