@@ -1,7 +1,7 @@
 # Ray
 Dedicated to Ray Finucane.\
 A UCI chess engine written in C by Joe Chrisman.
-### Features (v1.7.5)
+### Features (v1.7.6)
 #### Move generation
 * Bitboard approach
 * "Magic" bitboards for sliding pieces
