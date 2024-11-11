@@ -217,6 +217,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                     addToKillers(depth, *move);
                     addToHistory(depth, *move);
                 }
+                stats.numCutNodes++;
 
                 writeHashTableEntry(
                     hashTableEntry,
@@ -228,6 +229,14 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 return beta;
             }
         }
+    }
+    if (raisedAlpha)
+    {
+        stats.numPvNodes++;
+    }
+    else
+    {
+        stats.numAllNodes++;
     }
     writeHashTableEntry(
         hashTableEntry,

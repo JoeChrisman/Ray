@@ -41,11 +41,19 @@ static void printSearchResult(SearchResult searchResult)
     const double branchingFactor = numNonQuietNodes / stats.numBranchNodes;
     const double quietPercent = (double)stats.numQuietNodes / numNodes * 100.0f;
     const double hashHitPercent = (double)stats.numHashHits / numNonQuietNodes * 100.0f;
-    const double orderingPercent = (double)stats.numFirstMoveSuccess / stats.numBranchNodes * 100.0f;
+    const double orderingPercent = (double)stats.numFirstMoveSuccess / (double)stats.numCutNodes * 100.0f;
     printLog(1, "Branching factor: %.2f\n", branchingFactor);
     printLog(1, "Quiet nodes: %.2f%%\n", quietPercent);
     printLog(1, "Hash hits %.2f%%\n",  hashHitPercent);
     printLog(1, "Move ordering %.2f%%\n", orderingPercent);
+
+    const double allNodePercent = (double)stats.numAllNodes / (double)stats.numBranchNodes * 100.0f;
+    const double cutNodePercent = (double)stats.numCutNodes / (double)stats.numBranchNodes * 100.0f;
+    const double pvNodePercent = (double)stats.numPvNodes / (double)stats.numBranchNodes * 100.0f;
+    printLog(1, "All nodes: %.2f%%\n", allNodePercent);
+    printLog(1, "Cut nodes %.2f%%\n",  cutNodePercent);
+    printLog(1, "Pv nodes %.2f%%\n", pvNodePercent);
+
 }
 
 static SearchResult searchByDepth(int depth)

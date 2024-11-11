@@ -24,6 +24,10 @@ typedef struct
     uint64_t numQuietNodes;
     uint64_t numFirstMoveSuccess;
     uint64_t numHashHits;
+
+    uint64_t numAllNodes;
+    uint64_t numCutNodes;
+    uint64_t numPvNodes;
 } SearchStats;
 
 extern SearchStats stats;
