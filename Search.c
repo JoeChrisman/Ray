@@ -176,18 +176,14 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
     stats.numBranchNodes++;
 
-    const bool isPvSearch = (alpha - beta == 1);
-
     const bool isReducing = (
         depth >= LATE_MOVE_MIN_DEPTH &&
         !isInCheck &&
-        !isPvSearch &&
         hashTableEntry->type != PV_NODE);
 
     const bool isFutilityPruning = (
         depth <= FUTILITY_MAX_DEPTH &&
         !isInCheck &&
-        !isPvSearch &&
         hashTableEntry->type != PV_NODE &&
         position.whiteAdvantage * position.sideToMove + futilityMargins[depth] < alpha);
 

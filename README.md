@@ -1,7 +1,7 @@
 # Ray
 Dedicated to Ray Finucane.\
 A UCI chess engine written in C.
-### Features (v1.8.0)
+### Features (v1.8.1)
 #### Move generation
 * Bitboard approach
 * "Magic" bitboards for sliding pieces
