@@ -8,11 +8,6 @@
 #include "Utils.h"
 #include "MoveOrder.h"
 
-#define HASH_MOVEORDER MAX_SCORE
-#define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
-#define KILLER_MOVEORDER (MAX_SCORE - 2000)
-#define HISTORY_MOVEORDER MIN_SCORE
-
 #define MAX_HISTORY_SCORE (MAX_SCORE + KILLER_MOVEORDER)
 #define HISTORY_AGING_FACTOR 8
 
@@ -76,7 +71,7 @@ void addToHistory(int depth, Move move)
     }
 }
 
-void pickMove(
+int pickMove(
     Move* moveListStart,
     const Move* const moveListEnd,
     int depth,
@@ -93,11 +88,18 @@ void pickMove(
         }
         else if (!IS_QUIET_MOVE(*move))
         {
+            assert(GET_SCORE(*move) != 0);
             score = CAPTURE_MOVEORDER + GET_SCORE(*move);
         }
-        else if (killers[depth][0] == *move || killers[depth][1] == *move)
+        else if (killers[depth][0] == *move)
         {
-            score = KILLER_MOVEORDER;
+            assert(killers[depth][1] != *move);
+            score = KILLER_MOVEORDER + 2;
+        }
+        else if (killers[depth][1] == *move)
+        {
+            assert(killers[depth][0] != *move);
+            score = KILLER_MOVEORDER + 1;
         }
         else
         {
@@ -112,6 +114,20 @@ void pickMove(
     const Move bestMove = *bestMovePtr;
     *bestMovePtr = *moveListStart;
     *moveListStart = bestMove;
+
+    if (bestScore == HASH_MOVEORDER)
+    {
+        return HASH_MOVEORDER;
+    }
+    else if (bestScore > CAPTURE_MOVEORDER)
+    {
+        return CAPTURE_MOVEORDER;
+    }
+    else if (bestScore > KILLER_MOVEORDER)
+    {
+        return KILLER_MOVEORDER;
+    }
+    return HISTORY_MOVEORDER;
 }
 
 

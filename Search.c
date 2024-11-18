@@ -19,6 +19,12 @@
 #define TIMEOUT_CHECK_INTERVAL 8191
 #define TIMEOUT_MARGIN_MILLIS 100
 
+#define LATE_MOVE_THRESHOLD 4
+#define LATE_MOVE_MIN_DEPTH 4
+
+#define FUTILITY_MAX_DEPTH 3
+static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 250, 700, 1200};
+
 SearchStats stats = {0};
 
 static int quiescenceSearch(int alpha, int beta)
@@ -72,8 +78,6 @@ static inline bool isTimeout()
     }
     return false;
 }
-
-static const int futilityMargins[4] = {0, 250, 700, 1200};
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 {
@@ -155,7 +159,8 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
     Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(firstMove);
-    if (lastMove == firstMove)
+    const int numMoves = (lastMove - firstMove);
+    if (!numMoves)
     {
         if (isTimeout())
         {
@@ -171,16 +176,26 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
     stats.numBranchNodes++;
 
-    bool isFutilityPruning = (
-        depth <= 3 &&
+    const bool isPvSearch = (alpha - beta == 1);
+
+    const bool isReducing = (
+        depth >= LATE_MOVE_MIN_DEPTH &&
         !isInCheck &&
+        !isPvSearch &&
+        hashTableEntry->type != PV_NODE);
+
+    const bool isFutilityPruning = (
+        depth <= FUTILITY_MAX_DEPTH &&
+        !isInCheck &&
+        !isPvSearch &&
         hashTableEntry->type != PV_NODE &&
         position.whiteAdvantage * position.sideToMove + futilityMargins[depth] < alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
-    int raisedAlpha = 0;
+    bool raisedAlpha = false;
     Move bestMove = NO_MOVE;
-    for (Move* move = firstMove; move < lastMove; move++)
+    int moveNum = 0;
+    for (Move* move = firstMove; move < lastMove; move++, moveNum++)
     {
         if (isFutilityPruning &&
             *move != bestHashMove &&
@@ -189,11 +204,34 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
             continue;
         }
 
-        pickMove(move, lastMove, depth, bestHashMove);
+        int moveOrderType = pickMove(move, lastMove, depth, bestHashMove);
 
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        const int score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+        int score = INVALID_SCORE;
+        if (move == firstMove)
+        {
+            score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+        }
+        else
+        {
+            int reduction = 0;
+            if (isReducing &&
+                moveNum > LATE_MOVE_THRESHOLD &&
+                moveOrderType == HISTORY_MOVEORDER)
+            {
+                const float searchedRatio = (float)moveNum / (float)numMoves;
+                const float minReduction = (float)depth / (float)LATE_MOVE_MIN_DEPTH;
+                reduction = (int)(minReduction + (float)depth * searchedRatio / 2.0f);
+                assert(reduction >= 1);
+                assert(reduction < depth);
+            }
+            score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction);
+            if (score > alpha)
+            {
+                score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+            }
+        }
         unMakeMove(*move, irreversibles);
 
         if (cancelTime == SEARCH_CANCELLED)
@@ -203,7 +241,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
 
         if (score > alpha)
         {
-            raisedAlpha = 1;
+            raisedAlpha = true;
             alpha = score;
             bestMove = *move;
             if (score >= beta)

@@ -1,19 +1,20 @@
 # Ray
 Dedicated to Ray Finucane.\
-A UCI chess engine written in C by Joe Chrisman.
-### Features (v1.7.6)
+A UCI chess engine written in C.
+### Features (v1.8.0)
 #### Move generation
 * Bitboard approach
 * "Magic" bitboards for sliding pieces
-* Compiler intrinsics for fast popcount
 * Rigorously tested with custom perft
 #### Search
 * Hash table move ordering
 * Captures ordered by mvv/lva
 * Killer heuristic quiet move ordering
 * History heuristic quiet move ordering
+* Principal variation search
 * Recursive null move pruning
 * Futile move pruning
+* Late move reductions
 * Check extensions
 * 512MB hash table
 * Cut node, all node, and PV node hash table cutoffs
@@ -22,8 +23,9 @@ A UCI chess engine written in C by Joe Chrisman.
 * Iterative deepening at root
 #### Evaluation
 * Tapered evaluation
-* Iteratively updated material balance
-* Iteratively updated piece square tables
+* Piece square tables
+* Incrementally updated material balance
+* Incrementally updated piece placement evaluation
 * Passed pawn bonus
 * Isolated pawn penalty
 * Doubled pawn penalty
@@ -31,15 +33,3 @@ A UCI chess engine written in C by Joe Chrisman.
 * King activity evaluation
 * King pawn shield evaluation
 * Bishop pair bonus
-#### TODO
-* Late move reductions
-* Mess around with countermove heuristic
-* Keep track of attack bitboard and use in evaluation
-* Principal variation search experiments
-* MTD(f) search experiments
-* Aspiration window experiments
-* More pruning/reductions in quiescence search
-* Maybe use some kind of SEE in quiescence search
-* Experiment with a pawn hash table
-* Maybe migrate to C++ for better optimization across translation units
-

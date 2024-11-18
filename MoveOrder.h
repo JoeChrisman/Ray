@@ -3,7 +3,13 @@
 
 #include "Move.h"
 
-void pickMove(
+
+#define HASH_MOVEORDER MAX_SCORE
+#define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
+#define KILLER_MOVEORDER (MAX_SCORE - 2000)
+#define HISTORY_MOVEORDER MIN_SCORE
+
+int pickMove(
     Move* moveListStart,
     const Move* const moveListEnd,
     int depth,
