@@ -223,7 +223,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 assert(reduction < depth);
             }
             score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction);
-            if (score > alpha)
+            if (score > alpha && score < beta)
             {
                 score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
             }
