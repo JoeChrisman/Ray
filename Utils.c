@@ -19,7 +19,7 @@ void printLog(int logLevel, const char *format, ...)
     {
         va_list args;
         va_start(args, format);
-        printf("[DEBUG] ");
+        printf("info string [DEBUG] ");
         vprintf(format, args);
         fflush(stdout);
         va_end(args);
