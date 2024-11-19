@@ -1,19 +1,19 @@
 # Ray
 Dedicated to Ray Finucane.\
 A UCI chess engine written in C.
-### Features (v1.8.1)
+### Features
 #### Move generation
 * Bitboard approach
 * "Magic" bitboards for sliding pieces
 * Rigorously tested with custom perft
 #### Search
+* Principal variation search
 * Hash table move ordering
 * Captures ordered by mvv/lva
 * Killer heuristic quiet move ordering
 * History heuristic quiet move ordering
-* Principal variation search
-* Recursive null move pruning
-* Futile move pruning
+* Null move pruning (recursive)
+* Futile move pruning (extended)
 * Late move reductions
 * Check extensions
 * 512MB hash table
@@ -22,14 +22,15 @@ A UCI chess engine written in C.
 * Draw by repetition/50-move detection
 * Iterative deepening at root
 #### Evaluation
-* Tapered evaluation
-* Piece square tables
-* Incrementally updated material balance
-* Incrementally updated piece placement evaluation
+* Texel tuned piece square tables
+* Tapered piece value
+* Tapered placement value
+* Incrementally updated end game advantage
+* Incrementally updated middle game advantage
 * Passed pawn bonus
 * Isolated pawn penalty
 * Doubled pawn penalty
-* King safety evaluation
-* King activity evaluation
+* King safety with piece square tables
+* King activity with piece square tables
 * King pawn shield evaluation
 * Bishop pair bonus

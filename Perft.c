@@ -109,7 +109,9 @@ void runPerftSuite()
         const char* fen = tests[test];
         loadFen(fen);
         const Bitboard expectedZobristHash = position.hash;
-        const int expectedWhiteAdvantage = position.whiteAdvantage;
+        const int expectedWhiteMidgameAdvantage = position.whiteMidGameAdvantage;
+        const int expectedWhiteEndgameAdvantage = position.whiteEndGameAdvantage;
+
         Millis totalTestMillis = 0;
         const int failsBefore = numFailed;
         for (int depth = 1; depth <= maxDepth; depth++)
@@ -136,10 +138,16 @@ void runPerftSuite()
                        fen, depth, expectedZobristHash, position.hash);
                 numFailed++;
             }
-            else if (position.whiteAdvantage != expectedWhiteAdvantage)
+            else if (position.whiteMidGameAdvantage != expectedWhiteMidgameAdvantage)
             {
-                printf("[FAILED EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
-                       fen, depth, expectedWhiteAdvantage, position.whiteAdvantage);
+                printf("[FAILED MIDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
+                       fen, depth, expectedWhiteMidgameAdvantage, position.whiteMidGameAdvantage);
+                numFailed++;
+            }
+            else if (position.whiteEndGameAdvantage != expectedWhiteEndgameAdvantage)
+            {
+                printf("[FAILED ENDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
+                       fen, depth, expectedWhiteEndgameAdvantage, position.whiteEndGameAdvantage);
                 numFailed++;
             }
             else

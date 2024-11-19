@@ -40,7 +40,8 @@ typedef struct
     Bitboard black;
     Bitboard occupied;
 
-    int whiteAdvantage;
+    int whiteMidGameAdvantage;
+    int whiteEndGameAdvantage;
 
     Bitboard hash;
     Bitboard history[MAX_MOVES_IN_GAME];

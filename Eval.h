@@ -5,8 +5,12 @@
 #include "Square.h"
 
 int evaluate();
+int quickEvaluate();
 
-extern const int pieceScores[NUM_PIECE_TYPES + 1];
-extern const int placementScores[NUM_PIECE_TYPES + 1][NUM_SQUARES];
+extern const int midGamePieceScores[NUM_PIECE_TYPES + 1];
+extern const int endGamePieceScores[NUM_PIECE_TYPES + 1];
+
+extern const int midGamePlacementScores[NUM_PIECE_TYPES + 1][NUM_SQUARES];
+extern const int endGamePlacementScores[NUM_PIECE_TYPES + 1][NUM_SQUARES];
 
 #endif

@@ -185,7 +185,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         depth <= FUTILITY_MAX_DEPTH &&
         !isInCheck &&
         hashTableEntry->type != PV_NODE &&
-        position.whiteAdvantage * position.sideToMove + futilityMargins[depth] < alpha);
+        quickEvaluate() * position.sideToMove + futilityMargins[depth] < alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
     bool raisedAlpha = false;

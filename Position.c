@@ -77,7 +77,10 @@ int loadFen(const char* fen)
             position.occupied |= GET_BOARD(square);
             position.bitboards[piece] |= GET_BOARD(square);
             position.pieces[square] = piece;
-            position.whiteAdvantage += pieceScores[piece] + placementScores[piece][square];
+            position.whiteMidGameAdvantage += midGamePieceScores[piece];
+            position.whiteMidGameAdvantage += midGamePlacementScores[piece][square];
+            position.whiteEndGameAdvantage += endGamePieceScores[piece];
+            position.whiteEndGameAdvantage += endGamePlacementScores[piece][square];
             position.hash ^= zobristPieces[square][piece];
             square++;
         }
@@ -194,6 +197,22 @@ static inline void updateOccupancy()
     position.occupied = position.white | position.black;
 }
 
+static inline void addWhiteAdvantage(Piece piece, Square on)
+{
+    position.whiteMidGameAdvantage += midGamePieceScores[piece];
+    position.whiteMidGameAdvantage += midGamePlacementScores[piece][on];
+    position.whiteEndGameAdvantage += endGamePieceScores[piece];
+    position.whiteEndGameAdvantage += endGamePlacementScores[piece][on];
+}
+
+static inline void removeWhiteAdvantage(Piece piece, Square on)
+{
+    position.whiteMidGameAdvantage -= midGamePieceScores[piece];
+    position.whiteMidGameAdvantage -= midGamePlacementScores[piece][on];
+    position.whiteEndGameAdvantage -= endGamePieceScores[piece];
+    position.whiteEndGameAdvantage -= endGamePlacementScores[piece][on];
+}
+
 void makeMove(Move move)
 {
     const Square squareFrom = GET_SQUARE_FROM(move);
@@ -222,7 +241,7 @@ void makeMove(Move move)
     // remove the moved piece from its source square
     position.bitboards[moved] ^= from;
     position.pieces[squareFrom] = NO_PIECE;
-    position.whiteAdvantage -= pieceScores[moved] + placementScores[moved][squareFrom];
+    removeWhiteAdvantage(moved, squareFrom);
     position.hash ^= zobristPieces[squareFrom][moved];
 
     if (IS_EN_PASSANT_CAPTURE(move))
@@ -231,7 +250,7 @@ void makeMove(Move move)
         const Square captureSquare = GET_SQUARE(position.irreversibles.enPassant);
         position.bitboards[captured] ^= position.irreversibles.enPassant;
         position.pieces[captureSquare] = NO_PIECE;
-        position.whiteAdvantage -= pieceScores[captured] + placementScores[captured][captureSquare];
+        removeWhiteAdvantage(captured, captureSquare);
         position.hash ^= zobristPieces[captureSquare][captured];
     }
     else
@@ -239,7 +258,7 @@ void makeMove(Move move)
         // remove a captured piece
         position.bitboards[captured] ^= to;
         position.pieces[squareTo] = NO_PIECE;
-        position.whiteAdvantage -= pieceScores[captured] + placementScores[captured][squareTo];
+        removeWhiteAdvantage(captured, squareTo);
         position.hash ^= zobristPieces[squareTo][captured];
     }
 
@@ -248,7 +267,7 @@ void makeMove(Move move)
         // add a promoted piece
         position.bitboards[promoted] |= to;
         position.pieces[squareTo] = promoted;
-        position.whiteAdvantage += pieceScores[promoted] + placementScores[promoted][squareTo];
+        addWhiteAdvantage(promoted, squareTo);
         position.hash ^= zobristPieces[squareTo][promoted];
     }
     else
@@ -256,7 +275,7 @@ void makeMove(Move move)
         // copy the moved piece to its destination square
         position.bitboards[moved] |= to;
         position.pieces[squareTo] = moved;
-        position.whiteAdvantage += pieceScores[moved] + placementScores[moved][squareTo];
+        addWhiteAdvantage(moved, squareTo);
         position.hash ^= zobristPieces[squareTo][moved];
     }
 
@@ -283,7 +302,8 @@ void makeMove(Move move)
             position.bitboards[BLACK_ROOK] |= GET_BOARD(F8);
             position.pieces[F8] = BLACK_ROOK;
             position.hash ^= zobristPieces[F8][BLACK_ROOK];
-            position.whiteAdvantage += placementScores[BLACK_ROOK][F8] - placementScores[BLACK_ROOK][H8];
+            removeWhiteAdvantage(BLACK_ROOK, H8);
+            addWhiteAdvantage(BLACK_ROOK, F8);
         }
         // black castle queenside
         else if (squareTo == C8)
@@ -294,7 +314,8 @@ void makeMove(Move move)
             position.bitboards[BLACK_ROOK] |= GET_BOARD(D8);
             position.pieces[D8] = BLACK_ROOK;
             position.hash ^= zobristPieces[D8][BLACK_ROOK];
-            position.whiteAdvantage += placementScores[BLACK_ROOK][D8] - placementScores[BLACK_ROOK][A8];
+            removeWhiteAdvantage(BLACK_ROOK, A8);
+            addWhiteAdvantage(BLACK_ROOK, D8);
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -308,7 +329,8 @@ void makeMove(Move move)
             position.bitboards[WHITE_ROOK] |= GET_BOARD(F1);
             position.pieces[F1] = WHITE_ROOK;
             position.hash ^= zobristPieces[F1][WHITE_ROOK];
-            position.whiteAdvantage += placementScores[WHITE_ROOK][F1] - placementScores[WHITE_ROOK][H1];
+            removeWhiteAdvantage(WHITE_ROOK, H1);
+            addWhiteAdvantage(WHITE_ROOK, F1);
         }
         // white castle queenside
         else if (squareTo == C1)
@@ -319,7 +341,8 @@ void makeMove(Move move)
             position.bitboards[WHITE_ROOK] |= GET_BOARD(D1);
             position.pieces[D1] = WHITE_ROOK;
             position.hash ^= zobristPieces[D1][WHITE_ROOK];
-            position.whiteAdvantage += placementScores[WHITE_ROOK][D1] - placementScores[WHITE_ROOK][A1];
+            removeWhiteAdvantage(WHITE_ROOK, A1);
+            addWhiteAdvantage(WHITE_ROOK, D1);
         }
     }
 
@@ -359,14 +382,14 @@ void unMakeMove(Move move, Irreversibles irreversibles)
     // add the moved piece back to its source square
     position.bitboards[moved] ^= from;
     position.pieces[squareFrom] = moved;
-    position.whiteAdvantage += pieceScores[moved] + placementScores[moved][squareFrom];
+    addWhiteAdvantage(moved, squareFrom);
     position.hash ^= zobristPieces[squareFrom][moved];
 
     if (promoted != NO_PIECE)
     {
         // remove a promoted piece
         position.bitboards[promoted] ^= to;
-        position.whiteAdvantage -= pieceScores[promoted] + placementScores[promoted][squareTo];
+        removeWhiteAdvantage(promoted, squareTo);
         position.hash ^= zobristPieces[squareTo][promoted];
     }
     else
@@ -374,7 +397,7 @@ void unMakeMove(Move move, Irreversibles irreversibles)
         // remove the moved piece from its destination square
         position.bitboards[moved] ^= to;
         position.pieces[squareTo] = NO_PIECE;
-        position.whiteAdvantage -= pieceScores[moved] + placementScores[moved][squareTo];
+        removeWhiteAdvantage(moved, squareTo);
         position.hash ^= zobristPieces[squareTo][moved];
     }
 
@@ -384,7 +407,7 @@ void unMakeMove(Move move, Irreversibles irreversibles)
         const Square captureSquare = GET_SQUARE(irreversibles.enPassant);
         position.bitboards[captured] |= irreversibles.enPassant;
         position.pieces[captureSquare] = captured;
-        position.whiteAdvantage += pieceScores[captured] + placementScores[captured][captureSquare];
+        addWhiteAdvantage(captured, captureSquare);
         position.hash ^= zobristPieces[captureSquare][captured];
     }
     else
@@ -392,7 +415,7 @@ void unMakeMove(Move move, Irreversibles irreversibles)
         // replace a normal capture
         position.bitboards[captured] |= to;
         position.pieces[squareTo] = captured;
-        position.whiteAdvantage += pieceScores[captured] + placementScores[captured][squareTo];
+        addWhiteAdvantage(captured, squareTo);
         position.hash ^= zobristPieces[squareTo][captured];
 
     }
@@ -408,7 +431,8 @@ void unMakeMove(Move move, Irreversibles irreversibles)
             position.bitboards[BLACK_ROOK] ^= GET_BOARD(F8);
             position.pieces[F8] = NO_PIECE;
             position.hash ^= zobristPieces[F8][BLACK_ROOK];
-            position.whiteAdvantage += placementScores[BLACK_ROOK][H8] - placementScores[BLACK_ROOK][F8];
+            removeWhiteAdvantage(BLACK_ROOK, F8);
+            addWhiteAdvantage(BLACK_ROOK, H8);
         }
         // undo black castle queenside
         else if (squareTo == C8)
@@ -419,7 +443,8 @@ void unMakeMove(Move move, Irreversibles irreversibles)
             position.bitboards[BLACK_ROOK] ^= GET_BOARD(D8);
             position.pieces[D8] = NO_PIECE;
             position.hash ^= zobristPieces[D8][BLACK_ROOK];
-            position.whiteAdvantage += placementScores[BLACK_ROOK][A8] - placementScores[BLACK_ROOK][D8];
+            removeWhiteAdvantage(BLACK_ROOK, D8);
+            addWhiteAdvantage(BLACK_ROOK, A8);
         }
     }
     else if (squareFrom == E1 && moved == WHITE_KING)
@@ -433,7 +458,8 @@ void unMakeMove(Move move, Irreversibles irreversibles)
             position.bitboards[WHITE_ROOK] ^= GET_BOARD(F1);
             position.pieces[F1] = NO_PIECE;
             position.hash ^= zobristPieces[F1][WHITE_ROOK];
-            position.whiteAdvantage += placementScores[WHITE_ROOK][H1] - placementScores[WHITE_ROOK][F1];
+            removeWhiteAdvantage(WHITE_ROOK, F1);
+            addWhiteAdvantage(WHITE_ROOK, H1);
         }
         // undo white castle queenside
         else if (squareTo == C1)
@@ -444,7 +470,8 @@ void unMakeMove(Move move, Irreversibles irreversibles)
             position.bitboards[WHITE_ROOK] ^= GET_BOARD(D1);
             position.pieces[D1] = NO_PIECE;
             position.hash ^= zobristPieces[D1][WHITE_ROOK];
-            position.whiteAdvantage += placementScores[WHITE_ROOK][A1] - placementScores[WHITE_ROOK][D1];
+            removeWhiteAdvantage(WHITE_ROOK, D1);
+            addWhiteAdvantage(WHITE_ROOK, A1);
         }
     }
     position.irreversibles = irreversibles;
