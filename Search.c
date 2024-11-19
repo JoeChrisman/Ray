@@ -42,10 +42,10 @@ static int quiescenceSearch(int alpha, int beta)
     {
         alpha = score;
     }
+    stats.numQuietNodes++;
 
     Move captureListStart[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* captureListEnd = genCaptures(captureListStart);
-    stats.numQuietNodes += captureListEnd - captureListStart;
     for (Move* capture = captureListStart; capture < captureListEnd; capture++)
     {
         pickCapture(capture, captureListEnd);
