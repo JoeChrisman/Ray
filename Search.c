@@ -134,7 +134,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         return cutoffValue;
     }
 
-    if (!isInCheck &&
+    const bool isPvNode = beta > alpha + 1;
+
+    if (!isPvNode &&
+        !isInCheck &&
         !wasNullMove &&
         depth > 3
         && !isZugzwang(position.sideToMove))
@@ -174,14 +177,13 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
     stats.numBranchNodes++;
 
     const bool isReducing = (
-        depth >= LATE_MOVE_MIN_DEPTH &&
         !isInCheck &&
-        hashTableEntry->type != PV_NODE);
+        depth >= LATE_MOVE_MIN_DEPTH); 
 
     const bool isFutilityPruning = (
-        depth <= FUTILITY_MAX_DEPTH &&
+        !isPvNode &&
         !isInCheck &&
-        hashTableEntry->type != PV_NODE &&
+        depth <= FUTILITY_MAX_DEPTH &&
         quickEvaluate() * position.sideToMove + futilityMargins[depth] < alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
@@ -216,6 +218,10 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 const float searchedRatio = (float)moveNum / (float)numMoves;
                 const float minReduction = (float)depth / (float)LATE_MOVE_MIN_DEPTH;
                 reduction = (int)(minReduction + (float)depth * searchedRatio / 2.0f);
+                if (isPvNode)
+                {
+                    reduction /= 2;
+                }
                 assert(reduction >= 1);
                 assert(reduction < depth);
             }
