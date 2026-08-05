@@ -3,11 +3,15 @@
 
 #include "Move.h"
 
-
 #define HASH_MOVEORDER MAX_SCORE
+
 #define CAPTURE_MOVEORDER (MAX_SCORE - 1000)
+
 #define KILLER_MOVEORDER (MAX_SCORE - 2000)
-#define HISTORY_MOVEORDER MIN_SCORE
+
+#define HISTORY_MOVEORDER 0 
+#define MAX_HISTORY_SCORE 5000 
+#define HISTORY_BONUS 16 
 
 int pickMove(
     Move* moveListStart,
@@ -23,8 +27,6 @@ void resetKillers();
 void resetHistory();
 
 void addToKillers(int depth, Move move);
-void addToHistory(int depth, Move move);
-
-void ageHistory();
+void addToHistory(int bonus, Move move);
 
 #endif

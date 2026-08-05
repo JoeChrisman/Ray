@@ -1,6 +1,3 @@
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
 #include <assert.h>
 #include <stdbool.h>
 
@@ -249,7 +246,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 if (IS_QUIET_MOVE(*move))
                 {
                     addToKillers(depth, *move);
-                    addToHistory(depth, *move);
+                    addToHistory(depth * depth * HISTORY_BONUS, *move);
                 }
                 stats.numCutNodes++;
 

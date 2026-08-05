@@ -8,11 +8,8 @@
 #include "Utils.h"
 #include "MoveOrder.h"
 
-#define MAX_HISTORY_SCORE (MAX_SCORE + KILLER_MOVEORDER)
-#define HISTORY_AGING_FACTOR 8
-
 static Move killers[MAX_SEARCH_DEPTH][2];
-static int history[NUM_SQUARES][NUM_SQUARES];
+static int history[NUM_PIECE_TYPES + 1][NUM_SQUARES];
 
 void resetKillers()
 {
@@ -34,41 +31,27 @@ void addToKillers(int depth, Move move)
 
 void resetHistory()
 {
-    for (Square from = A8; from <= H1; from++)
+    for (Square to = A8; to <= H1; to++)
     {
-        for (Square to = A8; to <= H1; to++)
+        for (Piece piece = WHITE_PAWN; piece <= BLACK_KING; piece++)
         {
-            assert(history[from][to] <= MAX_HISTORY_SCORE);
-            history[from][to] = 0;
+            assert(history[piece][to] <= MAX_HISTORY_SCORE);
+            history[piece][to] = 0;
         }
     }
 }
 
-void ageHistory()
+void addToHistory(int bonus, Move move)
 {
-    for (Square from = A8; from <= H1; from++)
-    {
-        for (Square to = A8; to <= H1; to++)
-        {
-            history[from][to] /= HISTORY_AGING_FACTOR;
-        }
-    }
-}
-
-void addToHistory(int depth, Move move)
-{
-    assert(depth <= MAX_SEARCH_DEPTH);
-    const Square from = GET_SQUARE_FROM(move);
     const Square to = GET_SQUARE_TO(move);
+    const Piece moved = GET_PIECE_MOVED(move);
 
-    int* const historyScore = &history[from][to];
-    assert(*historyScore < MAX_HISTORY_SCORE);
-    const int historyBonus = depth * depth;
-    *historyScore = MIN(MAX_HISTORY_SCORE, *historyScore + historyBonus);
-    if (*historyScore >= MAX_HISTORY_SCORE)
-    {
-        ageHistory();
-    }
+    int* const historyScore = &history[moved][to];
+    assert(*historyScore <= MAX_HISTORY_SCORE);
+    assert(*historyScore >= -MAX_HISTORY_SCORE); 
+
+    *historyScore += bonus - (*historyScore * abs(bonus) / MAX_HISTORY_SCORE);
+    *historyScore = MAX(-MAX_HISTORY_SCORE, MIN(MAX_HISTORY_SCORE, *historyScore));
 }
 
 int pickMove(
@@ -103,7 +86,7 @@ int pickMove(
         }
         else
         {
-            score = HISTORY_MOVEORDER + history[GET_SQUARE_FROM(*move)][GET_SQUARE_TO(*move)];
+            score = HISTORY_MOVEORDER + history[GET_PIECE_MOVED(*move)][GET_SQUARE_TO(*move)];
         }
         if (score >= bestScore)
         {

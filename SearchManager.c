@@ -58,7 +58,6 @@ static void printSearchResult(SearchResult searchResult)
 
 static SearchResult searchByDepth(int depth)
 {
-    ageHistory();
     Millis startTime = getMillis();
     Move equalMoves[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     int numEqualMoves = 0;
