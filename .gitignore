@@ -1,0 +1,8 @@
+# Ignore everything in the repository root
+/*
+
+!/*.c
+!/*.h
+!/*.txt
+!/Makefile
+!/.gitignore
