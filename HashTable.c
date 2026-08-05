@@ -10,7 +10,7 @@
 #include "Utils.h"
 #include "HashTable.h"
 
-#define HASH_TABLE_MEGABYTES 512
+#define HASH_TABLE_MEGABYTES 256 
 
 static int numHashTableEntries;
 
@@ -27,10 +27,10 @@ int initHashTable()
     const int numBytes = HASH_TABLE_MEGABYTES * 1024 * 1024;
     const int goalNumEntries = numBytes / entrySize;
 
-    numHashTableEntries = INT32_MAX;
-    while (numHashTableEntries > goalNumEntries)
+    numHashTableEntries = 1;
+    while (numHashTableEntries * 2 <= goalNumEntries)
     {
-        numHashTableEntries /= 2;
+        numHashTableEntries *= 2;
     }
 
     hashTable = malloc(entrySize * numHashTableEntries);

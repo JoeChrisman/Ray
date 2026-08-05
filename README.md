@@ -23,7 +23,6 @@ This will work with all mainstream compilers except for MSVC
 * Futile move pruning (extended)
 * Late move reductions
 * Check extensions
-* 512MB hash table
 * Cut node, all node, and PV node hash table cutoffs
 * Basic quiescence search
 * Draw by repetition/50-move detection
