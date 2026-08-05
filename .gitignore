@@ -5,4 +5,5 @@
 !/*.h
 !/*.txt
 !/Makefile
+!/*.md
 !/.gitignore
