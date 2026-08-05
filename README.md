@@ -1,6 +1,13 @@
 # Ray
 Dedicated to Ray Finucane.\
 A UCI chess engine written in C.
+### Build instructions
+This project uses a basic makefile. to build a binary, use one of the following commands:
+* make (this will build a release version)
+* make release (this will also build a release version)
+* make debug (this will build a debug version)
+This will work with all mainstream compilers except for MSVC
+
 ### Features
 #### Move generation
 * Bitboard approach
