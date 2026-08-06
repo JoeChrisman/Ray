@@ -21,7 +21,7 @@
 #define LATE_MOVE_MIN_DEPTH 4
 
 #define FUTILITY_MAX_DEPTH 3
-static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 250, 700, 1200};
+static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 150, 300, 600};
 
 SearchStats stats = {0};
 
