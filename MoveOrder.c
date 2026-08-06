@@ -122,7 +122,6 @@ void pickCapture(
     int bestScore = MIN_SCORE;
     for (Move* move = captureListStart; move < captureListEnd; move++)
     {
-        assert(!IS_QUIET_MOVE(*move));
         const int score = CAPTURE_MOVEORDER + GET_SCORE(*move);
         if (score >= bestScore)
         {

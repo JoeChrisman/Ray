@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <stdbool.h>
+#include <stdlib.h>
 
 #include "SearchManager.h"
 #include "Eval.h"
@@ -30,22 +31,48 @@ static int quiescenceSearch(int alpha, int beta)
     assert(alpha >= MIN_SCORE);
     assert(alpha <= MAX_SCORE);
 
-    int score = evaluate() * position.sideToMove;
-    if (score >= beta)
-    {
-        return beta;
-    }
-    if (score > alpha)
-    {
-        alpha = score;
-    }
-    stats.numQuietNodes++;
+    int evaluation = MIN_SCORE;
 
     Move captureListStart[MAX_MOVES_IN_POSITION] = {NO_MOVE};
-    Move* captureListEnd = genCaptures(captureListStart);
+    Move* captureListEnd = NULL;
+    const bool isInCheck = isKingInCheck(position.sideToMove);
+    if (isInCheck) 
+    {
+        captureListEnd = genMoves(captureListStart);
+        if (captureListStart == captureListEnd)
+        {
+            return MIN_SCORE + position.plies; 
+        }
+    }
+    else 
+    {
+        evaluation = evaluate() * position.sideToMove;
+        if (evaluation >= beta)
+        {
+            return beta;
+        }
+        if (evaluation > alpha)
+        {
+            alpha = evaluation;
+        }
+        stats.numQuietNodes++;
+
+        captureListEnd = genCaptures(captureListStart);
+    }
+
+    int score = 0;
+    
     for (Move* capture = captureListStart; capture < captureListEnd; capture++)
     {
         pickCapture(capture, captureListEnd);
+        const Piece captured = GET_PIECE_CAPTURED(*capture);
+        if (!isInCheck &&
+            captured != NO_PIECE &&
+            evaluation + abs(midGamePieceScores[captured]) + 100 < alpha)
+        {
+            continue;
+        }
+        
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*capture);
         score = -quiescenceSearch(-beta, -alpha);
