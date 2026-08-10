@@ -253,9 +253,16 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 assert(reduction < depth);
             }
             score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction);
-            if (score > alpha && score < beta)
+            if (score > alpha)
             {
-                score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+                if (reduction > 0)
+                {
+                    score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1);
+                }
+                if (score > alpha && score < beta)
+                {
+                    score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+                }
             }
         }
         unMakeMove(*move, irreversibles);
