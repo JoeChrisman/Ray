@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -240,16 +241,15 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         {
             int reduction = 0;
             if (isReducing &&
-                moveNum > LATE_MOVE_THRESHOLD &&
+                moveNum >= LATE_MOVE_THRESHOLD &&
                 moveOrderType == HISTORY_MOVEORDER)
             {
-                reduction = MIN(depth - 1, 1 + depth / 4 + movesSearched / 8);
+                reduction = (int)sqrt(depth - 1) + (int)sqrt(movesSearched - 1);
                 if (isPvNode)
                 {
                     reduction /= 2;
                 }
-                assert(reduction >= 1);
-                assert(reduction < depth);
+                reduction = MAX(0, MIN(depth - 1, reduction));
             }
             score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction);
             if (score > alpha)
