@@ -17,7 +17,7 @@
 #define TIMEOUT_CHECK_INTERVAL 8191
 #define TIMEOUT_MARGIN_MILLIS 100
 
-#define LATE_MOVE_THRESHOLD 4
+#define LATE_MOVE_THRESHOLD 3
 #define LATE_MOVE_MIN_DEPTH 4
 
 #define FUTILITY_MAX_DEPTH 3
@@ -217,6 +217,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
     bool raisedAlpha = false;
     Move bestMove = NO_MOVE;
     int moveNum = 0;
+    int movesSearched = 0;
     for (Move* move = firstMove; move < lastMove; move++, moveNum++)
     {
         if (isFutilityPruning &&
@@ -242,9 +243,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                 moveNum > LATE_MOVE_THRESHOLD &&
                 moveOrderType == HISTORY_MOVEORDER)
             {
-                const float searchedRatio = (float)moveNum / (float)numMoves;
-                const float minReduction = (float)depth / (float)LATE_MOVE_MIN_DEPTH;
-                reduction = (int)(minReduction + (float)depth * searchedRatio / 2.0f);
+                reduction = MIN(depth - 1, 1 + depth / 4 + movesSearched / 8);
                 if (isPvNode)
                 {
                     reduction /= 2;
@@ -266,6 +265,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
             }
         }
         unMakeMove(*move, irreversibles);
+        movesSearched++;
 
         if (cancelTime == SEARCH_CANCELLED)
         {
