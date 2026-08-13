@@ -19,7 +19,7 @@ int initHashTable()
     const int entrySize = sizeof(HashEntry);
     if (hashTable != NULL)
     {
-        printLog(1, "Deallocated hash table, size was %d bytes\n", entrySize * numHashTableEntries);
+        DEBUG_LOG("Deallocated hash table, size was %d bytes\n", entrySize * numHashTableEntries);
         free(hashTable);
         hashTable = NULL;
     }
@@ -37,37 +37,17 @@ int initHashTable()
     if (hashTable != NULL)
     {
         memset(hashTable, 0, entrySize * numHashTableEntries);
-        printLog(1, "Allocated %dMB hash table with %d bytes and with %d entries\n",
+        DEBUG_LOG("Allocated %dMB hash table with %d bytes and with %d entries\n",
                  HASH_TABLE_MEGABYTES,
                  entrySize * numHashTableEntries,
                  numHashTableEntries);
         return 0;
     }
-    printLog(1, "Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
+    DEBUG_LOG("Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
              HASH_TABLE_MEGABYTES,
              entrySize * numHashTableEntries,
              numHashTableEntries);
     return 1;
-}
-
-void printPrincipalVariation(int depth)
-{
-    HashEntry* entry = getHashTableEntry(position.hash);
-    if (depth &&
-        entry->hash == position.hash &&
-        entry->bestMove != NO_MOVE &&
-        entry->type != NO_NODE)
-    {
-        printf("%s ", getStrFromMove(entry->bestMove));
-        const Irreversibles irreversibles = position.irreversibles;
-        makeMove(entry->bestMove);
-        printPrincipalVariation(depth - 1);
-        unMakeMove(entry->bestMove, irreversibles);
-    }
-    else
-    {
-        printf("\n");
-    }
 }
 
 HashEntry* probeHashTable(
@@ -75,11 +55,12 @@ HashEntry* probeHashTable(
     int* cutoffValue,
     int alpha,
     int beta,
-    int depth)
+    int depth,
+    int ply)
 {
     HashEntry* entry = getHashTableEntry(hash);
     assert(depth > 0);
-    assert(depth < MAX_SEARCH_DEPTH);
+    assert(depth < MAX_PLY);
     assert(hashTable != NULL);
     assert(entry != NULL);
     assert(entry >= hashTable);
@@ -90,7 +71,6 @@ HashEntry* probeHashTable(
         memset(entry, 0, sizeof(HashEntry));
         return entry;
     }
-    stats.numHashHits++;
 
     if (entry->depth < depth)
     {
@@ -98,13 +78,13 @@ HashEntry* probeHashTable(
     }
 
     int score = entry->bestScore;
-    if (score > IS_MATE)
+    if (score > MIN_MATE_SCORE)
     {
-        score -= position.plies;
+        score -= ply;
     }
-    else if (score < -IS_MATE)
+    else if (score < -MIN_MATE_SCORE)
     {
-        score += position.plies;
+        score += ply; 
     }
 
     if (entry->type == ALL_NODE && score <= alpha)
@@ -129,10 +109,12 @@ void writeHashTableEntry(
     NodeType entryType,
     Move bestMove,
     int bestScore,
-    int depth)
+    int depth,
+    int ply)
 {
     assert(depth > 0);
-    assert(depth < MAX_SEARCH_DEPTH);
+    assert(depth < MAX_PLY);
+    assert(ply < MAX_PLY);
     assert(bestScore <= MAX_SCORE);
     assert(bestScore >= MIN_SCORE);
     assert(hashTable != NULL);
@@ -140,13 +122,13 @@ void writeHashTableEntry(
     assert(entry >= hashTable);
     assert(entry < hashTable + numHashTableEntries);
 
-    if (bestScore > IS_MATE)
+    if (bestScore > MIN_MATE_SCORE)
     {
-        bestScore += position.plies;
+        bestScore += ply;
     }
-    else if (bestScore < -IS_MATE)
+    else if (bestScore < -MIN_MATE_SCORE)
     {
-        bestScore -= position.plies;
+        bestScore -= ply;
     }
 
     entry->hash = hash;
@@ -159,6 +141,39 @@ void writeHashTableEntry(
 HashEntry* getHashTableEntry(uint64_t hash)
 {
     return hashTable + (hash & (numHashTableEntries - 1));
+}
+
+int getTableUseEstimate()
+{
+    int numInUse = 0;
+    for (int i = 0; i < 1000; i++)
+    {
+        if ((hashTable + i)->type != NO_NODE)
+        {
+            numInUse++;
+        }
+    }
+    return numInUse;
+}
+
+void printPrincipalVariation(int depth)
+{
+    HashEntry* entry = getHashTableEntry(position.hash);
+    if (depth &&
+        entry->hash == position.hash &&
+        entry->bestMove != NO_MOVE &&
+        entry->type != NO_NODE)
+    {
+        printf("%s ", getStrFromMove(entry->bestMove));
+        const Irreversibles irreversibles = position.irreversibles;
+        makeMove(entry->bestMove);
+        printPrincipalVariation(depth - 1);
+        unMakeMove(entry->bestMove, irreversibles);
+    }
+    else
+    {
+        printf("\n");
+    }
 }
 
 Bitboard zobristSideToMove;
@@ -185,7 +200,5 @@ void initZobrist()
             zobristPieces[square][piece] = get64RandomBits();
         }
     }
-    printLog(1, "Initialized zobrist hashes\n");
+    DEBUG_LOG("Initialized zobrist hashes\n");
 }
-
-

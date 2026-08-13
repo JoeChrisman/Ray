@@ -37,7 +37,8 @@ HashEntry* probeHashTable(
     int* cutoffValue,
     int alpha,
     int beta,
-    int depth);
+    int depth,
+    int ply);
 
 void writeHashTableEntry(
     HashEntry* hashEntry,
@@ -45,6 +46,8 @@ void writeHashTableEntry(
     NodeType entryType,
     Move bestMove,
     int bestScore,
-    int depth);
+    int depth,
+    int ply);
 
+int getTableUseEstimate();
 void printPrincipalVariation(int depth);

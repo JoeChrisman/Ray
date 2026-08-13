@@ -24,9 +24,12 @@ typedef struct
 typedef struct
 {
     Move move;
+    Millis msElapsed;
     int score;
     int depth;
-    Millis msElapsed;
+    int maxPly;
+    uint64_t nodes;
+    int tableUse;
 } SearchResult;
 
 SearchResult search(SearchOptions searchOptions);

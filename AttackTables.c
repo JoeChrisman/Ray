@@ -292,6 +292,6 @@ void initAttackTables()
     initOrdinalAttackTable();
     initKnightAttackTable();
     initKingAttackTable();
-    printLog(1, "Initialized attack tables\n");
+    DEBUG_LOG("Initialized attack tables\n");
 }
 

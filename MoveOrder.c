@@ -8,12 +8,12 @@
 #include "Utils.h"
 #include "MoveOrder.h"
 
-static Move killers[MAX_SEARCH_DEPTH][2];
+static Move killers[MAX_PLY][2];
 static int history[NUM_PIECE_TYPES + 1][NUM_SQUARES];
 
 void resetKillers()
 {
-    for (int depth = 0; depth < MAX_SEARCH_DEPTH; depth++)
+    for (int depth = 0; depth < MAX_PLY; depth++)
     {
         killers[depth][0] = NO_MOVE;
         killers[depth][1] = NO_MOVE;
@@ -112,7 +112,6 @@ int pickMove(
     }
     return HISTORY_MOVEORDER;
 }
-
 
 void pickCapture(
     Move* captureListStart,

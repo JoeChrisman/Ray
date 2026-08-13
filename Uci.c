@@ -36,9 +36,9 @@ static int goDepth()
 {
     errno = 0;
     int depth = (int)strtol(strtok(NULL, delimiter), NULL, 10);
-    if (errno || depth <= 1 || depth > MAX_SEARCH_DEPTH)
+    if (errno || depth <= 1 || depth > MAX_PLY)
     {
-        printLog(1, "Client sent malformed go depth command");
+        DEBUG_LOG("Client sent malformed go depth command");
         return 1;
     }
     SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
@@ -80,7 +80,7 @@ static int goTimeControl()
         whiteMsIncrement < 0 ||
         blackMsIncrement < 0)
     {
-        printLog(1, "Client sent a malformed time control in go command\n");
+        DEBUG_LOG("Client sent a malformed time control in go command\n");
         return 1;
     }
     Millis msRemaining = position.sideToMove == WHITE ? whiteMsRemaining : blackMsRemaining;
@@ -99,7 +99,7 @@ static int goMovetime()
     int msToSearch = (int)strtol(strtok(NULL, delimiter), NULL, 10);
     if (errno || msToSearch <= 0)
     {
-        printLog(1, "Client sent malformed go movetime command");
+        DEBUG_LOG("Client sent malformed go movetime command");
         return 1;
     }
     SearchOptions* searchOptions = malloc(sizeof(SearchOptions));
@@ -122,7 +122,7 @@ static int goPerft()
         int depth = (int)strtol(flag2, NULL, 10);
         if (errno || depth < 0)
         {
-            printLog(1, "Client sent invalid perft depth\n");
+            DEBUG_LOG("Client sent invalid perft depth\n");
             return 1;
         }
         runPerft(depth);
@@ -134,14 +134,14 @@ static int handleGoCommand()
 {
     if (cancelTime != SEARCH_CANCELLED)
     {
-        printLog(1, "Client sent go command while searching\n");
+        DEBUG_LOG("Client sent go command while searching\n");
         return 1;
     }
 
     char* flag1 = strtok(NULL, delimiter);
     if (flag1 == NULL)
     {
-        printLog(1, "Client sent malformed go command\n");
+        DEBUG_LOG("Client sent malformed go command\n");
         return 1;
     }
 
@@ -189,7 +189,7 @@ static int positionFen()
     }
     if (loadFen(fen))
     {
-        printLog(1, "Client sent malformed FEN %s\n", fen);
+        DEBUG_LOG("Client sent malformed FEN %s\n", fen);
         return 1;
     }
     return 0;
@@ -200,7 +200,7 @@ static int positionMoves()
     char* commandMoveStr = strtok(NULL, delimiter);
     if (commandMoveStr == NULL)
     {
-        printLog(1, "Client sent malformed move string %s\n", commandMoveStr);
+        DEBUG_LOG("Client sent malformed move string %s\n", commandMoveStr);
     }
     while (commandMoveStr != NULL)
     {
@@ -222,7 +222,7 @@ static int positionMoves()
         }
         if (!foundMove)
         {
-            printLog(1, "Client sent illegal move %s\n", commandMoveStr);
+            DEBUG_LOG("Client sent illegal move %s\n", commandMoveStr);
             return 1;
         }
         commandMoveStr = strtok(NULL, delimiter);
@@ -235,7 +235,7 @@ static int handlePositionCommand()
     char* flag1 = strtok(NULL, delimiter);
     if (flag1 == NULL)
     {
-        printLog(1, "Client sent malformed position command\n");
+        DEBUG_LOG("Client sent malformed position command\n");
         return 1;
     }
     // the client wants to load the initial position
@@ -253,7 +253,7 @@ static int handlePositionCommand()
     }
     else
     {
-        printLog(1, "Client sent malformed position command");
+        DEBUG_LOG("Client sent malformed position command");
         return 1;
     }
 
@@ -265,7 +265,7 @@ static int handlePositionCommand()
         {
             return positionMoves();
         }
-        printLog(1, "Client sent malformed moves flag\n");
+        DEBUG_LOG("Client sent malformed moves flag\n");
         return 1;
     }
     return 0;
@@ -276,7 +276,7 @@ static int handleCommand(char* command)
     const char* flag1 = strtok(command, delimiter);
     if (flag1 == NULL)
     {
-        printLog(1, "Client sent malformed command\n");
+        DEBUG_LOG("Client sent malformed command\n");
         return 1;
     }
     if (!strcmp(flag1, "position"))
@@ -292,7 +292,7 @@ static int handleCommand(char* command)
         cancelTime = SEARCH_CANCELLED;
         return 0;
     }
-    printLog(1, "Client sent malformed command\n");
+    DEBUG_LOG("Client sent malformed command\n");
     return 1;
 }
 
@@ -313,7 +313,7 @@ int runUci()
         ssize_t commandLen = getline(&command, &commandCapacity, stdin);
         if (commandLen <= 1)
         {
-            printLog(1, "Client sent a command with a length less than two\n");
+            DEBUG_LOG("Client sent a command with a length less than two\n");
             continue;
         }
         command[commandLen - 1] = '\0';

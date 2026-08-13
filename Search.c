@@ -24,10 +24,11 @@
 #define FUTILITY_MAX_DEPTH 3
 static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 150, 300, 600};
 
-SearchStats stats = {0};
+SearchStats searchStats = {};
 
-static int quiescenceSearch(int alpha, int beta)
+static int quiescenceSearch(int alpha, int beta, int ply)
 {
+    DEBUG_ADD_QUIET_NODE();
     assert(alpha < beta);
     assert(alpha >= MIN_SCORE);
     assert(alpha <= MAX_SCORE);
@@ -42,7 +43,7 @@ static int quiescenceSearch(int alpha, int beta)
         captureListEnd = genMoves(captureListStart);
         if (captureListStart == captureListEnd)
         {
-            return MIN_SCORE + position.plies; 
+            return MIN_SCORE + ply;
         }
     }
     else 
@@ -56,7 +57,6 @@ static int quiescenceSearch(int alpha, int beta)
         {
             alpha = evaluation;
         }
-        stats.numQuietNodes++;
 
         captureListEnd = genCaptures(captureListStart);
     }
@@ -76,7 +76,7 @@ static int quiescenceSearch(int alpha, int beta)
         
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*capture);
-        score = -quiescenceSearch(-beta, -alpha);
+        score = -quiescenceSearch(-beta, -alpha, ply + 1);
         unMakeMove(*capture, irreversibles);
 
         if (score >= beta)
@@ -93,7 +93,7 @@ static int quiescenceSearch(int alpha, int beta)
 
 static inline bool isTimeout()
 {
-    if ((stats.numLeafNodes & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
+    if ((searchStats.nodes & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
     {
         if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
         {
@@ -104,13 +104,18 @@ static inline bool isTimeout()
     return false;
 }
 
-int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
+int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
 {
+    searchStats.maxPly = MAX(ply, searchStats.maxPly);
+    searchStats.nodes++;
+
+    DEBUG_ADD_NODE(ply);
+    assert(depth >= 0);
     assert(alpha < beta);
     assert(alpha >= MIN_SCORE);
     assert(alpha <= MAX_SCORE);
-    assert(depth < MAX_SEARCH_DEPTH);
-    assert(depth >= 0);
+    assert(ply < MAX_PLY);
+    assert(ply >= 0);
 
     if (cancelTime == SEARCH_CANCELLED)
     {
@@ -123,7 +128,8 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         {
             return 0;
         }
-        stats.numLeafNodes++;
+
+        DEBUG_ADD_LEAF_NODE(ply);
         return CONTEMPT;
     }
 
@@ -140,9 +146,9 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         {
             return 0;
         }
-        stats.numLeafNodes++;
         assert(!isInCheck);
-        return quiescenceSearch(alpha, beta);
+        DEBUG_ADD_LEAF_NODE(ply);
+        return quiescenceSearch(alpha, beta, ply);
     }
 
     int cutoffValue = INVALID_SCORE;
@@ -151,14 +157,16 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         &cutoffValue,
         alpha,
         beta,
-        depth);
+        depth,
+        ply);
     if (cutoffValue != INVALID_SCORE)
     {
         if (isTimeout())
         {
             return 0;
         }
-        stats.numLeafNodes++;
+        DEBUG_ADD_CUT_NODE(ply);
+        DEBUG_ADD_HASH_SCORE_CUT(ply);
         return cutoffValue;
     }
 
@@ -170,9 +178,11 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         depth > 3
         && !isZugzwang(position.sideToMove))
     {
+        DEBUG_ADD_NULL_ATTEMPT(ply);
+
         const Irreversibles irreversibles = position.irreversibles;
         makeNullMove();
-        int score = -alphaBetaSearch(-beta, -beta + 1, true, depth - 3);
+        int score = -alphaBetaSearch(-beta, -beta + 1, true, depth - 3, ply + 1);
         unMakeNullMove(irreversibles);
         if (score >= beta)
         {
@@ -180,7 +190,9 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
             {
                 return 0;
             }
-            stats.numLeafNodes++;
+
+            DEBUG_ADD_CUT_NODE(ply);
+            DEBUG_ADD_NULL_CUT(ply);
             return beta;
         }
     }
@@ -188,21 +200,21 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
     Move firstMove[MAX_MOVES_IN_POSITION] = {NO_MOVE};
     Move* lastMove = genMoves(firstMove);
     const int numMoves = (lastMove - firstMove);
+
     if (!numMoves)
     {
         if (isTimeout())
         {
             return 0;
         }
-        stats.numLeafNodes++;
+
+        DEBUG_ADD_LEAF_NODE(ply);
         if (isInCheck)
         {
-            return MIN_SCORE + position.plies;
+            return MIN_SCORE + ply;
         }
         return CONTEMPT;
     }
-
-    stats.numBranchNodes++;
 
     const bool isReducing = (
         !isInCheck &&
@@ -221,11 +233,21 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
     int movesSearched = 0;
     for (Move* move = firstMove; move < lastMove; move++, moveNum++)
     {
+        if (isFutilityPruning)
+        {
+            DEBUG_ADD_FMP_ATTEMPT(ply);
+        }
         if (isFutilityPruning &&
             *move != bestHashMove &&
             IS_QUIET_MOVE(*move))
         {
+            DEBUG_ADD_FMP_SUCCESS(ply);
             continue;
+        }
+
+        if (movesSearched == 0)
+        {
+            DEBUG_ADD_BRANCH_NODE(ply);
         }
 
         int moveOrderType = pickMove(move, lastMove, depth, bestHashMove);
@@ -235,7 +257,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
         int score = INVALID_SCORE;
         if (move == firstMove)
         {
-            score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+            score = -alphaBetaSearch(-beta, -alpha, false, depth - 1, ply + 1);
         }
         else
         {
@@ -250,17 +272,24 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
                     reduction /= 2;
                 }
                 reduction = MAX(0, MIN(depth - 1, reduction));
+
+                if (reduction > 0)
+                {
+                    DEBUG_ADD_LMR_ATTEMPT(ply);
+                    DEBUG_ADD_REDUCTION(ply, reduction);
+                }
             }
-            score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction);
+            score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction, ply + 1);
             if (score > alpha)
             {
                 if (reduction > 0)
                 {
-                    score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1);
+                    DEBUG_ADD_LMR_FAILURE(ply);
+                    score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1, ply + 1);
                 }
                 if (score > alpha && score < beta)
                 {
-                    score = -alphaBetaSearch(-beta, -alpha, false, depth - 1);
+                    score = -alphaBetaSearch(-beta, -alpha, false, depth - 1, ply + 1);
                 }
             }
         }
@@ -279,42 +308,58 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth)
             bestMove = *move;
             if (score >= beta)
             {
-                if (move == firstMove)
+
+                if (moveOrderType == HISTORY_MOVEORDER)
                 {
-                    stats.numFirstMoveSuccess++;
+                    DEBUG_ADD_HISTORY_MOVE_CUT(ply);
                 }
+                else if (moveOrderType == KILLER_MOVEORDER)
+                {
+                    DEBUG_ADD_KILLER_MOVE_CUT(ply);
+                }
+                else if (moveOrderType == CAPTURE_MOVEORDER)
+                {
+                    DEBUG_ADD_CAPTURE_MOVE_CUT(ply);
+                }
+                else if (moveOrderType == HASH_MOVEORDER)
+                {
+                    DEBUG_ADD_HASH_MOVE_CUT(ply);
+                }
+                if (movesSearched == 1)
+                {
+                    DEBUG_ADD_FIRST_MOVE_CUT(ply);
+                }
+                
                 if (IS_QUIET_MOVE(*move))
                 {
                     addToKillers(depth, *move);
                     addToHistory(depth * depth * HISTORY_BONUS, *move);
                 }
-                stats.numCutNodes++;
 
+                DEBUG_ADD_MOVES_SEARCHED(ply, movesSearched);
+                DEBUG_ADD_CUT_NODE(ply);
                 writeHashTableEntry(
                     hashTableEntry,
                     position.hash,
                     CUT_NODE,
                     bestMove,
                     beta,
-                    depth);
+                    depth,
+                    ply);
                 return beta;
             }
         }
     }
-    if (raisedAlpha)
-    {
-        stats.numPvNodes++;
-    }
-    else
-    {
-        stats.numAllNodes++;
-    }
+
+    DEBUG_ADD_MOVES_SEARCHED(ply, movesSearched);
+    raisedAlpha ? DEBUG_ADD_PV_NODE(ply) : DEBUG_ADD_ALL_NODE(ply);
     writeHashTableEntry(
         hashTableEntry,
         position.hash,
         raisedAlpha ? PV_NODE : ALL_NODE,
         bestMove,
         alpha,
-        depth);
+        depth,
+        ply);
     return alpha;
 }

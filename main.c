@@ -10,7 +10,7 @@
 #include "Uci.h"
 #include "Utils.h"
 
-#define VERSION "1.8.10"
+#define VERSION "1.9.0"
 
 int main(int argc, char** argv)
 {
@@ -21,7 +21,7 @@ int main(int argc, char** argv)
         int seedArgument = (int)strtol(argv[1], NULL, 10);
         if (errno != 0)
         {
-            printLog(1, "Program started with invalid seed, using a random seed instead.\n");
+            DEBUG_LOG("Program started with invalid seed, using a random seed instead.\n");
         }
         else
         {
@@ -33,7 +33,7 @@ int main(int argc, char** argv)
     initZobrist();
     initHashTable();
     initAttackTables();
-    printLog(1, "Seed is %d\n", seed);
+    DEBUG_LOG("Seed is %d\n", seed);
 
     printf("Ray version %s\n", VERSION);
     fflush(stdout);
