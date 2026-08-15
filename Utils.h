@@ -48,6 +48,8 @@ typedef struct
     uint64_t firstMoveCuts[MAX_PLY];
 
     uint64_t quietNodes;
+    uint64_t evalNodes;
+    uint64_t pawnTableReads;
 } DebugStats;
 
 extern DebugStats debugStats;
@@ -89,6 +91,8 @@ void DEBUG_CLEAR_STATS();
 #define DEBUG_ADD_FIRST_MOVE_CUT(ply)              (debugStats.firstMoveCuts[(ply)]++)
 
 #define DEBUG_ADD_QUIET_NODE()                     (debugStats.quietNodes++)
+#define DEBUG_ADD_EVAL_NODE()                      (debugStats.evalNodes++)
+#define DEBUG_ADD_PAWN_TABLE_READ()                (debugStats.pawnTableReads++)
 
 #else 
 
@@ -126,6 +130,8 @@ void DEBUG_CLEAR_STATS();
 #define DEBUG_ADD_FIRST_MOVE_CUT(ply)              ((void)0)
 
 #define DEBUG_ADD_QUIET_NODE()                     ((void)0)
+#define DEBUG_ADD_EVAL_NODE()                      ((void)0)
+#define DEBUG_ADD_PAWN_TABLE_READ()                ((void)0)
 
 #endif
 

@@ -9,6 +9,7 @@ typedef uint64_t Bitboard;
 
 #define GET_BOARD(square) ((Bitboard)1 << (square))
 #define GET_SQUARE(board) (__builtin_ctzll(board))
+#define GET_BOTTOM_SQUARE(board) (63 - __builtin_clzll(board))
 #define POP_SQUARE(board, square) (board ^= GET_BOARD(square))
 
 #define BOARD_NORTH(board) ((board) >> 8)

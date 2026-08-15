@@ -183,14 +183,16 @@ void DEBUG_LOG_STATS()
         firstMoveCuts += debugStats.firstMoveCuts[ply];
     }
 
+    const uint64_t quietNodes = debugStats.quietNodes;
+    const uint64_t evalNodes = debugStats.evalNodes;
+    const uint64_t interiorNodes = nodes - leafNodes;
+
     const double bf = branchNodes ? (double)movesSearched / branchNodes : 0.0;
 
-    const uint64_t interiors = nodes - leafNodes;
-
-    const double cut = interiors ? 100.0 * cutNodes / interiors : 0.0;
-    const double pv = interiors ? 100.0 * pvNodes / interiors : 0.0;
-    const double all = interiors ? 100.0 * allNodes / interiors: 0.0;
-    const double quiet = nodes ? 100.0 * leafNodes / nodes : 0.0;
+    const double cut = interiorNodes ? 100.0 * cutNodes / interiorNodes : 0.0;
+    const double pv = interiorNodes  ? 100.0 * pvNodes / interiorNodes : 0.0;
+    const double all = interiorNodes ? 100.0 * allNodes / interiorNodes: 0.0;
+    const double quiet = nodes ? 100.0 * quietNodes / (nodes + quietNodes) : 0.0;
     
     const double hashScoreCut = cutNodes ? 100.0 * hashScoreCuts / cutNodes : 0;
     const double hashMoveCut = cutNodes ? 100.0 * hashMoveCuts / cutNodes : 0;
@@ -201,8 +203,10 @@ void DEBUG_LOG_STATS()
     const uint64_t totalMoveCuts = cutNodes - nullCuts - hashScoreCut;
     const double firstMoveCut = totalMoveCuts ? 100.0 * firstMoveCuts / totalMoveCuts : 0;
 
-    DEBUG_LOG("nodes %llu bf %.1f quiet %.1f%% allNode %.1f%% cutNode %.1f%% pvNode %.1f%% ttCut %.1f%% ttMovCut %.1f%% capCut %.1f%% kilCut %.1f%% histCut %.1f%% 1stMovCut %.1f%%\n", 
-        nodes, bf, quiet, all, cut, pv,  hashScoreCut, hashMoveCut, capCut, killerCut, historyCut, firstMoveCut);  
+    const double pawnTableHits = evalNodes ? 100.0 * debugStats.pawnTableReads / evalNodes : 0; 
+
+    DEBUG_LOG("nodes %llu bf %.1f quiet %.1f%% allNode %.1f%% cutNode %.1f%% pvNode %.1f%% ttCut %.1f%% ttMovCut %.1f%% capCut %.1f%% kilCut %.1f%% histCut %.1f%% 1stMovCut %.1f%% pHit %.f%%\n", 
+        nodes, bf, quiet, all, cut, pv,  hashScoreCut, hashMoveCut, capCut, killerCut, historyCut, firstMoveCut, pawnTableHits);  
 }
 
 void DEBUG_CLEAR_STATS()
