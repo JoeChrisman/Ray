@@ -170,6 +170,20 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         return cutoffValue;
     }
 
+    int eval = quickEvaluate() * position.sideToMove;
+    if (hashTableEntry->type == PV_NODE)
+    {
+        eval = hashTableEntry->bestScore;
+    }
+    else if (hashTableEntry->type == CUT_NODE)
+    {
+        eval = MAX(eval, hashTableEntry->bestScore);
+    }
+    else if (hashTableEntry->type == ALL_NODE)
+    {
+        eval = MIN(eval, hashTableEntry->bestScore);
+    }
+
     const bool isPvNode = beta > alpha + 1;
 
     if (!isPvNode &&
@@ -224,7 +238,9 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         !isPvNode &&
         !isInCheck &&
         depth <= FUTILITY_MAX_DEPTH &&
-        quickEvaluate() * position.sideToMove + futilityMargins[depth] < alpha);
+        alpha < MIN_MATE_SCORE &&
+        alpha > -MIN_MATE_SCORE &&
+        eval + futilityMargins[depth] < alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
     bool raisedAlpha = false;
