@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <stdbool.h>
 
 #include "Square.h"
@@ -22,14 +23,14 @@ static Bitboard resolvers;
 static Bitboard cardinalPins;
 static Bitboard ordinalPins;
 
-static inline Bitboard getCardinalSlidingMoves(Square from, Bitboard blockers)
+inline Bitboard getCardinalSlidingMoves(Square from, Bitboard blockers)
 {
     const MagicSquare square = cardinalMagics[from];
     const Bitboard blockerNum = square.blockers & blockers;
     return cardinalAttacks[from][blockerNum * square.magic >> 52];
 }
 
-static inline Bitboard getOrdinalSlidingMoves(Square from, Bitboard blockers)
+inline Bitboard getOrdinalSlidingMoves(Square from, Bitboard blockers)
 {
     const MagicSquare square = ordinalMagics[from];
     const Bitboard blockerNum = square.blockers & blockers;
@@ -480,14 +481,14 @@ static inline Move* genCastles(
     return moves;
 }
 
-static inline Bitboard getWhitePawnAttacks(Bitboard pawns)
+inline Bitboard getWhitePawnAttacks(Bitboard pawns)
 {
     const Bitboard eastAttacks = BOARD_NORTH_EAST(pawns) & NOT_A_FILE;
     const Bitboard westAttacks = BOARD_NORTH_WEST(pawns) & NOT_H_FILE;
     return eastAttacks | westAttacks;
 }
 
-static inline Bitboard getBlackPawnAttacks(Bitboard pawns)
+inline Bitboard getBlackPawnAttacks(Bitboard pawns)
 {
     const Bitboard eastAttacks = BOARD_SOUTH_EAST(pawns) & NOT_A_FILE;
     const Bitboard westAttacks = BOARD_SOUTH_WEST(pawns) & NOT_H_FILE;

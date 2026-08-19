@@ -1,8 +1,12 @@
 #include <assert.h>
 #include <stdbool.h>
 
+#include "Bitboard.h"
 #include "Piece.h"
+#include "Position.h"
 #include "Square.h"
+#include "MoveGen.h"
+#include "AttackTables.h"
 #include "Move.h"
 
 static const int attackerScores[NUM_PIECE_TYPES + 1] = {
@@ -46,4 +50,49 @@ Move createMove(
         ((promoted) << PIECE_PROMOTED_SHIFT) |
         ((score) << SCORE_SHIFT) |
         flags);
+}
+
+bool isMoveCheck(Move move)
+{
+    const Piece moved = GET_PIECE_MOVED(move);
+    if (moved == WHITE_KING || moved == BLACK_KING)
+    {
+        return false;
+    }
+
+    const Color sideToMove = IS_WHITE_PIECE(moved) ? WHITE : BLACK;
+    const Bitboard from = GET_BOARD(GET_SQUARE_FROM(move));
+    const Bitboard to = GET_BOARD(GET_SQUARE_TO(move));
+    const Bitboard enemyKing = position.bitboards[sideToMove == WHITE ? BLACK_KING : WHITE_KING];
+    const Square enemyKingSquare = GET_SQUARE(enemyKing);
+
+    const Bitboard occupied = position.occupied ^ to ^ from;
+
+    switch (moved)
+    {
+        case WHITE_PAWN:
+            return getBlackPawnAttacks(enemyKing) & to;
+
+        case BLACK_PAWN:
+            return getWhitePawnAttacks(enemyKing) & to;
+
+        case WHITE_KNIGHT:
+        case BLACK_KNIGHT:
+            return knightAttacks[enemyKingSquare] & to;
+
+        case WHITE_BISHOP:
+        case BLACK_BISHOP:
+            return getOrdinalSlidingMoves(enemyKingSquare, occupied) & to;
+
+        case WHITE_ROOK:
+        case BLACK_ROOK:
+            return getCardinalSlidingMoves(enemyKingSquare, occupied) & to;
+
+        case WHITE_QUEEN:
+        case BLACK_QUEEN:
+            return getCardinalSlidingMoves(enemyKingSquare, occupied) & to ||
+                   getOrdinalSlidingMoves(enemyKingSquare, occupied) & to;
+    }
+    assert(false);
+    return false;
 }

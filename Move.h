@@ -2,6 +2,7 @@
 #define RAY_MOVE_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "Piece.h"
 #include "Square.h"
@@ -59,5 +60,7 @@ Move createMove(
     int flags);
 
 void initCaptureScores();
+
+bool isMoveCheck(Move move);
 
 #endif

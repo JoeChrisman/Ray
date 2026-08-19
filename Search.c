@@ -166,7 +166,7 @@ static inline bool isFutilityPruningEligible(HashEntry* hashEntry, bool isInChec
 
 static inline bool isFutilePruned(bool isFutilityPruning, Move move, Move bestHashMove)
 {
-    return isFutilityPruning && move != bestHashMove && IS_QUIET_MOVE(move);
+    return isFutilityPruning && move != bestHashMove && IS_QUIET_MOVE(move) && !isMoveCheck(move);
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
