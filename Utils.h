@@ -62,6 +62,8 @@ void DEBUG_LOG(const char *format, ...);
 void DEBUG_LOG_STATS();
 void DEBUG_CLEAR_STATS();
 
+void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType);
+
 #define DEBUG_ADD_NODE(ply)                        (debugStats.nodes[(ply)]++)
 #define DEBUG_ADD_BRANCH_NODE(ply)                 (debugStats.branchNodes[(ply)]++)
 #define DEBUG_ADD_LEAF_NODE(ply)                   (debugStats.leafNodes[(ply)]++)
@@ -96,42 +98,43 @@ void DEBUG_CLEAR_STATS();
 
 #else 
 
-#define DEBUG_LOG(format, ...)                     ((void)0)
+#define DEBUG_LOG(format, ...)                                ((void)0)
 
-#define DEBUG_LOG_STATS()                          ((void)0)
-#define DEBUG_CLEAR_STATS()                        ((void)0)
+#define DEBUG_LOG_STATS()                                     ((void)0)
+#define DEBUG_CLEAR_STATS()                                   ((void)0)
 
-#define DEBUG_ADD_NODE(ply)                        ((void)0)
-#define DEBUG_ADD_BRANCH_NODE(ply)                 ((void)0)
-#define DEBUG_ADD_LEAF_NODE(ply)                   ((void)0)
+#define DEBUG_ADD_CUT_STATS(ply, movesSearched, moveOrderType)((void)0)
+#define DEBUG_ADD_NODE(ply)                                   ((void)0)
+#define DEBUG_ADD_BRANCH_NODE(ply)                            ((void)0)
+#define DEBUG_ADD_LEAF_NODE(ply)                              ((void)0)
 
-#define DEBUG_ADD_MOVES_SEARCHED(ply, numSearched) ((void)0)
+#define DEBUG_ADD_MOVES_SEARCHED(ply, numSearched)            ((void)0)
 
-#define DEBUG_ADD_NULL_ATTEMPT(ply)                ((void)0)
-#define DEBUG_ADD_NULL_CUT(ply)                    ((void)0)
+#define DEBUG_ADD_NULL_ATTEMPT(ply)                           ((void)0)
+#define DEBUG_ADD_NULL_CUT(ply)                               ((void)0)
 
-#define DEBUG_ADD_LMR_ATTEMPT(ply)                 ((void)0)
-#define DEBUG_ADD_LMR_FAILURE(ply)                 ((void)0)
-#define DEBUG_ADD_REDUCTION(ply, reduction)        ((void)0)
+#define DEBUG_ADD_LMR_ATTEMPT(ply)                            ((void)0)
+#define DEBUG_ADD_LMR_FAILURE(ply)                            ((void)0)
+#define DEBUG_ADD_REDUCTION(ply, reduction)                   ((void)0)
 
-#define DEBUG_ADD_FMP_ATTEMPT(ply)                 ((void)0)
-#define DEBUG_ADD_FMP_SUCCESS(ply)                 ((void)0)
+#define DEBUG_ADD_FMP_ATTEMPT(ply)                            ((void)0)
+#define DEBUG_ADD_FMP_SUCCESS(ply)                            ((void)0)
 
-#define DEBUG_ADD_CUT_NODE(ply)                    ((void)0)
-#define DEBUG_ADD_PV_NODE(ply)                     ((void)0)
-#define DEBUG_ADD_ALL_NODE(ply)                    ((void)0)
+#define DEBUG_ADD_CUT_NODE(ply)                               ((void)0)
+#define DEBUG_ADD_PV_NODE(ply)                                ((void)0)
+#define DEBUG_ADD_ALL_NODE(ply)                               ((void)0)
 
-#define DEBUG_ADD_HASH_SCORE_CUT(ply)              ((void)0)
-#define DEBUG_ADD_HASH_MOVE_CUT(ply)               ((void)0)
-#define DEBUG_ADD_CAPTURE_MOVE_CUT(ply)            ((void)0)
-#define DEBUG_ADD_KILLER_MOVE_CUT(ply)             ((void)0)
-#define DEBUG_ADD_HISTORY_MOVE_CUT(ply)            ((void)0)
+#define DEBUG_ADD_HASH_SCORE_CUT(ply)                         ((void)0)
+#define DEBUG_ADD_HASH_MOVE_CUT(ply)                          ((void)0)
+#define DEBUG_ADD_CAPTURE_MOVE_CUT(ply)                       ((void)0)
+#define DEBUG_ADD_KILLER_MOVE_CUT(ply)                        ((void)0)
+#define DEBUG_ADD_HISTORY_MOVE_CUT(ply)                       ((void)0)
 
-#define DEBUG_ADD_FIRST_MOVE_CUT(ply)              ((void)0)
+#define DEBUG_ADD_FIRST_MOVE_CUT(ply)                         ((void)0)
 
-#define DEBUG_ADD_QUIET_NODE()                     ((void)0)
-#define DEBUG_ADD_EVAL_NODE()                      ((void)0)
-#define DEBUG_ADD_PAWN_TABLE_READ()                ((void)0)
+#define DEBUG_ADD_QUIET_NODE()                                ((void)0)
+#define DEBUG_ADD_EVAL_NODE()                                 ((void)0)
+#define DEBUG_ADD_PAWN_TABLE_READ()                           ((void)0)
 
 #endif
 

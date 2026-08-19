@@ -26,6 +26,19 @@ static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 150, 300, 600};
 
 SearchStats searchStats = {};
 
+static inline bool isTimeout()
+{
+    if ((searchStats.nodes & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
+    {
+        if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
+        {
+            cancelTime = SEARCH_CANCELLED;
+            return true;
+        }
+    }
+    return false;
+}
+
 static int quiescenceSearch(int alpha, int beta, int ply)
 {
     DEBUG_ADD_QUIET_NODE();
@@ -91,17 +104,69 @@ static int quiescenceSearch(int alpha, int beta, int ply)
     return alpha;
 }
 
-static inline bool isTimeout()
+static inline bool isMateScore(int score)
 {
-    if ((searchStats.nodes & TIMEOUT_CHECK_INTERVAL) == TIMEOUT_CHECK_INTERVAL)
+    return score != MAX_SCORE && score != MIN_SCORE && (score >= MIN_MATE_SCORE || score <= -MIN_MATE_SCORE);
+}
+
+static inline int getEvaluation(HashEntry* hashTableEntry)
+{
+    if (hashTableEntry->type == PV_NODE)
     {
-        if (getMillis() >= cancelTime - TIMEOUT_MARGIN_MILLIS)
-        {
-            cancelTime = SEARCH_CANCELLED;
-            return true;
-        }
+        return hashTableEntry->bestScore;
     }
-    return false;
+
+    int eval = quickEvaluate() * position.sideToMove;
+    if (hashTableEntry->type == CUT_NODE)
+    {
+        eval = MAX(eval, hashTableEntry->bestScore);
+    }
+    else if (hashTableEntry->type == ALL_NODE)
+    {
+        eval = MIN(eval, hashTableEntry->bestScore);
+    }
+
+    return eval;
+}
+
+static inline bool isReducingEligible(bool isInCheck, int depth)
+{
+    return !isInCheck && depth >= LATE_MOVE_MIN_DEPTH;
+}
+
+static inline int getReduction(bool isReducingEligible, int moveOrderType, bool isNullWindow, int depth, int movesSearched, int moveNum)
+{
+    if (!isReducingEligible || moveOrderType != HISTORY_MOVEORDER || moveNum < LATE_MOVE_THRESHOLD)
+    {
+        return 0;
+    }
+
+    int reduction = (int)(sqrt(depth - 1) + sqrt(movesSearched - 1));
+    if (!isNullWindow)
+    {
+        reduction /= 2;
+    }
+    reduction = MAX(0, MIN(depth - 1, reduction));
+    return reduction;
+}
+
+static inline bool isNullMovePruning(bool isInCheck, bool isNullWindow, bool wasNullMove, int depth)
+{
+    return !isInCheck && isNullWindow && !wasNullMove && depth > 3 && !isZugzwang(position.sideToMove);
+}
+
+static inline bool isFutilityPruningEligible(HashEntry* hashEntry, bool isInCheck, bool isNullWindow, int depth, int alpha)
+{
+    if (isInCheck || !isNullWindow || depth > FUTILITY_MAX_DEPTH || isMateScore(alpha))
+    {
+        return false;
+    }
+    return getEvaluation(hashEntry) + futilityMargins[depth] < alpha;
+}
+
+static inline bool isFutilePruned(bool isFutilityPruning, Move move, Move bestHashMove)
+{
+    return isFutilityPruning && move != bestHashMove && IS_QUIET_MOVE(move);
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
@@ -152,13 +217,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
     }
 
     int cutoffValue = INVALID_SCORE;
-    HashEntry* hashTableEntry = probeHashTable(
-        position.hash,
-        &cutoffValue,
-        alpha,
-        beta,
-        depth,
-        ply);
+    HashEntry* hashTableEntry = probeHashTable(position.hash, &cutoffValue, alpha, beta, depth, ply);
     if (cutoffValue != INVALID_SCORE)
     {
         if (isTimeout())
@@ -170,27 +229,9 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         return cutoffValue;
     }
 
-    int eval = quickEvaluate() * position.sideToMove;
-    if (hashTableEntry->type == PV_NODE)
-    {
-        eval = hashTableEntry->bestScore;
-    }
-    else if (hashTableEntry->type == CUT_NODE)
-    {
-        eval = MAX(eval, hashTableEntry->bestScore);
-    }
-    else if (hashTableEntry->type == ALL_NODE)
-    {
-        eval = MIN(eval, hashTableEntry->bestScore);
-    }
+    const bool isNullWindow = alpha + 1 == beta;
 
-    const bool isPvNode = beta > alpha + 1;
-
-    if (!isPvNode &&
-        !isInCheck &&
-        !wasNullMove &&
-        depth > 3
-        && !isZugzwang(position.sideToMove))
+    if (isNullMovePruning(isInCheck, isNullWindow, wasNullMove, depth))
     {
         DEBUG_ADD_NULL_ATTEMPT(ply);
 
@@ -230,17 +271,8 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         return CONTEMPT;
     }
 
-    const bool isReducing = (
-        !isInCheck &&
-        depth >= LATE_MOVE_MIN_DEPTH); 
-
-    const bool isFutilityPruning = (
-        !isPvNode &&
-        !isInCheck &&
-        depth <= FUTILITY_MAX_DEPTH &&
-        alpha < MIN_MATE_SCORE &&
-        alpha > -MIN_MATE_SCORE &&
-        eval + futilityMargins[depth] < alpha);
+    const bool isReducing = isReducingEligible(isInCheck, depth);
+    const bool isFutilityPruning = isFutilityPruningEligible(hashTableEntry, isInCheck, isNullWindow, depth, alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
     bool raisedAlpha = false;
@@ -253,20 +285,20 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         {
             DEBUG_ADD_FMP_ATTEMPT(ply);
         }
-        if (isFutilityPruning &&
-            *move != bestHashMove &&
-            IS_QUIET_MOVE(*move))
+        if (isFutilePruned(isFutilityPruning, *move, bestHashMove))
         {
             DEBUG_ADD_FMP_SUCCESS(ply);
             continue;
         }
+
+        int moveOrderType = pickMove(move, lastMove, depth, bestHashMove);
+
 
         if (movesSearched == 0)
         {
             DEBUG_ADD_BRANCH_NODE(ply);
         }
 
-        int moveOrderType = pickMove(move, lastMove, depth, bestHashMove);
 
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
@@ -277,24 +309,13 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         }
         else
         {
-            int reduction = 0;
-            if (isReducing &&
-                moveNum >= LATE_MOVE_THRESHOLD &&
-                moveOrderType == HISTORY_MOVEORDER)
+            const int reduction = getReduction(isReducing, moveOrderType, isNullWindow, depth, movesSearched, moveNum);
+            if (reduction > 0)
             {
-                reduction = (int)sqrt(depth - 1) + (int)sqrt(movesSearched - 1);
-                if (isPvNode)
-                {
-                    reduction /= 2;
-                }
-                reduction = MAX(0, MIN(depth - 1, reduction));
-
-                if (reduction > 0)
-                {
-                    DEBUG_ADD_LMR_ATTEMPT(ply);
-                    DEBUG_ADD_REDUCTION(ply, reduction);
-                }
+                DEBUG_ADD_LMR_ATTEMPT(ply);
+                DEBUG_ADD_REDUCTION(ply, reduction);
             }
+
             score = -alphaBetaSearch(-alpha - 1, -alpha, false, depth - 1 - reduction, ply + 1);
             if (score > alpha)
             {
@@ -324,44 +345,16 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
             bestMove = *move;
             if (score >= beta)
             {
-
-                if (moveOrderType == HISTORY_MOVEORDER)
-                {
-                    DEBUG_ADD_HISTORY_MOVE_CUT(ply);
-                }
-                else if (moveOrderType == KILLER_MOVEORDER)
-                {
-                    DEBUG_ADD_KILLER_MOVE_CUT(ply);
-                }
-                else if (moveOrderType == CAPTURE_MOVEORDER)
-                {
-                    DEBUG_ADD_CAPTURE_MOVE_CUT(ply);
-                }
-                else if (moveOrderType == HASH_MOVEORDER)
-                {
-                    DEBUG_ADD_HASH_MOVE_CUT(ply);
-                }
-                if (movesSearched == 1)
-                {
-                    DEBUG_ADD_FIRST_MOVE_CUT(ply);
-                }
-                
                 if (IS_QUIET_MOVE(*move))
                 {
                     addToKillers(depth, *move);
                     addToHistory(depth * depth * HISTORY_BONUS, *move);
                 }
 
+                DEBUG_ADD_CUT_STATS(ply, movesSearched, moveOrderType);
                 DEBUG_ADD_MOVES_SEARCHED(ply, movesSearched);
                 DEBUG_ADD_CUT_NODE(ply);
-                writeHashTableEntry(
-                    hashTableEntry,
-                    position.hash,
-                    CUT_NODE,
-                    bestMove,
-                    beta,
-                    depth,
-                    ply);
+                writeHashTableEntry(hashTableEntry, position.hash, CUT_NODE, bestMove, beta, depth, ply);
                 return beta;
             }
         }
@@ -369,13 +362,6 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
 
     DEBUG_ADD_MOVES_SEARCHED(ply, movesSearched);
     raisedAlpha ? DEBUG_ADD_PV_NODE(ply) : DEBUG_ADD_ALL_NODE(ply);
-    writeHashTableEntry(
-        hashTableEntry,
-        position.hash,
-        raisedAlpha ? PV_NODE : ALL_NODE,
-        bestMove,
-        alpha,
-        depth,
-        ply);
+    writeHashTableEntry(hashTableEntry, position.hash, raisedAlpha ? PV_NODE : ALL_NODE, bestMove, alpha, depth, ply);
     return alpha;
 }

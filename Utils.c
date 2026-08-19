@@ -12,6 +12,7 @@
 #include "Notation.h"
 #include "Position.h"
 #include "Utils.h"
+#include "MoveOrder.h"
 
 Millis getMillis()
 {
@@ -207,6 +208,30 @@ void DEBUG_LOG_STATS()
 
     DEBUG_LOG("nodes %llu bf %.1f quiet %.1f%% allNode %.1f%% cutNode %.1f%% pvNode %.1f%% ttCut %.1f%% ttMovCut %.1f%% capCut %.1f%% kilCut %.1f%% histCut %.1f%% 1stMovCut %.1f%% pHit %.f%%\n", 
         nodes, bf, quiet, all, cut, pv,  hashScoreCut, hashMoveCut, capCut, killerCut, historyCut, firstMoveCut, pawnTableHits);  
+}
+
+void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType)
+{
+    if (moveOrderType == HISTORY_MOVEORDER)
+    {
+        DEBUG_ADD_HISTORY_MOVE_CUT(ply);
+    }
+    else if (moveOrderType == KILLER_MOVEORDER)
+    {
+        DEBUG_ADD_KILLER_MOVE_CUT(ply);
+    }
+    else if (moveOrderType == CAPTURE_MOVEORDER)
+    {
+        DEBUG_ADD_CAPTURE_MOVE_CUT(ply);
+    }
+    else if (moveOrderType == HASH_MOVEORDER)
+    {
+        DEBUG_ADD_HASH_MOVE_CUT(ply);
+    }
+    if (movesSearched == 1)
+    {
+        DEBUG_ADD_FIRST_MOVE_CUT(ply);
+    }
 }
 
 void DEBUG_CLEAR_STATS()
