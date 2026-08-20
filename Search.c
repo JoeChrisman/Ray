@@ -22,7 +22,10 @@
 #define LATE_MOVE_MIN_DEPTH 4
 
 #define FUTILITY_MAX_DEPTH 3
-static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = {0, 150, 300, 600};
+static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = { 0, 150, 300, 600 };
+
+#define REVERSE_FUTILITY_MAX_DEPTH 3
+static const int reverseFutilityMargins[REVERSE_FUTILITY_MAX_DEPTH + 1] = { 0, 150, 300, 600 };
 
 SearchStats searchStats = {};
 
@@ -171,7 +174,7 @@ static inline bool isFutilePruned(bool isFutilityPruning, Move move, Move bestHa
 
 static inline bool isReverseFutilePruned(int eval, bool isInCheck, bool isNullWindow, int depth, int beta)
 {
-    return !isInCheck && isNullWindow && depth <= FUTILITY_MAX_DEPTH && !isMateScore(beta) && eval - futilityMargins[depth] > beta;
+    return !isInCheck && isNullWindow && depth <= REVERSE_FUTILITY_MAX_DEPTH && !isMateScore(beta) && eval - reverseFutilityMargins[depth] > beta;
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
@@ -261,6 +264,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
 
             DEBUG_ADD_CUT_NODE(ply);
             DEBUG_ADD_NULL_CUT(ply);
+            writeHashTableEntry(hashTableEntry, position.hash, CUT_NODE, NO_MOVE, beta, depth, ply);
             return beta;
         }
     }
