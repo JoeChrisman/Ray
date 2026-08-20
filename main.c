@@ -10,7 +10,7 @@
 #include "Uci.h"
 #include "Utils.h"
 
-#define VERSION "1.9.3"
+#define VERSION "1.9.4"
 
 int main(int argc, char** argv)
 {

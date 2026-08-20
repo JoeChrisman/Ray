@@ -225,7 +225,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
     }
 
     int cutoffValue = INVALID_SCORE;
-    HashEntry* hashTableEntry = probeHashTable(position.hash, &cutoffValue, alpha, beta, depth, ply);
+    HashEntry* hashTableEntry = probeHashTable(position.hash, &cutoffValue, &alpha, &beta, depth, ply);
     if (cutoffValue != INVALID_SCORE)
     {
         if (isTimeout())

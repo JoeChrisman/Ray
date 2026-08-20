@@ -53,8 +53,8 @@ int initHashTable()
 HashEntry* probeHashTable(
     uint64_t hash,
     int* cutoffValue,
-    int alpha,
-    int beta,
+    int* alpha,
+    int* beta,
     int depth,
     int ply)
 {
@@ -87,13 +87,21 @@ HashEntry* probeHashTable(
         score += ply; 
     }
 
-    if (entry->type == ALL_NODE && score <= alpha)
+    if (entry->type == ALL_NODE)
     {
-        *cutoffValue = alpha;
+        if (score <= *alpha)
+        {
+            *cutoffValue = *alpha;
+        }
+        *beta = MIN(*beta, score);
     }
-    else if (entry->type == CUT_NODE && score >= beta)
+    else if (entry->type == CUT_NODE)
     {
-        *cutoffValue = beta;
+        if (score >= *beta)
+        {
+            *cutoffValue = *beta;
+        }
+        *alpha = MAX(*alpha, score);
     }
     else if (entry->type == PV_NODE)
     {

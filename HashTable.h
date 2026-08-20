@@ -35,8 +35,8 @@ HashEntry* getHashTableEntry(uint64_t hash);
 HashEntry* probeHashTable(
     uint64_t hash,
     int* cutoffValue,
-    int alpha,
-    int beta,
+    int* alpha,
+    int* beta,
     int depth,
     int ply);
 
