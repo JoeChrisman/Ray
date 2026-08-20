@@ -144,7 +144,7 @@ void DEBUG_LOG_STATS()
     {
         assert(debugStats.nodes[ply] == debugStats.leafNodes[ply] + debugStats.allNodes[ply] + debugStats.cutNodes[ply] + debugStats.pvNodes[ply]);
 
-        assert(debugStats.cutNodes[ply] == debugStats.nullCuts[ply] + debugStats.hashScoreCuts[ply] + debugStats.hashMoveCuts[ply] + 
+        assert(debugStats.cutNodes[ply] == debugStats.rfmpCuts[ply] + debugStats.nullCuts[ply] + debugStats.hashScoreCuts[ply] + debugStats.hashMoveCuts[ply] + 
             debugStats.captureMoveCuts[ply] + debugStats.killerMoveCuts[ply] + debugStats.historyMoveCuts[ply]);
 
         const uint64_t plyNodes = debugStats.nodes[ply]; 
@@ -161,8 +161,10 @@ void DEBUG_LOG_STATS()
         const double fmpTry = totalTried ? 100.0 * debugStats.fmpAttempts[ply] / totalTried : 0;
         const double fmpYes = totalTried ? 100.0 * debugStats.fmpSuccess[ply] / totalTried : 0;
 
-        DEBUG_LOG("ply %d bf %.1f lmrTry %.1f%% lmrYes %.1f%% lmrAvg %.1f nullTry %.1f%% nullYes %.1f%% fmpTry %.1f%% fmpYes %.1f%% nodes %llu\n", 
-            ply, bf, lmrTry, lmrYes, lmrAvg, nullTry, nullYes, fmpTry, fmpYes, plyNodes); 
+        const double rfmpYes = debugStats.nodes[ply] ? 100.0 * debugStats.rfmpCuts[ply] / debugStats.nodes[ply] : 0;
+
+        DEBUG_LOG("ply %d bf %.1f lmrTry %.1f%% lmrYes %.1f%% lmrAvg %.1f nullTry %.1f%% nullYes %.1f%% fmpTry %.1f%% fmpYes %.1f%% rfmpYes %.1f%% nodes %llu\n", 
+            ply, bf, lmrTry, lmrYes, lmrAvg, nullTry, nullYes, fmpTry, fmpYes, rfmpYes, plyNodes); 
 
         nodes += debugStats.nodes[ply];
         branchNodes += debugStats.branchNodes[ply];

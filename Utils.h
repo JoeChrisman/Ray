@@ -36,6 +36,8 @@ typedef struct
     uint64_t fmpAttempts[MAX_PLY];
     uint64_t fmpSuccess[MAX_PLY];
 
+    uint64_t rfmpCuts[MAX_PLY];
+
     uint64_t cutNodes[MAX_PLY];
     uint64_t pvNodes[MAX_PLY];
     uint64_t allNodes[MAX_PLY];
@@ -84,6 +86,7 @@ void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType);
 #define DEBUG_ADD_PV_NODE(ply)                     (debugStats.pvNodes[(ply)]++)
 #define DEBUG_ADD_ALL_NODE(ply)                    (debugStats.allNodes[(ply)]++)
 
+#define DEBUG_ADD_RFMP_CUT(ply)                    (debugStats.rfmpCuts[(ply)]++)
 #define DEBUG_ADD_HASH_SCORE_CUT(ply)              (debugStats.hashScoreCuts[(ply)]++)
 #define DEBUG_ADD_HASH_MOVE_CUT(ply)               (debugStats.hashMoveCuts[(ply)]++)
 #define DEBUG_ADD_CAPTURE_MOVE_CUT(ply)            (debugStats.captureMoveCuts[(ply)]++)
@@ -124,6 +127,7 @@ void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType);
 #define DEBUG_ADD_PV_NODE(ply)                                ((void)0)
 #define DEBUG_ADD_ALL_NODE(ply)                               ((void)0)
 
+#define DEBUG_ADD_RFMP_CUT(ply)                               ((void)0) 
 #define DEBUG_ADD_HASH_SCORE_CUT(ply)                         ((void)0)
 #define DEBUG_ADD_HASH_MOVE_CUT(ply)                          ((void)0)
 #define DEBUG_ADD_CAPTURE_MOVE_CUT(ply)                       ((void)0)

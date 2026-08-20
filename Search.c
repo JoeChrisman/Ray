@@ -239,6 +239,8 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
 
     if (isReverseFutilePruned(eval, isInCheck, isNullWindow, depth, beta))
     {
+        DEBUG_ADD_RFMP_CUT(ply);
+        DEBUG_ADD_CUT_NODE(ply);
         return beta;
     }
 
