@@ -155,18 +155,23 @@ static inline bool isNullMovePruning(bool isInCheck, bool isNullWindow, bool was
     return !isInCheck && isNullWindow && !wasNullMove && depth > 3 && !isZugzwang(position.sideToMove);
 }
 
-static inline bool isFutilityPruningEligible(HashEntry* hashEntry, bool isInCheck, bool isNullWindow, int depth, int alpha)
+static inline bool isFutilityPruningEligible(int eval, bool isInCheck, bool isNullWindow, int depth, int alpha)
 {
     if (isInCheck || !isNullWindow || depth > FUTILITY_MAX_DEPTH || isMateScore(alpha))
     {
         return false;
     }
-    return getEvaluation(hashEntry) + futilityMargins[depth] < alpha;
+    return eval + futilityMargins[depth] < alpha;
 }
 
 static inline bool isFutilePruned(bool isFutilityPruning, Move move, Move bestHashMove)
 {
     return isFutilityPruning && move != bestHashMove && IS_QUIET_MOVE(move) && !isMoveCheck(move);
+}
+
+static inline bool isReverseFutilePruned(int eval, bool isInCheck, bool isNullWindow, int depth, int beta)
+{
+    return !isInCheck && isNullWindow && depth <= FUTILITY_MAX_DEPTH && !isMateScore(beta) && eval - futilityMargins[depth] > beta;
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
@@ -230,6 +235,12 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
     }
 
     const bool isNullWindow = alpha + 1 == beta;
+    const int eval = getEvaluation(hashTableEntry);
+
+    if (isReverseFutilePruned(eval, isInCheck, isNullWindow, depth, beta))
+    {
+        return beta;
+    }
 
     if (isNullMovePruning(isInCheck, isNullWindow, wasNullMove, depth))
     {
@@ -272,7 +283,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
     }
 
     const bool isReducing = isReducingEligible(isInCheck, depth);
-    const bool isFutilityPruning = isFutilityPruningEligible(hashTableEntry, isInCheck, isNullWindow, depth, alpha);
+    const bool isFutilityPruning = isFutilityPruningEligible(eval, isInCheck, isNullWindow, depth, alpha);
 
     Move bestHashMove = hashTableEntry->bestMove;
     bool raisedAlpha = false;
