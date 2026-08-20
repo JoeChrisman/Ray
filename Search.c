@@ -167,9 +167,9 @@ static inline bool isFutilityPruningEligible(int eval, bool isInCheck, bool isNu
     return eval + futilityMargins[depth] < alpha;
 }
 
-static inline bool isFutilePruned(bool isFutilityPruning, Move move, Move bestHashMove)
+static inline bool isFutilePruned(bool isFutilityPruning, int movesSearched, Move move, Move bestHashMove)
 {
-    return isFutilityPruning && move != bestHashMove && IS_QUIET_MOVE(move) && !isMoveCheck(move);
+    return isFutilityPruning && move != bestHashMove && movesSearched > 0 && IS_QUIET_MOVE(move) && !isMoveCheck(move);
 }
 
 static inline bool isReverseFutilePruned(int eval, bool isInCheck, bool isNullWindow, int depth, int beta)
@@ -302,7 +302,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         {
             DEBUG_ADD_FMP_ATTEMPT(ply);
         }
-        if (isFutilePruned(isFutilityPruning, *move, bestHashMove))
+        if (isFutilePruned(isFutilityPruning, movesSearched, *move, bestHashMove))
         {
             DEBUG_ADD_FMP_SUCCESS(ply);
             continue;
