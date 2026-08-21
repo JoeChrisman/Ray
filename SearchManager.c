@@ -42,7 +42,7 @@ static void printSearchResult(SearchResult searchResult)
     fflush(stdout);
 }
 
-static SearchResult searchByDepth(int depth)
+static SearchResult searchByDepth(int depth, int alpha, int beta)
 {
     DEBUG_CLEAR_STATS();
     searchStats.maxPly = 0;
@@ -65,7 +65,7 @@ static SearchResult searchByDepth(int depth)
     {
         Irreversibles irreversibles = position.irreversibles;
         makeMove(*move);
-        int score = -alphaBetaSearch(MIN_SCORE, MAX_SCORE, false, depth - 1, 1);
+        int score = -alphaBetaSearch(-beta, -alpha, false, depth - 1, 1);
         unMakeMove(*move, irreversibles);
         if (cancelTime == SEARCH_CANCELLED)
         {
@@ -111,7 +111,9 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
     Millis startTime = getMillis();
     Millis msRemaining = targetCancelTime - startTime; 
 
-    SearchResult bestSearchResult = searchByDepth(1);
+    int alpha = MIN_SCORE;
+    int beta = MAX_SCORE;
+    SearchResult bestSearchResult = searchByDepth(1, alpha, beta);
     for (int depth = 2; depth < MAX_PLY; depth++)
     {
         if (bestSearchResult.msElapsed * 4 > msRemaining)
@@ -120,7 +122,26 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
             break;
         }
 
-        SearchResult searchResult = searchByDepth(depth);
+        int aspirationMargin = 35;
+        alpha = bestSearchResult.score - aspirationMargin;
+        beta = bestSearchResult.score + aspirationMargin;
+        DEBUG_LOG("trying window %d %d\n", alpha, beta);
+        SearchResult searchResult = searchByDepth(depth, alpha, beta);
+
+        while (searchResult.score <= alpha || searchResult.score >= beta)
+        {
+            aspirationMargin *= 2;
+            if (searchResult.score <= alpha)
+            {
+                alpha -= aspirationMargin;
+            }
+            else if (searchResult.score >= beta)
+            {
+                beta += aspirationMargin;
+            }
+            DEBUG_LOG("window failed, re-searching with %d %d\n", alpha, beta);
+            searchResult = searchByDepth(depth, alpha, beta);
+        }
         if (cancelTime == SEARCH_CANCELLED)
         {
             if (searchResult.move != NO_MOVE && searchResult.score > bestSearchResult.score)
@@ -193,7 +214,7 @@ SearchResult search(SearchOptions searchOptions)
         assert(searchOptions.depth > 0);
         assert(searchOptions.depth <= MAX_PLY);
         cancelTime = SEARCH_FOREVER;
-        searchResult = searchByDepth(searchOptions.depth);
+        searchResult = searchByDepth(searchOptions.depth, MIN_SCORE, MAX_SCORE);
         cancelTime = SEARCH_CANCELLED;
         printSearchResult(searchResult);
     }
