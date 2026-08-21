@@ -18,8 +18,8 @@
 #define TIMEOUT_CHECK_INTERVAL 8191
 #define TIMEOUT_MARGIN_MILLIS 100
 
-#define LATE_MOVE_THRESHOLD 3
-#define LATE_MOVE_MIN_DEPTH 4
+#define LATE_MOVE_MIN_MOVENUM 3
+#define LATE_MOVE_MIN_DEPTH 3
 
 #define FUTILITY_MAX_DEPTH 3
 static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = { 0, 150, 300, 600 };
@@ -137,14 +137,18 @@ static inline bool isReducingEligible(bool isInCheck, int depth)
     return !isInCheck && depth >= LATE_MOVE_MIN_DEPTH;
 }
 
-static inline int getReduction(bool isReducingEligible, int moveOrderType, bool isNullWindow, int depth, int movesSearched, int moveNum)
+static inline int getReduction(bool isReducingEligible, Move move, bool isNullWindow, int depth, int moveNum)
 {
-    if (!isReducingEligible || moveOrderType != HISTORY_MOVEORDER || moveNum < LATE_MOVE_THRESHOLD)
+    if (!isReducingEligible || moveNum <= LATE_MOVE_MIN_MOVENUM)
     {
         return 0;
     }
 
-    int reduction = (int)(sqrt(depth - 1) + sqrt(movesSearched - 1));
+    int reduction = (int)(sqrt(depth - 1) + sqrt(moveNum - 1));
+    if (!IS_QUIET_MOVE(move))
+    {
+        reduction /= 2;
+    }
     if (!isNullWindow)
     {
         reduction /= 2;
@@ -326,7 +330,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         }
         else
         {
-            const int reduction = getReduction(isReducing, moveOrderType, isNullWindow, depth, movesSearched, moveNum);
+            const int reduction = getReduction(isReducing, *move, isNullWindow, depth, moveNum);
             if (reduction > 0)
             {
                 DEBUG_ADD_LMR_ATTEMPT(ply);
