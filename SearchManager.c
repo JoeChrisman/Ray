@@ -114,6 +114,10 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
     int alpha = MIN_SCORE;
     int beta = MAX_SCORE;
     SearchResult bestSearchResult = searchByDepth(1, alpha, beta);
+    SearchResult displayedResult = bestSearchResult;
+    displayedResult.msElapsed = getMillis() - startTime;
+    printSearchResult(displayedResult);
+
     for (int depth = 2; depth < MAX_PLY; depth++)
     {
         if (bestSearchResult.msElapsed * 4 > msRemaining)
@@ -162,17 +166,12 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
         bestSearchResult = searchResult;
         msRemaining -= bestSearchResult.msElapsed;
 
-        SearchResult displayedResult = bestSearchResult;
+        displayedResult = bestSearchResult;
         displayedResult.msElapsed = getMillis() - startTime;
         printSearchResult(displayedResult);
     }
 
-    SearchResult displayedResult = bestSearchResult;
-    displayedResult.msElapsed = getMillis() - startTime;
-    printSearchResult(displayedResult);
-
     cancelTime = SEARCH_CANCELLED;
-
     return bestSearchResult;
 }
 
