@@ -217,7 +217,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         depth++;
     }
 
-    if (depth <= 0)
+    if (depth <= 0 || ply >= MAX_PLY)
     {
         if (isTimeout())
         {

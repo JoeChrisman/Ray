@@ -7,7 +7,7 @@
 #include "Bitboard.h"
 #include "Position.h"
 
-#define MAX_PLY 64
+#define MAX_PLY 255 
 
 #define MAX_SCORE 50000
 #define MIN_SCORE (-50000)
