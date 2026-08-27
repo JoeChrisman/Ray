@@ -5,7 +5,7 @@
 #include <pthread.h>
 #include <assert.h>
 
-#include "Bitboard.h"
+#include "Eval.h"
 #include "Search.h"
 #include "SearchManager.h"
 #include "Move.h"
@@ -192,6 +192,9 @@ static int positionFen()
         DEBUG_LOG("Client sent malformed FEN %s\n", fen);
         return 1;
     }
+
+    DEBUG_LOG("quickEval: %d Eval: %d\n", quickEvaluate() * position.sideToMove, evaluate() * position.sideToMove);
+
     return 0;
 }
 
