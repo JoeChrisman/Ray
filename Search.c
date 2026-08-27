@@ -21,11 +21,13 @@
 #define LATE_MOVE_MIN_MOVENUM 3
 #define LATE_MOVE_MIN_DEPTH 3
 
-#define FUTILITY_MAX_DEPTH 3
-static const int futilityMargins[FUTILITY_MAX_DEPTH + 1] = { 0, 150, 300, 600 };
+#define FUTILITY_MAX_DEPTH 6
+#define FUTILITY_BASELINE 90
+#define FUTILITY_SCALAR 60
 
-#define REVERSE_FUTILITY_MAX_DEPTH 3
-static const int reverseFutilityMargins[REVERSE_FUTILITY_MAX_DEPTH + 1] = { 0, 150, 300, 600 };
+#define REVERSE_FUTILITY_MAX_DEPTH 6
+#define REVERSE_FUTILITY_BASELINE 70
+#define REVERSE_FUTILITY_SCALAR 80
 
 SearchStats searchStats = {};
 
@@ -168,7 +170,7 @@ static inline bool isFutilityPruningEligible(int eval, bool isInCheck, bool isNu
     {
         return false;
     }
-    return eval + futilityMargins[depth] < alpha;
+    return eval + FUTILITY_BASELINE + depth * FUTILITY_SCALAR < alpha;
 }
 
 static inline bool isFutilePruned(bool isFutilityPruning, int movesSearched, Move move, Move bestHashMove)
@@ -178,7 +180,11 @@ static inline bool isFutilePruned(bool isFutilityPruning, int movesSearched, Mov
 
 static inline bool isReverseFutilePruned(int eval, bool isInCheck, bool isNullWindow, int depth, int beta)
 {
-    return !isInCheck && isNullWindow && depth <= REVERSE_FUTILITY_MAX_DEPTH && !isMateScore(beta) && eval - reverseFutilityMargins[depth] > beta;
+    if (isInCheck || !isNullWindow || depth > REVERSE_FUTILITY_MAX_DEPTH || isMateScore(beta))
+    {
+        return false;
+    }
+    return eval - REVERSE_FUTILITY_BASELINE - depth * REVERSE_FUTILITY_SCALAR > beta;
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
