@@ -27,8 +27,12 @@ typedef struct
     uint64_t hash;
 } HashEntry;
 
+#define MIN_HASH_TABLE_SIZE 1
+#define DEFAULT_HASH_TABLE_SIZE 256
+#define MAX_HASH_TABLE_SIZE 2047
+
 static HashEntry* hashTable;
-int initHashTable();
+int initHashTable(int numMegabytes);
 
 HashEntry* getHashTableEntry(uint64_t hash);
 

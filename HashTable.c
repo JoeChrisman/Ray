@@ -10,11 +10,9 @@
 #include "Utils.h"
 #include "HashTable.h"
 
-#define HASH_TABLE_MEGABYTES 256 
-
 static int numHashTableEntries;
 
-int initHashTable()
+int initHashTable(int numMegabytes)
 {
     const int entrySize = sizeof(HashEntry);
     if (hashTable != NULL)
@@ -24,7 +22,7 @@ int initHashTable()
         hashTable = NULL;
     }
 
-    const int numBytes = HASH_TABLE_MEGABYTES * 1024 * 1024;
+    const int numBytes = numMegabytes * 1024 * 1024;
     const int goalNumEntries = numBytes / entrySize;
 
     numHashTableEntries = 1;
@@ -38,13 +36,13 @@ int initHashTable()
     {
         memset(hashTable, 0, entrySize * numHashTableEntries);
         DEBUG_LOG("Allocated %dMB hash table with %d bytes and with %d entries\n",
-                 HASH_TABLE_MEGABYTES,
+                 numMegabytes,
                  entrySize * numHashTableEntries,
                  numHashTableEntries);
         return 0;
     }
     DEBUG_LOG("Failed to allocate %dMB hash table with %d bytes and with %d entries\n",
-             HASH_TABLE_MEGABYTES,
+             numMegabytes,
              entrySize * numHashTableEntries,
              numHashTableEntries);
     return 1;

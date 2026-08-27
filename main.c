@@ -31,7 +31,7 @@ int main(int argc, char** argv)
 
     srand(seed);
     initZobrist();
-    initHashTable();
+    initHashTable(DEFAULT_HASH_TABLE_SIZE);
     initAttackTables();
     DEBUG_LOG("Seed is %d\n", seed);
 

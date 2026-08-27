@@ -14,6 +14,7 @@
 #include "Utils.h"
 #include "MoveGen.h"
 #include "Perft.h"
+#include "HashTable.h"
 #include "Uci.h"
 
 static pthread_t searchThread;
@@ -274,6 +275,32 @@ static int handlePositionCommand()
     return 0;
 }
 
+static int handleSetOptionCommand()
+{
+    strtok(NULL, delimiter); // eat "name" flag 
+    char* name = strtok(NULL, delimiter);
+    if (!strcmp(name, "Hash"))
+    {
+        strtok(NULL, delimiter); // eat "value" flag
+        char* newSizeStr = strtok(NULL, delimiter);
+        if (newSizeStr == NULL)
+        {
+            DEBUG_LOG("Client sent empty hash table size\n");
+            return 1;
+        }
+
+        errno = 0;
+        int newSize = (int)strtol(newSizeStr, NULL, 10);
+        if (errno || newSize < MIN_HASH_TABLE_SIZE || newSize > MAX_HASH_TABLE_SIZE)
+        {
+            DEBUG_LOG("Client sent invalid hash table size\n");
+            return 1;
+        }
+        initHashTable(newSize);
+    }
+    return 0;
+}
+
 static int handleCommand(char* command)
 {
     const char* flag1 = strtok(command, delimiter);
@@ -282,7 +309,11 @@ static int handleCommand(char* command)
         DEBUG_LOG("Client sent malformed command\n");
         return 1;
     }
-    if (!strcmp(flag1, "position"))
+    if (!strcmp(flag1, "setoption"))
+    {
+        return handleSetOptionCommand();
+    }
+    else if (!strcmp(flag1, "position"))
     {
         return handlePositionCommand();
     }
@@ -306,6 +337,7 @@ int runUci()
 
     printf("id name Ray\n");
     printf("id author Joe Chrisman\n");
+    printf("option name Hash type spin default %d min %d max %d\n", DEFAULT_HASH_TABLE_SIZE, MIN_HASH_TABLE_SIZE, MAX_HASH_TABLE_SIZE);
     printf("uciok\n");
     fflush(stdout);
 
