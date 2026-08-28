@@ -170,7 +170,7 @@ static inline bool isFutilityPruningEligible(int eval, bool isInCheck, bool isNu
     {
         return false;
     }
-    return eval + FUTILITY_BASELINE + depth * FUTILITY_SCALAR < alpha;
+    return eval + FUTILITY_BASELINE + (depth - 1) * FUTILITY_SCALAR < alpha;
 }
 
 static inline bool isFutilePruned(bool isFutilityPruning, int movesSearched, Move move, Move bestHashMove)
@@ -184,7 +184,7 @@ static inline bool isReverseFutilePruned(int eval, bool isInCheck, bool isNullWi
     {
         return false;
     }
-    return eval - REVERSE_FUTILITY_BASELINE - depth * REVERSE_FUTILITY_SCALAR > beta;
+    return eval - REVERSE_FUTILITY_BASELINE - (depth - 1) * REVERSE_FUTILITY_SCALAR > beta;
 }
 
 int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
