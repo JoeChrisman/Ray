@@ -129,11 +129,23 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
         int aspirationMargin = 35;
         alpha = bestSearchResult.score - aspirationMargin;
         beta = bestSearchResult.score + aspirationMargin;
-        DEBUG_LOG("trying window %d %d\n", alpha, beta);
+        DEBUG_LOG("Trying aspiration window %d %d\n", alpha, beta);
         SearchResult searchResult = searchByDepth(depth, alpha, beta);
+        msRemaining -= searchResult.msElapsed;
 
         while (searchResult.score <= alpha || searchResult.score >= beta)
         {
+            if (searchResult.msElapsed * 2 > msRemaining)
+            {
+                DEBUG_LOG("Widening aspiration window will take too long");
+                break;
+            }
+            if (cancelTime == SEARCH_CANCELLED)
+            {
+                DEBUG_LOG("Search was cancelled while widening aspiration window");
+                break;
+            }
+
             aspirationMargin *= 2;
             if (searchResult.score <= alpha)
             {
@@ -143,8 +155,9 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
             {
                 beta += aspirationMargin;
             }
-            DEBUG_LOG("window failed, re-searching with %d %d\n", alpha, beta);
+            DEBUG_LOG("Aspiration window failed, widening aspiration window to %d %d\n", alpha, beta);
             searchResult = searchByDepth(depth, alpha, beta);
+            msRemaining -= searchResult.msElapsed;
         }
         if (cancelTime == SEARCH_CANCELLED)
         {
@@ -164,7 +177,6 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
         assert(searchResult.score > MIN_SCORE);
         assert(searchResult.score < MAX_SCORE);
         bestSearchResult = searchResult;
-        msRemaining -= bestSearchResult.msElapsed;
 
         displayedResult = bestSearchResult;
         displayedResult.msElapsed = getMillis() - startTime;
