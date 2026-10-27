@@ -54,7 +54,7 @@ void runPerft(int depth)
  */
 void runPerftSuite()
 {
-    FILE* perftSuite = fopen("../perftSuite.txt", "r");
+    FILE* perftSuite = fopen("./perftSuite.txt", "r");
     if (!perftSuite)
     {
         printf("Failed to open perftSuite.txt\n");
