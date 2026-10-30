@@ -14,6 +14,10 @@
 
 int main(int argc, char** argv)
 {
+#ifndef NDEBUG
+    dup2(STDOUT_FILENO, STDERR_FILENO);
+#endif
+
     int seed = (int)(time(NULL) ^ getpid());
     if (argc > 1)
     {
