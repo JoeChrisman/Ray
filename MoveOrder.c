@@ -1,6 +1,5 @@
 #include <stdlib.h>
 #include <string.h>
-#include <assert.h>
 
 #include "Search.h"
 #include "Square.h"
@@ -35,7 +34,7 @@ void resetHistory()
     {
         for (Piece piece = WHITE_PAWN; piece <= BLACK_KING; piece++)
         {
-            assert(history[piece][to] <= MAX_HISTORY_SCORE);
+            DEBUG_ASSERT(history[piece][to] <= MAX_HISTORY_SCORE);
             history[piece][to] = 0;
         }
     }
@@ -47,8 +46,8 @@ void addToHistory(int bonus, Move move)
     const Piece moved = GET_PIECE_MOVED(move);
 
     int* const historyScore = &history[moved][to];
-    assert(*historyScore <= MAX_HISTORY_SCORE);
-    assert(*historyScore >= -MAX_HISTORY_SCORE); 
+    DEBUG_ASSERT(*historyScore <= MAX_HISTORY_SCORE);
+    DEBUG_ASSERT(*historyScore >= -MAX_HISTORY_SCORE); 
 
     *historyScore += bonus - (*historyScore * abs(bonus) / MAX_HISTORY_SCORE);
     *historyScore = MAX(-MAX_HISTORY_SCORE, MIN(MAX_HISTORY_SCORE, *historyScore));
@@ -71,17 +70,17 @@ int pickMove(
         }
         else if (!IS_QUIET_MOVE(*move))
         {
-            assert(GET_SCORE(*move) != 0);
+            DEBUG_ASSERT(GET_SCORE(*move) != 0);
             score = CAPTURE_MOVEORDER + GET_SCORE(*move);
         }
         else if (killers[depth][0] == *move)
         {
-            assert(killers[depth][1] != *move);
+            DEBUG_ASSERT(killers[depth][1] != *move);
             score = KILLER_MOVEORDER + 2;
         }
         else if (killers[depth][1] == *move)
         {
-            assert(killers[depth][0] != *move);
+            DEBUG_ASSERT(killers[depth][0] != *move);
             score = KILLER_MOVEORDER + 1;
         }
         else

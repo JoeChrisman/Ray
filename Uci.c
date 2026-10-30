@@ -3,7 +3,6 @@
 #include <errno.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <assert.h>
 
 #include "Eval.h"
 #include "Search.h"
@@ -26,9 +25,9 @@ static void* spawnSearchThread(void* searchOptions)
     SearchOptions options = *(SearchOptions*)searchOptions;
     free(searchOptions);
     SearchResult searchResult = search(options);
-    assert(searchResult.move != NO_MOVE);
-    assert(searchResult.score >= MIN_SCORE);
-    assert(searchResult.score <= MAX_SCORE);
+    DEBUG_ASSERT(searchResult.move != NO_MOVE);
+    DEBUG_ASSERT(searchResult.score >= MIN_SCORE);
+    DEBUG_ASSERT(searchResult.score <= MAX_SCORE);
     printf("bestmove %s\n", getStrFromMove(searchResult.move));
     fflush(stdout);
     return NULL;

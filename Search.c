@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <math.h>
 #include <stdbool.h>
 #include <stdlib.h>
@@ -47,9 +46,9 @@ static inline bool isTimeout()
 static int quiescenceSearch(int alpha, int beta, int ply)
 {
     DEBUG_ADD_QUIET_NODE();
-    assert(alpha < beta);
-    assert(alpha >= MIN_SCORE);
-    assert(alpha <= MAX_SCORE);
+    DEBUG_ASSERT(alpha < beta);
+    DEBUG_ASSERT(alpha >= MIN_SCORE);
+    DEBUG_ASSERT(alpha <= MAX_SCORE);
 
     int evaluation = MIN_SCORE;
 
@@ -193,12 +192,12 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
     searchStats.nodes++;
 
     DEBUG_ADD_NODE(ply);
-    assert(depth >= 0);
-    assert(alpha < beta);
-    assert(alpha >= MIN_SCORE);
-    assert(alpha <= MAX_SCORE);
-    assert(ply < MAX_PLY);
-    assert(ply >= 0);
+    DEBUG_ASSERT(depth >= 0);
+    DEBUG_ASSERT(alpha < beta);
+    DEBUG_ASSERT(alpha >= MIN_SCORE);
+    DEBUG_ASSERT(alpha <= MAX_SCORE);
+    DEBUG_ASSERT(ply < MAX_PLY);
+    DEBUG_ASSERT(ply >= 0);
 
     if (cancelTime == SEARCH_CANCELLED)
     {
@@ -229,7 +228,7 @@ int alphaBetaSearch(int alpha, int beta, bool wasNullMove, int depth, int ply)
         {
             return 0;
         }
-        assert(!isInCheck);
+        DEBUG_ASSERT(!isInCheck);
         DEBUG_ADD_LEAF_NODE(ply);
         return quiescenceSearch(alpha, beta, ply);
     }

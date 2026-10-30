@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 
 #include "MoveOrder.h"
 #include "Position.h"
@@ -179,9 +178,9 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
             break;
         }
 
-        assert(searchResult.move != NO_MOVE);
-        assert(searchResult.score > MIN_SCORE);
-        assert(searchResult.score < MAX_SCORE);
+        DEBUG_ASSERT(searchResult.move != NO_MOVE);
+        DEBUG_ASSERT(searchResult.score > MIN_SCORE);
+        DEBUG_ASSERT(searchResult.score < MAX_SCORE);
         bestSearchResult = searchResult;
 
         displayedResult = bestSearchResult;
@@ -214,12 +213,12 @@ SearchResult search(SearchOptions searchOptions)
 
     if (searchOptions.searchType == MOVE_TIME_SEARCH)
     {
-        assert(searchOptions.msRemaining > 0);
+        DEBUG_ASSERT(searchOptions.msRemaining > 0);
         searchResult = searchUntilTimeout(getMillis() + searchOptions.msRemaining);
     }
     else if (searchOptions.searchType == TIME_CONTROL_SEARCH)
     {
-        assert(searchOptions.msRemaining > 0);
+        DEBUG_ASSERT(searchOptions.msRemaining > 0);
         searchResult = searchByTimeControl(searchOptions.msRemaining, searchOptions.msIncrement);
     }
     else if (searchOptions.searchType == INFINITE_SEARCH)
@@ -228,8 +227,8 @@ SearchResult search(SearchOptions searchOptions)
     }
     else if (searchOptions.searchType == DEPTH_SEARCH)
     {
-        assert(searchOptions.depth > 0);
-        assert(searchOptions.depth <= MAX_PLY);
+        DEBUG_ASSERT(searchOptions.depth > 0);
+        DEBUG_ASSERT(searchOptions.depth <= MAX_PLY);
         cancelTime = SEARCH_FOREVER;
         searchResult = searchByDepth(searchOptions.depth, MIN_SCORE, MAX_SCORE);
         cancelTime = SEARCH_CANCELLED;
@@ -237,11 +236,11 @@ SearchResult search(SearchOptions searchOptions)
     }
     else
     {
-        assert(false);
+        DEBUG_ASSERT(false);
     }
-    assert(cancelTime == SEARCH_CANCELLED);
-    assert(searchResult.move != NO_MOVE);
-    assert(searchResult.score >= MIN_SCORE);
-    assert(searchResult.score <= MAX_SCORE);
+    DEBUG_ASSERT(cancelTime == SEARCH_CANCELLED);
+    DEBUG_ASSERT(searchResult.move != NO_MOVE);
+    DEBUG_ASSERT(searchResult.score >= MIN_SCORE);
+    DEBUG_ASSERT(searchResult.score <= MAX_SCORE);
     return searchResult;
 }

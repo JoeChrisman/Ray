@@ -1,5 +1,3 @@
-#include <assert.h>
-
 #include "Bitboard.h"
 #include "Position.h"
 #include "Square.h"
@@ -214,8 +212,8 @@ static inline float getEndgameWeight()
     {
         return 0.0f;
     }
-    assert(weight <= 1.0f);
-    assert(weight >= 0.0f);
+    DEBUG_ASSERT(weight <= 1.0f);
+    DEBUG_ASSERT(weight >= 0.0f);
     return weight;
 }
 
@@ -223,7 +221,7 @@ int quickEvaluate()
 {
     const float endgameWeight = getEndgameWeight();
     const float midgameWeight = 1.0f - endgameWeight;
-    assert(midgameWeight + endgameWeight == 1.0f);
+    DEBUG_ASSERT(midgameWeight + endgameWeight == 1.0f);
 
     return (int)(
         (float)position.whiteMidGameAdvantage * midgameWeight +
@@ -236,15 +234,15 @@ int evaluate()
 
     const float endgameWeight = getEndgameWeight();
     const float midgameWeight = 1.0f - endgameWeight;
-    assert(midgameWeight + endgameWeight == 1.0f);
+    DEBUG_ASSERT(midgameWeight + endgameWeight == 1.0f);
 
     PawnStructureInfo* pawnInfo = getPawnStructureInfo(position.bitboards[WHITE_PAWN], position.bitboards[BLACK_PAWN]);
     const int whiteKingShieldAdvantage = getWhiteKingShieldAdvantage(position.bitboards[WHITE_KING], position.bitboards[BLACK_KING], pawnInfo);
     
     const int whiteBishopPair = GET_NUM_PIECES(position.bitboards[WHITE_BISHOP]) >= 2;
     const int blackBishopPair = GET_NUM_PIECES(position.bitboards[BLACK_BISHOP]) >= 2;
-    assert(whiteBishopPair - blackBishopPair >= -1);
-    assert(blackBishopPair - whiteBishopPair >= -1);
+    DEBUG_ASSERT(whiteBishopPair - blackBishopPair >= -1);
+    DEBUG_ASSERT(blackBishopPair - whiteBishopPair >= -1);
 
     const int whiteRookAdvantage = getWhiteRookAdvantage(position.bitboards[WHITE_ROOK], position.bitboards[BLACK_ROOK], pawnInfo);
 

@@ -1,7 +1,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
 
 #include "Position.h"
 #include "Notation.h"
@@ -71,12 +70,12 @@ HashEntry* probeHashTable(
     int ply)
 {
     HashEntry* entry = getHashTableEntry(hash);
-    assert(depth > 0);
-    assert(depth < MAX_PLY);
-    assert(hashTable != NULL);
-    assert(entry != NULL);
-    assert(entry >= hashTable);
-    assert(entry < hashTable + numHashTableEntries);
+    DEBUG_ASSERT(depth > 0);
+    DEBUG_ASSERT(depth < MAX_PLY);
+    DEBUG_ASSERT(hashTable != NULL);
+    DEBUG_ASSERT(entry != NULL);
+    DEBUG_ASSERT(entry >= hashTable);
+    DEBUG_ASSERT(entry < hashTable + numHashTableEntries);
 
     if (entry->hash != hash)
     {
@@ -132,15 +131,15 @@ void writeHashTableEntry(
     int depth,
     int ply)
 {
-    assert(depth > 0);
-    assert(depth < MAX_PLY);
-    assert(ply < MAX_PLY);
-    assert(bestScore <= MAX_SCORE);
-    assert(bestScore >= MIN_SCORE);
-    assert(hashTable != NULL);
-    assert(entry != NULL);
-    assert(entry >= hashTable);
-    assert(entry < hashTable + numHashTableEntries);
+    DEBUG_ASSERT(depth > 0);
+    DEBUG_ASSERT(depth < MAX_PLY);
+    DEBUG_ASSERT(ply < MAX_PLY);
+    DEBUG_ASSERT(bestScore <= MAX_SCORE);
+    DEBUG_ASSERT(bestScore >= MIN_SCORE);
+    DEBUG_ASSERT(hashTable != NULL);
+    DEBUG_ASSERT(entry != NULL);
+    DEBUG_ASSERT(entry >= hashTable);
+    DEBUG_ASSERT(entry < hashTable + numHashTableEntries);
 
     if (bestScore > MIN_MATE_SCORE)
     {

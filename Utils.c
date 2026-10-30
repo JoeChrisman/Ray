@@ -3,7 +3,6 @@
 #include <time.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <assert.h>
 
 #include "Bitboard.h"
 #include "Square.h"
@@ -119,6 +118,20 @@ void DEBUG_LOG(const char *format, ...)
     va_end(args);
 }
 
+void DEBUG_ABORT(const char* reason)
+{
+    DEBUG_LOG("PROGRAM ABORTED: %s\n", reason);
+    DEBUG_LOG("STACK TRACE:\n");
+    void* stack[512];
+    int stackSize = backtrace(stack, 512);
+    char** symbols = backtrace_symbols(stack, stackSize);
+    for (int i = 0; i < stackSize; i++)
+    {
+        DEBUG_LOG("%s\n", symbols[i]);
+    }
+    abort();
+}
+
 void DEBUG_LOG_STATS()
 {
     uint64_t nodes = 0;
@@ -142,9 +155,9 @@ void DEBUG_LOG_STATS()
 
     for (int ply = 1; ply < MAX_PLY && debugStats.nodes[ply] != 0; ply++)
     {
-        assert(debugStats.nodes[ply] == debugStats.leafNodes[ply] + debugStats.allNodes[ply] + debugStats.cutNodes[ply] + debugStats.pvNodes[ply]);
+        DEBUG_ASSERT(debugStats.nodes[ply] == debugStats.leafNodes[ply] + debugStats.allNodes[ply] + debugStats.cutNodes[ply] + debugStats.pvNodes[ply]);
 
-        assert(debugStats.cutNodes[ply] == debugStats.rfmpCuts[ply] + debugStats.nullCuts[ply] + debugStats.hashScoreCuts[ply] + debugStats.hashMoveCuts[ply] + 
+        DEBUG_ASSERT(debugStats.cutNodes[ply] == debugStats.rfmpCuts[ply] + debugStats.nullCuts[ply] + debugStats.hashScoreCuts[ply] + debugStats.hashMoveCuts[ply] + 
             debugStats.captureMoveCuts[ply] + debugStats.killerMoveCuts[ply] + debugStats.historyMoveCuts[ply]);
 
         const uint64_t plyNodes = debugStats.nodes[ply]; 

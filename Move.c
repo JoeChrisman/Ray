@@ -1,4 +1,3 @@
-#include <assert.h>
 #include <stdbool.h>
 
 #include "Bitboard.h"
@@ -8,6 +7,7 @@
 #include "MoveGen.h"
 #include "AttackTables.h"
 #include "Move.h"
+#include "Utils.h"
 
 static const int attackerScores[NUM_PIECE_TYPES + 1] = {
     0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 0
@@ -32,15 +32,15 @@ Move createMove(
     const int score = captured ?
         victimScores[captured] - attackerScores[moved] : promotionScores[promoted];
 
-    assert (from != to);
-    assert (from >= A8 && from <= H1);
-    assert (to >= A8 && to <= H1);
-    assert (captured != WHITE_KING);
-    assert (captured != BLACK_KING);
-    assert (score >= 0);
-    assert (score < 64);
-    assert ((captured != NO_PIECE || promoted != NO_PIECE) || score == 0);
-    assert ((captured == NO_PIECE && promoted == NO_PIECE) || score > 0);
+    DEBUG_ASSERT(from != to);
+    DEBUG_ASSERT(from >= A8 && from <= H1);
+    DEBUG_ASSERT(to >= A8 && to <= H1);
+    DEBUG_ASSERT(captured != WHITE_KING);
+    DEBUG_ASSERT(captured != BLACK_KING);
+    DEBUG_ASSERT(score >= 0);
+    DEBUG_ASSERT(score < 64);
+    DEBUG_ASSERT((captured != NO_PIECE || promoted != NO_PIECE) || score == 0);
+    DEBUG_ASSERT((captured == NO_PIECE && promoted == NO_PIECE) || score > 0);
 
     return (
         (from) |
@@ -93,6 +93,6 @@ bool isMoveCheck(Move move)
             return getCardinalSlidingMoves(enemyKingSquare, occupied) & to ||
                    getOrdinalSlidingMoves(enemyKingSquare, occupied) & to;
     }
-    assert(false);
+    DEBUG_ASSERT(false);
     return false;
 }

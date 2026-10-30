@@ -2,6 +2,10 @@
 #define RAY_UTILS_H
 
 #include <stdint.h>
+#include <assert.h>
+#include <stdio.h>
+#include <execinfo.h>
+#include <unistd.h>
 
 #include "Bitboard.h"
 #include "Move.h"
@@ -56,10 +60,27 @@ typedef struct
 
 extern DebugStats debugStats;
 
-
 #ifndef NDEBUG
 
-void DEBUG_LOG(const char *format, ...);
+void DEBUG_LOG(const char* format, ...);
+void DEBUG_ABORT(const char* reason); 
+
+#define DEBUG_ASSERT(condition)                                    \
+    do {                                                           \
+        if (!(condition)) {                                        \
+            char abortReason[512];                                 \
+                                                                   \
+            snprintf(                                              \
+                abortReason,                                       \
+                sizeof(abortReason),                               \
+                "assert failure \"%s\" in %s:%d",                  \
+                #condition,                                        \
+                __FILE__,                                          \
+                __LINE__);                                         \
+                                                                   \
+            DEBUG_ABORT(abortReason);                              \
+        }                                                          \
+    } while (0)                                 
 
 void DEBUG_LOG_STATS();
 void DEBUG_CLEAR_STATS();
@@ -102,6 +123,8 @@ void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType);
 #else 
 
 #define DEBUG_LOG(format, ...)                                ((void)0)
+#define DEBUG_ABORT(reason)                                   ((void)0)
+#define DEBUG_ASSERT(condition)                               ((void)0)
 
 #define DEBUG_LOG_STATS()                                     ((void)0)
 #define DEBUG_CLEAR_STATS()                                   ((void)0)
