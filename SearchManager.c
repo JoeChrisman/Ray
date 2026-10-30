@@ -129,6 +129,9 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
         int aspirationMargin = 35;
         alpha = bestSearchResult.score - aspirationMargin;
         beta = bestSearchResult.score + aspirationMargin;
+        alpha = MIN(MAX_SCORE, MAX(MIN_SCORE, alpha));
+        beta = MIN(MAX_SCORE, MAX(MIN_SCORE, beta));
+
         DEBUG_LOG("Trying aspiration window %d %d\n", alpha, beta);
         SearchResult searchResult = searchByDepth(depth, alpha, beta);
         msRemaining -= searchResult.msElapsed;
@@ -137,12 +140,12 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
         {
             if (searchResult.msElapsed * 2 > msRemaining)
             {
-                DEBUG_LOG("Widening aspiration window will take too long");
+                DEBUG_LOG("Widening aspiration window will take too long\n");
                 break;
             }
             if (cancelTime == SEARCH_CANCELLED)
             {
-                DEBUG_LOG("Search was cancelled while widening aspiration window");
+                DEBUG_LOG("Search was cancelled while widening aspiration window\n");
                 break;
             }
 
@@ -155,6 +158,9 @@ static SearchResult searchUntilTimeout(Millis targetCancelTime)
             {
                 beta += aspirationMargin;
             }
+
+            alpha = MIN(MAX_SCORE, MAX(MIN_SCORE, alpha));
+            beta = MIN(MAX_SCORE, MAX(MIN_SCORE, beta));
             DEBUG_LOG("Aspiration window failed, widening aspiration window to %d %d\n", alpha, beta);
             searchResult = searchByDepth(depth, alpha, beta);
             msRemaining -= searchResult.msElapsed;
