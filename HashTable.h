@@ -21,9 +21,9 @@ typedef uint8_t NodeType;
 typedef struct
 {
     NodeType type;
+    uint8_t depth;
     Move bestMove;
     int bestScore;
-    uint8_t depth;
     uint64_t hash;
 } HashEntry;
 
@@ -31,8 +31,8 @@ typedef struct
 #define DEFAULT_HASH_TABLE_SIZE 256
 #define MAX_HASH_TABLE_SIZE 2047
 
-static HashEntry* hashTable;
 int initHashTable(int numMegabytes);
+int resetHashTable();
 
 HashEntry* getHashTableEntry(uint64_t hash);
 

@@ -10,6 +10,7 @@
 #include "Utils.h"
 #include "HashTable.h"
 
+static HashEntry* hashTable;
 static int numHashTableEntries;
 
 int initHashTable(int numMegabytes)
@@ -47,6 +48,19 @@ int initHashTable(int numMegabytes)
              numHashTableEntries);
     return 1;
 }
+
+int resetHashTable()
+{
+    if (hashTable != NULL)
+    {
+        memset(hashTable, 0, sizeof(HashEntry) * numHashTableEntries);
+        DEBUG_LOG("Successfully cleared hash table\n");
+        return 0;
+    }
+    DEBUG_LOG("Failed to clear hash table because hash table is NULL\n");
+    return 1;
+}
+
 
 HashEntry* probeHashTable(
     uint64_t hash,

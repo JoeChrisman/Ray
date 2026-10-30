@@ -48,6 +48,5 @@ int main(int argc, char** argv)
         memset(input, '\0', sizeof(input));
     }
 
-    free(hashTable);
     return 1;
 }

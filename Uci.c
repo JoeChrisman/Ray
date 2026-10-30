@@ -15,6 +15,7 @@
 #include "MoveGen.h"
 #include "Perft.h"
 #include "HashTable.h"
+#include "MoveOrder.h"
 #include "Uci.h"
 
 static pthread_t searchThread;
@@ -301,6 +302,14 @@ static int handleSetOptionCommand()
     return 0;
 }
 
+static int handleNewgameCommand()
+{
+    resetKillers();
+    resetHistory();
+    resetPosition();
+    return resetHashTable();
+}
+
 static int handleCommand(char* command)
 {
     const char* flag1 = strtok(command, delimiter);
@@ -308,6 +317,10 @@ static int handleCommand(char* command)
     {
         DEBUG_LOG("Client sent malformed command\n");
         return 1;
+    }
+    if (!strcmp(flag1, "ucinewgame"))
+    {
+        return handleNewgameCommand();
     }
     if (!strcmp(flag1, "setoption"))
     {

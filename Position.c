@@ -27,14 +27,14 @@ static const int CASTLING_FLAGS[NUM_SQUARES] = {
 
 Position position = {0};
 
-void clearPosition()
+void resetPosition()
 {
     memset(&position, 0, sizeof(position));
 }
 
 int loadFen(const char* fen)
 {
-    clearPosition();
+    resetPosition();
 
     char placements[64] = "";
     char sideToMove[64] = "";
@@ -49,7 +49,7 @@ int loadFen(const char* fen)
     {
         if (square > H1)
         {
-            clearPosition();
+            resetPosition();
             return 1;
         }
         const char letter = placements[i];
@@ -63,7 +63,7 @@ int loadFen(const char* fen)
             const Piece piece = getPieceFromChar(letter);
             if (piece == NO_PIECE)
             {
-                clearPosition();
+                resetPosition();
                 return 1;
             }
             if (IS_WHITE_PIECE(piece))
@@ -97,7 +97,7 @@ int loadFen(const char* fen)
     }
     else
     {
-        clearPosition();
+        resetPosition();
         return 1;
     }
 
@@ -105,7 +105,7 @@ int loadFen(const char* fen)
     {
         if (strlen(castling) > 4)
         {
-            clearPosition();
+            resetPosition();
             return 1;
         }
         for (int i = 0; i < strlen(castling); i++)
@@ -129,7 +129,7 @@ int loadFen(const char* fen)
             }
             else
             {
-                clearPosition();
+                resetPosition();
                 return 1;
             }
         }
@@ -140,7 +140,7 @@ int loadFen(const char* fen)
     {
         if (strlen(enPassant) != 2)
         {
-            clearPosition();
+            resetPosition();
             return 1;
         }
         const int file = getFileFromChar(enPassant[0]);
@@ -148,7 +148,7 @@ int loadFen(const char* fen)
         const Square epSquare = GET_SQUARE_FROM_LOCATION(rank, file);
         if (!IS_VALID_SQUARE(epSquare))
         {
-            clearPosition();
+            resetPosition();
             return 1;
         }
         const Bitboard passant = GET_BOARD(epSquare);
@@ -161,13 +161,13 @@ int loadFen(const char* fen)
     int numHalfMoves = (int)strtol(halfMoves, NULL, 10);
     if (errno || numHalfMoves < 0)
     {
-        clearPosition();
+        resetPosition();
         return 1;
     }
     int numFullMoves = (int)strtol(fullMoves, NULL, 10);
     if (errno || numFullMoves < 1)
     {
-        clearPosition();
+        resetPosition();
         return 1;
     }
     position.irreversibles.plies = numHalfMoves;

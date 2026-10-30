@@ -49,7 +49,7 @@ typedef struct
 
 extern Position position;
 
-void clearPosition();
+void resetPosition();
 int loadFen(const char* fen);
 
 bool isRepetition();
