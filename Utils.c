@@ -13,6 +13,32 @@
 #include "Utils.h"
 #include "MoveOrder.h"
 
+static int seed;
+
+void setSeed(int chosenSeed)
+{
+    if (chosenSeed != 0)
+    {
+        seed = chosenSeed;
+    }
+    else 
+    {
+        uint32_t random = (uint32_t)(
+                (uint32_t)time(NULL) ^ 
+                (uint32_t)clock() ^ 
+                (uint32_t)getpid() << 16);
+
+        random ^= random >> 16;
+        random *= 0x7feb352d;
+        random ^= random >> 15;
+        random *= 0x846ca68b;
+        random ^= random >> 16;
+        seed = (int)random;
+    }
+
+    srand(seed);
+}
+
 Millis getMillis()
 {
     struct timespec ts;
@@ -112,7 +138,7 @@ void DEBUG_LOG(const char *format, ...)
 {
     va_list args;
     va_start(args, format);
-    printf("info string [DEBUG] ");
+    printf("info string [%x] ", seed);
     vprintf(format, args);
     fflush(stdout);
     va_end(args);

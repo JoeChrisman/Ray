@@ -18,6 +18,8 @@ typedef int64_t Millis;
 Millis getMillis();
 uint64_t get64RandomBits();
 
+void setSeed(int seed);
+
 void printBitboard(Bitboard board);
 void printMove(Move move);
 void printPosition();

@@ -18,26 +18,17 @@ int main(int argc, char** argv)
     dup2(STDOUT_FILENO, STDERR_FILENO);
 #endif
 
-    int seed = (int)(time(NULL) ^ getpid());
+    int seedArgument = 0;
     if (argc > 1)
     {
-        errno = 0;
-        int seedArgument = (int)strtol(argv[1], NULL, 10);
-        if (errno != 0)
-        {
-            DEBUG_LOG("Program started with invalid seed, using a random seed instead.\n");
-        }
-        else
-        {
-            seed = seedArgument;
-        }
+        seedArgument = atoi(argv[1]);
     }
 
-    srand(seed);
+    setSeed(seedArgument);
+
     initZobrist();
     initHashTable(DEFAULT_HASH_TABLE_SIZE);
     initAttackTables();
-    DEBUG_LOG("Seed is %d\n", seed);
 
     printf("Ray version %s\n", VERSION);
     fflush(stdout);
