@@ -54,10 +54,10 @@ void runPerft(int depth)
  */
 void runPerftSuite()
 {
-    FILE* perftSuite = fopen("./perftSuite.txt", "r");
+    FILE* perftSuite = fopen("./perft-suite.txt", "r");
     if (!perftSuite)
     {
-        print("Failed to open perftSuite.txt\n");
+        print("Failed to open perft-suite.txt\n");
         return;
     }
 
