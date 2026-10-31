@@ -30,8 +30,7 @@ int main(int argc, char** argv)
     initHashTable(DEFAULT_HASH_TABLE_SIZE);
     initAttackTables();
 
-    printf("Ray version %s\n", VERSION);
-    fflush(stdout);
+    print("Ray version %s\n", VERSION);
 
     char input[4] = "";
     while (fgets(input, sizeof(input), stdin))

@@ -20,6 +20,7 @@ uint64_t get64RandomBits();
 
 void setSeed(int seed);
 
+void print(const char* format, ...);
 void printBitboard(Bitboard board);
 void printMove(Move move);
 void printPosition();
@@ -65,23 +66,25 @@ extern DebugStats debugStats;
 #ifndef NDEBUG
 
 void DEBUG_LOG(const char* format, ...);
+void DEBUG_LOG_V(const char* format, va_list args);
+
 void DEBUG_ABORT(const char* reason); 
 
-#define DEBUG_ASSERT(condition)                                    \
-    do {                                                           \
-        if (!(condition)) {                                        \
-            char abortReason[512];                                 \
-                                                                   \
-            snprintf(                                              \
-                abortReason,                                       \
-                sizeof(abortReason),                               \
-                "assert failure \"%s\" in %s:%d",                  \
-                #condition,                                        \
-                __FILE__,                                          \
-                __LINE__);                                         \
-                                                                   \
-            DEBUG_ABORT(abortReason);                              \
-        }                                                          \
+#define DEBUG_ASSERT(condition)                  \
+    do {                                         \
+        if (!(condition)) {                      \
+            char abortReason[512];               \
+                                                 \
+            snprintf(                            \
+                abortReason,                     \
+                sizeof(abortReason),             \
+                "assert failure \"%s\" in %s:%d",\
+                #condition,                      \
+                __FILE__,                        \
+                __LINE__);                       \
+                                                 \
+            DEBUG_ABORT(abortReason);            \
+        }                                        \
     } while (0)                                 
 
 void DEBUG_LOG_STATS();
@@ -125,6 +128,8 @@ void DEBUG_ADD_CUT_STATS(int ply, int movesSearched, int moveOrderType);
 #else 
 
 #define DEBUG_LOG(format, ...)                                ((void)0)
+#define DEBUG_LOG_V(format, ...)                              ((void)0)
+
 #define DEBUG_ABORT(reason)                                   ((void)0)
 #define DEBUG_ASSERT(condition)                               ((void)0)
 

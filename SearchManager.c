@@ -1,6 +1,5 @@
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #include "MoveOrder.h"
 #include "Position.h"
@@ -14,31 +13,42 @@ volatile Millis cancelTime = SEARCH_CANCELLED;
 
 static void printSearchResult(SearchResult searchResult)
 {
-    DEBUG_LOG_STATS();
+    //DEBUG_LOG_STATS();
 
-    printf("info depth %d ", searchResult.depth);
-    printf("seldepth %d ", searchResult.maxPly);
+    char* scoreStr;
+    int scoreInt;
     if (searchResult.score > MIN_MATE_SCORE)
     {
-        printf("score mate %d ", (MAX_SCORE - searchResult.score) / 2 + 1);
+        scoreStr = "mate";
+        scoreInt = (MAX_SCORE - searchResult.score) / 2 + 1;
     }
     else if (searchResult.score < -MIN_MATE_SCORE)
     {
-        printf("score mate %d ", -(MAX_SCORE + searchResult.score) / 2);
+        scoreStr = "mate";
+        scoreInt = -(MAX_SCORE + searchResult.score) / 2;
     }
     else
     {
-        printf("score cp %d ", searchResult.score);
+        scoreStr = "cp";
+        scoreInt = searchResult.score;
     }
 
-    printf("time %llu ", searchResult.msElapsed);
-    printf("nodes %llu ", searchResult.nodes);
-    printf("nps %.0f ", (searchResult.nodes / ((double)searchResult.msElapsed + 1) * 1000.0f));
-    printf("hashfull %d ", searchResult.tableUse);
-    printf("pv ");
-    printPrincipalVariation(searchResult.depth);
+    const double nodesPerSec = searchResult.nodes / ((double)searchResult.msElapsed + 1) * 1000.0f;
 
-    fflush(stdout);
+    char pvStr[5 * MAX_PLY] = "";
+    getPrincipalVariation(pvStr, searchResult.depth);
+
+    print("info depth %d seldepth %d score %s %d time %llu nodes %llu nps %.0f hashfull %d pv %s\n",
+        searchResult.depth, 
+        searchResult.maxPly, 
+        scoreStr, 
+        scoreInt, 
+        searchResult.msElapsed, 
+        searchResult.nodes, 
+        nodesPerSec, 
+        searchResult.tableUse, 
+        pvStr);
+
 }
 
 static SearchResult searchByDepth(int depth, int alpha, int beta)

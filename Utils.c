@@ -39,6 +39,23 @@ void setSeed(int chosenSeed)
     srand(seed);
 }
 
+void print(const char *format, ...)
+{
+    va_list args;
+    va_list copy;
+
+    va_start(args, format);
+    va_copy(copy, args);
+
+    vprintf(format, args);
+    DEBUG_LOG_V(format, copy);
+
+    va_end(copy);
+    va_end(args);
+
+    fflush(stdout);
+}
+
 Millis getMillis()
 {
     struct timespec ts;
@@ -57,19 +74,18 @@ void printBitboard(const Bitboard board)
     {
         if (GET_FILE(square) == 0)
         {
-            printf("\n");
+            print("\n");
         }
         if (board & GET_BOARD(square))
         {
-            printf(" 1 ");
+            print(" 1 ");
         }
         else
         {
-            printf(" . ");
+            print(" . ");
         }
     }
-    printf("\n");
-    fflush(stdout);
+    print("\n");
 }
 
 void printMove(Move move)
@@ -82,7 +98,7 @@ void printMove(Move move)
     const char pieceMoved = getCharFromPiece(moved);
     const char pieceCaptured = getCharFromPiece(captured);
 
-    printf("from: %d, to: %d, moved: %c, captured: %c, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
+    print("from: %d, to: %d, moved: %c, captured: %c, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
            from,
            to,
            pieceMoved,
@@ -90,58 +106,63 @@ void printMove(Move move)
            IS_EN_PASSANT_CAPTURE(move),
            IS_DOUBLE_PAWN_PUSH(move),
            GET_SCORE(move));
-    fflush(stdout);
 }
 
 void printPosition()
 {
-    printf("sideToMove: %d\n", position.sideToMove);
-    printf("zobristHash: %llu\n", position.hash);
-    printf("occupied:\n");
+    print("sideToMove: %d\n", position.sideToMove);
+    print("zobristHash: %llu\n", position.hash);
+    print("occupied:\n");
     printBitboard(position.occupied);
-    printf("white:\n");
+    print("white:\n");
     printBitboard(position.white);
-    printf("black:\n");
+    print("black:\n");
     printBitboard(position.black);
-    printf("white pawns:\n");
+    print("white pawns:\n");
     printBitboard(position.bitboards[WHITE_PAWN]);
-    printf("white knights:\n");
+    print("white knights:\n");
     printBitboard(position.bitboards[WHITE_KNIGHT]);
-    printf("white bishops:\n");
+    print("white bishops:\n");
     printBitboard(position.bitboards[WHITE_BISHOP]);
-    printf("white rooks:\n");
+    print("white rooks:\n");
     printBitboard(position.bitboards[WHITE_ROOK]);
-    printf("white queens:\n");
+    print("white queens:\n");
     printBitboard(position.bitboards[WHITE_QUEEN]);
-    printf("white king:\n");
+    print("white king:\n");
     printBitboard(position.bitboards[WHITE_KING]);
-    printf("black pawns:\n");
+    print("black pawns:\n");
     printBitboard(position.bitboards[BLACK_PAWN]);
-    printf("black knights:\n");
+    print("black knights:\n");
     printBitboard(position.bitboards[BLACK_KNIGHT]);
-    printf("black bishops:\n");
+    print("black bishops:\n");
     printBitboard(position.bitboards[BLACK_BISHOP]);
-    printf("black rooks:\n");
+    print("black rooks:\n");
     printBitboard(position.bitboards[BLACK_ROOK]);
-    printf("black queens:\n");
+    print("black queens:\n");
     printBitboard(position.bitboards[BLACK_QUEEN]);
-    printf("black king:\n");
+    print("black king:\n");
     printBitboard(position.bitboards[BLACK_KING]);
-    fflush(stdout);
 }
 
 DebugStats debugStats = {0};
 
 #ifndef NDEBUG
 
+void DEBUG_LOG_V(const char *format, va_list args)
+{
+    printf("info string [%x]: ", seed);
+    vprintf(format, args);
+}
+
 void DEBUG_LOG(const char *format, ...)
 {
     va_list args;
+
     va_start(args, format);
-    printf("info string [%x] ", seed);
-    vprintf(format, args);
-    fflush(stdout);
+    DEBUG_LOG_V(format, args);
     va_end(args);
+
+    fflush(stdout);
 }
 
 void DEBUG_ABORT(const char* reason)

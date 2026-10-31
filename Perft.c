@@ -41,11 +41,11 @@ void runPerft(int depth)
         Position before = position;
         makeMove(move);
         Bitboard result = perft(depth - 1);
-        printf("%s: %llu\n", moveStr, result);
+        print("%s: %llu\n", moveStr, result);
         sum += result;
         position = before;
     }
-    printf("Nodes searched: %llu\n", sum);
+    print("Nodes searched: %llu\n", sum);
 }
 
 /*
@@ -57,7 +57,7 @@ void runPerftSuite()
     FILE* perftSuite = fopen("./perftSuite.txt", "r");
     if (!perftSuite)
     {
-        printf("Failed to open perftSuite.txt\n");
+        print("Failed to open perftSuite.txt\n");
         return;
     }
 
@@ -78,7 +78,7 @@ void runPerftSuite()
         char* delimiter = strchr(line, ';');
         if (!delimiter)
         {
-            printf("Test %d is invalid\n", testNum);
+            print("Test %d is invalid\n", testNum);
         }
         strncpy(tests[testNum], line, delimiter - line);
         line = delimiter + 1;
@@ -128,25 +128,25 @@ void runPerftSuite()
 
             if (actualLeafCount != expectedLeafCount)
             {
-                printf("[FAILED LEAF COUNT] - position: %s, depth %d: expected %d, actual %d\n",
+                print("[FAILED LEAF COUNT] - position: %s, depth %d: expected %d, actual %d\n",
                        fen, depth, expectedLeafCount, actualLeafCount);
                 numFailed++;
             }
             else if (position.hash != expectedZobristHash)
             {
-                printf("[FAILED ZOBRIST HASH] - position: %s, depth %d: expected %llu, actual %llu\n",
+                print("[FAILED ZOBRIST HASH] - position: %s, depth %d: expected %llu, actual %llu\n",
                        fen, depth, expectedZobristHash, position.hash);
                 numFailed++;
             }
             else if (position.whiteMidGameAdvantage != expectedWhiteMidgameAdvantage)
             {
-                printf("[FAILED MIDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
+                print("[FAILED MIDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
                        fen, depth, expectedWhiteMidgameAdvantage, position.whiteMidGameAdvantage);
                 numFailed++;
             }
             else if (position.whiteEndGameAdvantage != expectedWhiteEndgameAdvantage)
             {
-                printf("[FAILED ENDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
+                print("[FAILED ENDGAME EVAL SCORE] - position: %s, depth %d: expected %d, actual %d\n",
                        fen, depth, expectedWhiteEndgameAdvantage, position.whiteEndGameAdvantage);
                 numFailed++;
             }
@@ -157,15 +157,15 @@ void runPerftSuite()
         }
         if (failsBefore == numFailed)
         {
-            printf("[PASSED] - test %d passed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
+            print("[PASSED] - test %d passed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
         }
         else
         {
-            printf("[FAILED] - test %d failed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
+            print("[FAILED] - test %d failed in %.2f seconds\n", test, totalTestMillis / 1000.0f);
         }
         totalSuiteMillis += totalTestMillis;
     }
 
-    printf(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
-    printf(" - perft suite completed in %.2f seconds, with %d passed and %d failed\n", (double)totalSuiteMillis / 1000, numPassed, numFailed);
+    print(numFailed ?  "[SUITE FAILED]": "[SUITE PASSED]");
+    print(" - perft suite completed in %.2f seconds, with %d passed and %d failed\n", (double)totalSuiteMillis / 1000, numPassed, numFailed);
 }

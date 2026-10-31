@@ -54,4 +54,4 @@ void writeHashTableEntry(
     int ply);
 
 int getTableUseEstimate();
-void printPrincipalVariation(int depth);
+void getPrincipalVariation(char* pvStr, int depth);

@@ -28,8 +28,7 @@ static void* spawnSearchThread(void* searchOptions)
     DEBUG_ASSERT(searchResult.move != NO_MOVE);
     DEBUG_ASSERT(searchResult.score >= MIN_SCORE);
     DEBUG_ASSERT(searchResult.score <= MAX_SCORE);
-    printf("bestmove %s\n", getStrFromMove(searchResult.move));
-    fflush(stdout);
+    print("bestmove %s\n", getStrFromMove(searchResult.move));
     return NULL;
 }
 
@@ -347,17 +346,17 @@ int runUci()
 {
     while ((getchar()) != '\n');
 
-    printf("id name Ray\n");
-    printf("id author Joe Chrisman\n");
-    printf("option name Hash type spin default %d min %d max %d\n", DEFAULT_HASH_TABLE_SIZE, MIN_HASH_TABLE_SIZE, MAX_HASH_TABLE_SIZE);
-    printf("uciok\n");
-    fflush(stdout);
+    print("id name Ray\n");
+    print("id author Joe Chrisman\n");
+    print("option name Hash type spin default %d min %d max %d\n", DEFAULT_HASH_TABLE_SIZE, MIN_HASH_TABLE_SIZE, MAX_HASH_TABLE_SIZE);
+    print("uciok\n");
 
     size_t commandCapacity = 32;
     char* command = malloc(sizeof(char) * commandCapacity);
     for (;;)
     {
         ssize_t commandLen = getline(&command, &commandCapacity, stdin);
+        DEBUG_LOG("> %s", command);
         if (commandLen <= 1)
         {
             DEBUG_LOG("Client sent a command with a length less than two\n");
@@ -373,8 +372,7 @@ int runUci()
         // the client wants to make sure we are still alive
         else if (!strcmp(command, "isready"))
         {
-            printf("readyok\n");
-            fflush(stdout);
+            print("readyok\n");
         }
         // the client wants us to exit a search immediately
         else if (!strcmp(command, "stop"))

@@ -175,23 +175,20 @@ int getTableUseEstimate()
     return numInUse;
 }
 
-void printPrincipalVariation(int depth)
+void getPrincipalVariation(char* pvStr, int depth)
 {
     HashEntry* entry = getHashTableEntry(position.hash);
-    if (depth &&
+    if (depth > 0 &&
         entry->hash == position.hash &&
         entry->bestMove != NO_MOVE &&
         entry->type != NO_NODE)
     {
-        printf("%s ", getStrFromMove(entry->bestMove));
+        strcat(pvStr, getStrFromMove(entry->bestMove));
+        strcat(pvStr, " ");
         const Irreversibles irreversibles = position.irreversibles;
         makeMove(entry->bestMove);
-        printPrincipalVariation(depth - 1);
+        getPrincipalVariation(pvStr, depth - 1);
         unMakeMove(entry->bestMove, irreversibles);
-    }
-    else
-    {
-        printf("\n");
     }
 }
 
