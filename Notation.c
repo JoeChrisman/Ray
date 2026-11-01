@@ -42,6 +42,7 @@ char getCharFromPiece(Piece piece)
         case BLACK_ROOK: return 'r';
         case BLACK_QUEEN: return 'q';
         case BLACK_KING: return 'k';
+        case NO_PIECE: return '.';
         default: return '?';
     }
 }

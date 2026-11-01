@@ -12,8 +12,10 @@
 #include "Position.h"
 #include "Utils.h"
 #include "MoveOrder.h"
+#include "MoveGen.h"
 
-static int seed;
+static int seed = 0;
+static bool isAborting = false;
 
 void setSeed(int chosenSeed)
 {
@@ -68,80 +70,122 @@ uint64_t get64RandomBits()
     return (Bitboard)rand() | (Bitboard)rand() << 32;
 }
 
-void printBitboard(const Bitboard board)
+void DEBUG_LOG_BITBOARD(const Bitboard board)
 {
-    for (Square square = A8; square < H1; square++)
+    char line[25] = "";
+    for (Square square = A8; square <= H1; square++)
     {
-        if (GET_FILE(square) == 0)
-        {
-            print("\n");
-        }
         if (board & GET_BOARD(square))
         {
-            print(" 1 ");
+            strcat(line, " 1 ");
         }
         else
         {
-            print(" . ");
+            strcat(line, " . ");
+        }
+
+        if (GET_FILE(square) == 7)
+        {
+            DEBUG_LOG("bitboard 0x%lX %s\n", board, line);
+            memset(line, 0, sizeof(line));
         }
     }
-    print("\n");
 }
 
-void printMove(Move move)
+void DEBUG_LOG_MOVE(Move move)
 {
     const Piece moved = GET_PIECE_MOVED(move);
     const Piece captured = GET_PIECE_CAPTURED(move);
     const Square from = GET_SQUARE_FROM(move);
     const Square to = GET_SQUARE_TO(move);
+    const bool isEnPassant = IS_EN_PASSANT_CAPTURE(move);
+    const bool isDoublePawnPush = IS_DOUBLE_PAWN_PUSH(move);
+    const int score = GET_SCORE(move);
 
     const char pieceMoved = getCharFromPiece(moved);
     const char pieceCaptured = getCharFromPiece(captured);
 
-    print("from: %d, to: %d, moved: %c, captured: %c, isEnPassant: %d, isDoublePawnPush: %d, score: %d\n",
-           from,
-           to,
-           pieceMoved,
-           pieceCaptured,
-           IS_EN_PASSANT_CAPTURE(move),
-           IS_DOUBLE_PAWN_PUSH(move),
-           GET_SCORE(move));
+    const char* moveStr = getStrFromMove(move);
+
+    DEBUG_LOG("move %s 0x%X from %d to %d moved: %c capt %c isEp %d isDpp %d score %d\n",
+        moveStr,
+        move,
+        from,
+        to,
+        pieceMoved,
+        pieceCaptured,
+        isEnPassant,
+        isDoublePawnPush,
+        score);
 }
 
-void printPosition()
+void DEBUG_LOG_PIECES()
 {
-    print("sideToMove: %d\n", position.sideToMove);
-    print("zobristHash: %llu\n", position.hash);
-    print("occupied:\n");
-    printBitboard(position.occupied);
-    print("white:\n");
-    printBitboard(position.white);
-    print("black:\n");
-    printBitboard(position.black);
-    print("white pawns:\n");
-    printBitboard(position.bitboards[WHITE_PAWN]);
-    print("white knights:\n");
-    printBitboard(position.bitboards[WHITE_KNIGHT]);
-    print("white bishops:\n");
-    printBitboard(position.bitboards[WHITE_BISHOP]);
-    print("white rooks:\n");
-    printBitboard(position.bitboards[WHITE_ROOK]);
-    print("white queens:\n");
-    printBitboard(position.bitboards[WHITE_QUEEN]);
-    print("white king:\n");
-    printBitboard(position.bitboards[WHITE_KING]);
-    print("black pawns:\n");
-    printBitboard(position.bitboards[BLACK_PAWN]);
-    print("black knights:\n");
-    printBitboard(position.bitboards[BLACK_KNIGHT]);
-    print("black bishops:\n");
-    printBitboard(position.bitboards[BLACK_BISHOP]);
-    print("black rooks:\n");
-    printBitboard(position.bitboards[BLACK_ROOK]);
-    print("black queens:\n");
-    printBitboard(position.bitboards[BLACK_QUEEN]);
-    print("black king:\n");
-    printBitboard(position.bitboards[BLACK_KING]);
+    char line[25] = "";
+    for (Square square = A8; square <= H1; square++)
+    {
+        const Piece piece = position.pieces[square];
+        snprintf(line + strlen(line), 4, " %c ", getCharFromPiece(piece));
+
+        if (GET_FILE(square) == 7)
+        {
+            DEBUG_LOG("mailbox %s\n", line);
+            memset(line, 0, sizeof(line));
+        }
+    }
+}
+
+void DEBUG_LOG_POSITION()
+{
+    DEBUG_LOG("sideToMove: %d\n", position.sideToMove);
+    DEBUG_LOG("zobristHash: 0x%lX 0b%llu\n", position.hash, position.hash);
+    DEBUG_LOG("castleFlags: 0x%lX\n", position.irreversibles.castleFlags);
+    DEBUG_LOG("irreversiblePlies: %d\n", position.irreversibles.plies);
+    DEBUG_LOG("en passant bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.irreversibles.enPassant);
+    DEBUG_LOG("occupied bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.occupied);
+    DEBUG_LOG("white bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.white);
+    DEBUG_LOG("black bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.black);
+    DEBUG_LOG("white pawn bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_PAWN]);
+    DEBUG_LOG("white knight bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_KNIGHT]);
+    DEBUG_LOG("white bishop bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_BISHOP]);
+    DEBUG_LOG("white rook bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_ROOK]);
+    DEBUG_LOG("white queen bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_QUEEN]);
+    DEBUG_LOG("white king bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[WHITE_KING]);
+    DEBUG_LOG("black pawn bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_PAWN]);
+    DEBUG_LOG("black knight bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_KNIGHT]);
+    DEBUG_LOG("black bishop bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_BISHOP]);
+    DEBUG_LOG("black rook bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_ROOK]);
+    DEBUG_LOG("black queen bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_QUEEN]);
+    DEBUG_LOG("black king bitboard:\n");
+    DEBUG_LOG_BITBOARD(position.bitboards[BLACK_KING]);
+}
+
+void DEBUG_DUMP_ALL()
+{
+    DEBUG_LOG_PIECES();
+    DEBUG_LOG_POSITION();
+
+    Move firstMove[MAX_MOVES_IN_POSITION] = { NO_MOVE };
+    const Move* lastMove = genMoves(firstMove);
+    for (Move* move = firstMove; move < lastMove; move++)
+    {
+        DEBUG_LOG_MOVE(*move);
+    }
 }
 
 DebugStats debugStats = {0};
@@ -167,8 +211,18 @@ void DEBUG_LOG(const char *format, ...)
 
 void DEBUG_ABORT(const char* reason)
 {
-    DEBUG_LOG("PROGRAM ABORTED: %s\n", reason);
-    DEBUG_LOG("STACK TRACE:\n");
+    if (isAborting)
+    {
+        DEBUG_LOG("prevented recursive abort at %llums for %s\n", getMillis(), reason);
+        return;
+    }
+
+    isAborting = true;
+
+    DEBUG_LOG("CORE DUMP\n");
+    DEBUG_LOG("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    DEBUG_LOG("aborted at %llums for %s\n", getMillis(), reason);
+    DEBUG_LOG("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     void* stack[512];
     int stackSize = backtrace(stack, 512);
     char** symbols = backtrace_symbols(stack, stackSize);
@@ -176,6 +230,12 @@ void DEBUG_ABORT(const char* reason)
     {
         DEBUG_LOG("%s\n", symbols[i]);
     }
+
+    DEBUG_DUMP_ALL();
+
+    DEBUG_LOG("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
+    DEBUG_LOG("PROGRAM ABORTED\n");
+    DEBUG_LOG("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n");
     abort();
 }
 

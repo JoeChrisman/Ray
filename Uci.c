@@ -226,6 +226,7 @@ static int positionMoves()
         if (!foundMove)
         {
             DEBUG_LOG("Client sent illegal move %s\n", commandMoveStr);
+            DEBUG_ASSERT(foundMove);
             return 1;
         }
         commandMoveStr = strtok(NULL, delimiter);
@@ -341,10 +342,10 @@ static int handleCommand(char* command)
     return 1;
 }
 
-
 int runUci()
 {
-    while ((getchar()) != '\n');
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
 
     print("id name Ray\n");
     print("id author Joe Chrisman\n");
@@ -356,13 +357,16 @@ int runUci()
     for (;;)
     {
         ssize_t commandLen = getline(&command, &commandCapacity, stdin);
-        DEBUG_LOG("> %s", command);
-        if (commandLen <= 1)
+        if (feof(stdin))
         {
-            DEBUG_LOG("Client sent a command with a length less than two\n");
-            continue;
+            DEBUG_LOG("EOF read\n");
+            break;
         }
+        DEBUG_ASSERT(!ferror(stdin));
+        DEBUG_ASSERT(command[commandLen - 1] == '\n');
+
         command[commandLen - 1] = '\0';
+        DEBUG_LOG("CMD_READ > %s\n", command);
 
         // the client wants to kill the program
         if (!strcmp(command, "quit"))

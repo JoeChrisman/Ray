@@ -7,6 +7,7 @@
 #include "Move.h"
 #include "Position.h"
 #include "MoveGen.h"
+#include "Utils.h"
 
 #define WHITE_KINGSIDE_EMPTY_SQUARES  0x6000000000000000
 #define WHITE_QUEENSIDE_EMPTY_SQUARES 0x0E00000000000000
@@ -24,6 +25,7 @@ static Bitboard ordinalPins;
 
 inline Bitboard getCardinalSlidingMoves(Square from, Bitboard blockers)
 {
+    DEBUG_ASSERT(IS_VALID_SQUARE(from));
     const MagicSquare square = cardinalMagics[from];
     const Bitboard blockerNum = square.blockers & blockers;
     return cardinalAttacks[from][blockerNum * square.magic >> 52];
@@ -31,6 +33,7 @@ inline Bitboard getCardinalSlidingMoves(Square from, Bitboard blockers)
 
 inline Bitboard getOrdinalSlidingMoves(Square from, Bitboard blockers)
 {
+    DEBUG_ASSERT(IS_VALID_SQUARE(from));
     const MagicSquare square = ordinalMagics[from];
     const Bitboard blockerNum = square.blockers & blockers;
     return ordinalAttacks[from][blockerNum * square.magic >> 55];
