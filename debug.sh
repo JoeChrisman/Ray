@@ -38,6 +38,5 @@ cutechess-cli \
     -concurrency 8 \
     -recover \
     -pgnout debug-pgns.log \
-    2>&1 | tee debug-io.log | grep --line-buffered "Started"
-
+    > debug-io.log 2>&1
 
